@@ -1,0 +1,30 @@
+#import pyhton modules
+import sys
+import os
+#import package modules
+import japeto
+
+fileIO = japeto.importModule('libs.fileIO', True)
+
+def distributeScript(file):
+	homeDir = japeto.getHomeDir
+	system = japeto.getSystem()
+	fileName = file.split('/')[-1]
+	if system == 'MacOSX':
+		fileIO.copyFile(src = file, dst = '/Users/walt/Library/Preferences/Autodesk/maya/scripts/%s' % fileName)
+
+def distributePlugin(file):
+	system = japeto.getSystem()
+	fileName = file.split('/')[-1]
+	if system == 'MacOSX':
+		newFile = os.path.join('/Users/Shared/Autodesk/maya/plug-ins/%s' % fileName)
+		if fileIO.isFile(newFile) or fileIO.isDir(newFile):
+			print 'hi'
+			return False
+		elif fileIO.isFile(file):
+			print 'yes'
+			fileIO.copyFile(src = file, dst = newFile)
+		elif fileIO.isDir(file):
+			print 'no'
+			fileIO.copyDir(src = file, dst = newFile)
+		

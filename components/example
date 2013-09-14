@@ -1,0 +1,47 @@
+'''
+This is the EXAMPLE class
+
+:author: 
+:contact: 
+:date: 
+'''
+
+#import python modules
+
+#import maya modules
+
+#import package modules
+import japeto.components.component as component
+
+class EXAMPLE(component.Component):
+    def __init__(self, name):
+        super(EXAMPLE, self).__init__(name)
+    
+	
+    def _setLocation(self, value):
+	self.__location = value
+
+    #Initialize
+    @component.overloadArguments
+    def initialize(self, **kwargs):
+        super(EXAMPLE, self).initialize(**kwargs)
+
+    #----------------------------------
+    #SETUP FUNCTIONS
+    #----------------------------------    
+    def setupRig(self):
+        super(EXAMPLE, self).setupRig()
+	
+    def postSetupRig(self):
+        super(EXAMPLE,self).postSetupRig()
+	
+    
+    #----------------------------------
+    #BUILD FUNCTIONS
+    #----------------------------------		    
+    def rig(self):
+        super(EXAMPLE, self).rig()
+	    
+    def postRig(self):
+        super(EXAMPLE, self).postRig
+	
