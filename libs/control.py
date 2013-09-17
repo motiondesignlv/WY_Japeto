@@ -23,6 +23,35 @@ from japeto.libs import fileIO
 
 CONTROL_FILEPATH  = os.path.join(os.path.dirname(__file__), 'control.pyon')
 
+
+class Control(object):
+    def __init__(self, node = str()):
+        self.__control = node
+        self.__fullPathName = str()
+    
+    
+    #------------------
+    #GETTERS
+    #------------------    
+    @property
+    def name(self):
+        return self.__control
+
+    @property
+    def fullPathName(self):
+        return self.__fullPathName
+    
+    
+    #------------------
+    #SETTERS
+    #------------------    
+
+
+
+    
+    
+    
+
 def create(name, type = 'circle', parent = None, color = 'yellow'):
     data = pyon.load(CONTROL_FILEPATH)
     #create zero group for the control

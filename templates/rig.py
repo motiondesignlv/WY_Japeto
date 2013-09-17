@@ -38,11 +38,12 @@ class Rig(object):
         self.jointsGrp   = 'joints'
         self.controlsGrp = 'controls'
         self.modelGroup  = 'model'
-        self.__trsCtrl   = 'trs_%s' % common.CONTROL
-        self.__shotCtrl  = 'shot_%s' % common.CONTROL
+        self.__trsCtrl   = 'world_trs_%s' % common.CONTROL
+        self.__shotCtrl  = 'shot_trs_%s' % common.CONTROL
         self.components  = ordereddict.OrderedDict()
+        self.rigDir      = os.path.join(os.path.dirname(__file__), 'controls.pyon')
 
-        self.controls = list()
+        self.controls    = list()
 
     #GETTERS
     @property
@@ -179,3 +180,7 @@ class Rig(object):
         '''
         attribute.lockAndHide(['s', 'v'], [self._shotCtrl, self._trsCtrl])
         pass
+
+
+    def saveControls(self):
+        controls.save(self.controls, filepath = None, append = True)

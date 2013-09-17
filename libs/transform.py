@@ -155,6 +155,96 @@ def getAveragePositionFromRelatives( transform ):
 
     return avgPos
 
+
+def averagePosition(objects):
+    '''
+    Gets the average position of given objects
+    
+    Example:
+        average_position(["joint1", "joint2", "joint3"])
+        #Result: (1.546, 24.592,302.13)
+    
+    @param objects: Objects you would like to get the average position from
+    @type objects: *list* 
+    
+    @return: Point position
+    @rtype: *tuple*
+    '''
+    pointListX = list()
+    pointListY = list()
+    pointListZ = list()
+    for obj in objects:
+        if not cmds.objExists(obj):
+            sys.stderr.write('%s does not exist' % obj)
+        #Get world space position of an object
+        ws = cmds.xform(obj, q = True, ws = True, t = True)
+        #store the point positions
+        pointListX.append(ws[0])
+        pointListY.append(ws[1])
+        pointListZ.append(ws[2])
+    #end for loop
+    
+    #average positions
+    pointX = getAverage(pointListX)
+    pointY = getAverage(pointListY)
+    pointZ = getAverage(pointListZ)
+    
+    return [pointX, pointY, pointZ]
+
+
+def averagePositionFromSelected():    
+    #get selected items
+    mSelList = api.MGlobal.getActiveSelectionList()
+    if mSelList.length() == 0:
+        sys.stderr.write('nothing is selected!')
+    pntListX = list()
+    pntListY = list()
+    pntListZ = list()
+    
+   #loop through selected
+    for i in range(mSelList.length()):
+        dagPath = mSelList.getDagPath(i)
+        object = mSelList.getDependNode(i)
+        type = object.apiType()
+        
+        if (type == api.MFn.kTransform or type == api.MFn.kJoint):
+            mFnTransform = api.MFnTransform(dagPath)
+            wsVector = mFnTransform.translation(api.MSpace.kTransform)
+            pntListX.append(wsVector.x)
+            pntListY.append(wsVector.y)
+            pntListZ.append(wsVector.z)
+        #end if
+        else:
+            cmds.warning('%s is not a transform or a joint so will not be computed' % dagPath.fullPathName())
+        #end else
+        
+    pntX = getAverage(pntListX) 
+    pntY = getAverage(pntListY)
+    pntZ = getAverage(pntListZ)
+    
+    return api.MVector(pntX,pntY,pntZ)
+
+        
+def getAverage(values):
+    '''
+    Get the average number of a given list of numbers
+    
+    Example:
+        get_average([2.54,3,9,903])
+        #Result: 229.38499999999999
+        
+    @param values: Numbers to get average from
+    @type values: *list*
+    
+    @return: Average number
+    @rtype: *float*  
+    '''
+    #put values into a list
+    values = common.toList(values)
+    
+    return float(sum(values) / len(values))
+
+
 def getAimAxis ( transform, allowNegative = True):
     '''
     Get transform aim axis based on relatives.
