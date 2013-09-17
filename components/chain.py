@@ -50,6 +50,10 @@ class Chain(component.Component):
 
         self.addArgument('numJoints', 5)
         self.addArgument('stretch', True)
+    
+    @property
+    def _ikfkChain(self):
+        return self.__chainIkFk
         
     def setupRig(self):
         super(Chain, self).setupRig()

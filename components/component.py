@@ -19,15 +19,16 @@ import maya.cmds as cmds
 
 #import package modules
 #libs
-from japeto.libs import common, attribute, joint, control
+from japeto.libs import common 
+from japeto.libs import attribute
+from japeto.libs import joint
+from japeto.libs import control
+from japeto.libs import fileIO
 #components
 import japeto.components.puppet as puppet
 
 #import decompose matrix plugin
-try:
-    cmds.loadPlugin('matrixNodes.bundle')
-except:
-    pass
+fileIO.loadPlugin('matrixNodes.bundle')
 
 
 # Overload Arguments Decorator

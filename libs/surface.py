@@ -24,10 +24,49 @@ from japeto.libs import jsonData
 from japeto.libs import curve
 from japeto.libs import transform
 
-
 #Constant Variables
 INFORMATION = ['position','width', 'patchesU','patchesV', 'pivot', 'lengthRatio', 'axis']
 
+
+def createFromPoints(points, degree = 3, direction = 'x',name = "newSurface", spansU = 0, spansV = 0):
+    ''' 
+    Build curve from transforms 
+    
+    Example: 
+    #        >>> createFromTransforms (["transform1", "transform2"], 1, "newSurface")
+        
+        
+    @param transforms: Transform object to place point to draw the curve
+    @type transforms: *list*
+    
+    @param degree: degree of the curve, linear or cubic
+    @type degree: *int*
+    '''
+    
+    if not isinstance(points, list):
+        raise RuntimeError, 'There needs to be more then one transform, transforms argument must be a type *list*'
+
+    #generate the first curve
+    curve_one = curve.createFromPoints (points, degree, "tmpCurve1")
+    #move curve in the proper direction
+    cmds.move(transform.AXES[direction][0], transform.AXES[direction][1], transform.AXES[direction][2], curve_one, r=True)
+    #generate the first curve
+    curve_two = curve.createFromPoints (points, degree, "tmpCurve2")
+    #move curve in the proper direction
+    cmds.move(transform.AXES['-%s' % direction][0], transform.AXES['-%s' % direction][1], transform.AXES['-%s' % direction][2], curve_two, r=True)
+    
+    
+    if degree == 3:
+        surface = cmds.loft(curve_one,curve_two,ch=False,ss=0,n=name)[0]
+        cmds.rebuildSurface(surface,kr=0,kcp=True)
+    elif degree == 1:
+        surface = cmds.loft(curve_one,curve_two,ch=False,ss=0, degree =1, rebuild = True,n=name)[0]
+        cmds.rebuildSurface(surface,ch = False, rpo = 1, rt= 0, end = 1, kr = 0, kcp = 0, kc = 0, tol = 0.01, fr = 0, dir = 2, du = degree, dv = degree, su = spansU, sv = spansV) 
+        
+    #delete curves
+    cmds.delete((curve_one,curve_two))
+    
+    return surface
 
 def createFromTransforms(transforms, degree = 3, direction = 'x',name = "newSurface", spansU = 0, spansV = 0): 
     ''' 
@@ -57,22 +96,22 @@ def createFromTransforms(transforms, degree = 3, direction = 'x',name = "newSurf
     #generate the first curve
     curve_one = curve.createFromTransforms (transforms, degree, "tmpCurve1")
     #move curve in the proper direction
-    cmds.move(transform.AXES[direction][0], transform.AXES[direction][1], transform.AXES[direction][2], curve_one, r=True)
+    cmds.move(transform.AXES[direction][0], transform.AXES[direction][1], transform.AXES[direction][2], curve_one.name, r=True)
     #generate the first curve
     curve_two = curve.createFromTransforms (transforms, degree, "tmpCurve2")
     #move curve in the proper direction
-    cmds.move(transform.AXES['-%s' % direction][0], transform.AXES['-%s' % direction][1], transform.AXES['-%s' % direction][2], curve_two, r=True)
+    cmds.move(transform.AXES['-%s' % direction][0], transform.AXES['-%s' % direction][1], transform.AXES['-%s' % direction][2], curve_two.name, r=True)
     
     
     if degree == 3:
-        surface = cmds.loft(curve_one,curve_two,ch=False,ss=0,n=name)[0]
+        surface = cmds.loft(curve_one.name,curve_two.name,ch=False,ss=0,n=name)[0]
         cmds.rebuildSurface(surface,kr=0,kcp=True)
     elif degree == 1:
-        surface = cmds.loft(curve_one,curve_two,ch=False,ss=0, degree =1, rebuild = True,n=name)[0]
+        surface = cmds.loft(curve_one.name,curve_two.name,ch=False,ss=0, degree =1, rebuild = True,n=name)[0]
         cmds.rebuildSurface(surface,ch = False, rpo = 1, rt= 0, end = 1, kr = 0, kcp = 0, kc = 0, tol = 0.01, fr = 0, dir = 2, du = degree, dv = degree, su = spansU, sv = spansV) 
         
     #delete curves
-    cmds.delete((curve_one,curve_two))
+    cmds.delete((curve_one.name,curve_two.name))
     
     return surface
     

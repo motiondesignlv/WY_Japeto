@@ -9,9 +9,18 @@ This is the joint module for all the joint utility functions
 #import python modules
 import os
 import sys
+import tempfile
 
+#import Maya modules
 import maya.cmds as cmds
-import japeto.libs.common as common
+
+#import package modules
+from japeto.libs import common
+from japeto.libs import fileIO
+from japeto.libs import attribute
+from japeto.libs import ordereddict
+from japeto.libs import pyon
+reload(attribute)
 
 def create(name, parent = None, position = [0,0,0]):
     '''
@@ -176,3 +185,131 @@ def mirror (joint, search = common.LEFT, replace = common.RIGHT, axis = "x"):
         cmds.select( selection )
     else:
         cmds.select( cl= True)
+        
+
+def save( node, filepath=None ):
+    '''Save the following attributes from the joint: translate, rotate, scale, rotateAxis, rotateOrder, jointOrient, radius, drawStyle, parent
+
+
+    .. python ::
+        save( 'joint1' )
+        # Result: "/var/tmp/joints.pyson"
+
+        save( cmds.ls( type='joint'), '/var/tmp/bipedSkeleton.joints' )
+        # Result: "/var/tmp/bipedSkeleton.joints"
+    
+    :param node: Node(s) you want to export
+    :type node: **str** or **list**
+    :param filepath: Filepath to save the file. If None will use the OS temporary directory.
+    :type filepath: **str** or **list**
+    '''
+
+    # Get filepath
+    if filepath == None:
+        filepath = os.path.join( tempfile.gettempdir(), 'joints.pyson' )
+    
+    # Get nodes
+    data  = ordereddict.OrderedDict()
+    nodes = common.toList( node )
+
+    # Loop through nodes
+    for node in nodes:
+        
+        # Check object
+        if not cmds.objectType( node ) == 'joint':
+            continue
+        
+        # Node entries
+        data[node] = ordereddict.OrderedDict()
+        data[node]['parameters']  = ordereddict.OrderedDict()
+
+        # Store transformation
+        for attr in ['translate', 'rotate', 'scale', 'rotateAxis', 'jointOrient', 'rotateOrder', 'radius', 'drawStyle']:
+            if attribute.isCompound(attr, node ):
+                data[node]['parameters'][attr] = attribute.getValue( attr, node )[0]
+            else:
+                data[node]['parameters'][attr] = attribute.getValue( attr, node )
+        
+        # Store parent
+        data[node]['parent'] = common.getParent( node )
+
+        # World Position
+        data[node]['worldPosition'] = cmds.xform( node, q=True, ws=True, rp=True )
+        
+    # Save data
+    pyon.save( data, filepath )
+    return filepath
+
+
+
+def load( filepath, world=False ):
+    '''Import joints exported with the *save* function. **python format**
+    If the joint already exists it will set the transformation, if it doesn't it will create it.
+    
+    .. python ::
+
+        # This command will only import the exported values into persp node, if any.
+        load( '/var/tmp/attributes.pyson', 'persp' )
+
+    :param filepath: File exported with the save function.
+    :type filepath: **str**
+    :param world: Import world position
+    :type world: **bool**
+    '''
+
+    if not fileIO.isFile(filepath):
+        raise RuntimeError, 'No valid filepath "%s"' % filepath
+
+    # Get Data
+    data = pyon.load( filepath )
+    
+    # Create Joints
+    for joint in data.keys():
+        
+        parameters    = data[joint]['parameters']
+        parent        = data[joint]['parent']
+        
+        # Create Joint
+        if not common.isValid( joint ):
+            joint = create( name=joint )
+
+        # Create Parent Node
+        if not common.isValid( parent ) and parent in data.keys():
+            parent = create( name=parent )
+
+        # Parent joint
+        if common.isValid( parent ) and common.getParent( joint ) != parent:
+            cmds.parent( joint, parent )
+
+        # Set values
+        for attr in parameters.keys():
+            
+            # Check if valid
+            if not common.isValid('%s.%s' % (joint, attr)):
+                continue
+
+            # ------------------------------------------------------------------
+            # Check if connected or locked
+            locked = False
+            if attribute.isConnected( attr, joint, incoming=True, outgoing=False ) or attribute.isLocked( attr, joint ):
+                locked = True
+            if attribute.isCompound( attr, joint ):
+                attrChildren = cmds.attributeQuery( attr, node = joint, listChildren = True)
+                for attrChild in attrChildren:
+                    if attribute.isConnected( attrChild, joint, incoming=True, outgoing=False ) or attribute.isLocked( attrChild, joint ):
+                        locked = True
+            if locked:
+                continue
+            
+            # ------------------------------------------------------------------
+            # Set values
+            value = parameters[attr]
+            attribute.setValue( attr, joint, value )
+    
+    # Set world position
+    if world:
+        for joint in data.keys():
+            worldPosition = data[joint]['worldPosition']
+            cmds.move( worldPosition[0], worldPosition[1], worldPosition[2], joint, worldSpace=True, a=True, pcp=True )
+    
+    #logger.info( 'Joints loaded from: "%s"' % filepath)

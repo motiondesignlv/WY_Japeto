@@ -52,3 +52,16 @@ def isType(filename, fileExtension = 'py'):
 		return False
 	else:
 		raise IOError('%s does not exist!' % filename)
+	
+def loadPlugin(name):
+	'''
+	Loads plugins. First checks to see if it exists/loaded
+	
+	@param name: Name of the plugin with extension
+	@type name: *str*  
+	'''
+	try:
+		if not cmds.pluginInfo(name, q = True, l = True):
+			cmds.loadPlugin(name)
+	except:
+		cmds.warning('%s plugin cannot be loaded' % name)

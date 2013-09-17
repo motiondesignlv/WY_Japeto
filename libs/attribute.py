@@ -7,9 +7,11 @@ This is the attribute module for all the attribute utility functions
 '''
 
 import maya.cmds as cmds
-import japeto
 
-import japeto.libs.common as common
+from japeto.libs import common
+
+#Global constants
+NUMERIC_COMPOUND = ["doulbe2", "double3", "float2", "float3", "long2", "long3", "short2", "short3"]
 
 def resolveArgs (attr, node = None, validate = True):
     '''
@@ -71,18 +73,18 @@ def attrNodeList(attr, node):
 
     #check for nodes
     if not nodeList:
-		for attr in attrList:
-			attrName, attrPath, attrNode = resolveArgs(attr)
-			attrs.append(attrName)
-			nodes.append(attrNode)
+        for attr in attrList:
+            attrName, attrPath, attrNode = resolveArgs(attr)
+            attrs.append(attrName)
+            nodes.append(attrNode)
     else:
-		for node in nodeList:
-			for attr in attrList:
-				attrName, attrPath, attrNode = resolveArgs(attr, node)
-				if not attrName in attrs:
-				    attrs.append(attrName)
-				if not attrNode in nodes:
-				    nodes.append(attrNode)
+        for node in nodeList:
+            for attr in attrList:
+                attrName, attrPath, attrNode = resolveArgs(attr, node)
+                if not attrName in attrs:
+                    attrs.append(attrName)
+                if not attrNode in nodes:
+                    nodes.append(attrNode)
 
     return attrs, nodes
 
@@ -272,6 +274,12 @@ def getValue(attr, node = None):
     attrPath, attrName, attrNode = resolveArgs (attr, node)
     return cmds.getAttr(attrPath)
 
+def setValue(attr, node= None, value = 0):
+    attrPath = resolveArgs (attr, node)[0]
+    if isCompound(attrPath):
+        cmds.setAttr(attrPath, value[0], value[1], value[2])
+    else:
+        cmds.setAttr(attrPath, value)
 
 # Switch Attribute Function
 def switch (attr, node = None, value=0, choices = None, outputs = None):
@@ -366,6 +374,44 @@ def isConnected (attr, node = None, incoming = True, outgoing = True):
         return True
     else:
         return False
+    
+def isLocked(attr, node = None):
+    attrPath = resolveArgs (attr, node)[0]
+    
+    return cmds.getAttr(attrPath, l = True)
+
+def getType(attr, node = None):
+    attrPath = resolveArgs (attr, node)[0]
+    # Get attribute type
+    attrType = cmds.getAttr (attrPath, type = True)
+    return attrType
+
+def isCompound (attr, node = None):
+    '''
+    Check if attribute is of compound type
+
+    .. python ::
+        isCompound ("testMe.t")
+        # Result: True
+
+    :param attr: Attribute name or path
+    :type attr: *str*
+
+    :param node: Attribute parent node
+    :type node: *str*
+
+    :return: Return status
+    :rtype: *bool*
+    '''
+    # Get attribute type
+    attrType = getType (attr, node)
+
+    # Check if attribute type is compound
+    if attrType in NUMERIC_COMPOUND or attrType == "TdataCompound":
+        return True
+    else:
+        return False
+    
 
 
 def getConnections (attr, node = None, incoming = True, outgoing = True, plugs = True):
@@ -465,7 +511,6 @@ def copy(attr, node = None, destination = None, connect = False, reverseConnect 
 
     # Return new attribute path
     return copyAttr
-
 
 
 def getAttrMin(attr, node = None):
