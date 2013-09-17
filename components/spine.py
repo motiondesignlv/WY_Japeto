@@ -44,15 +44,16 @@ class Spine(chain.Chain):
         
         pointList = list()
         
-        #inbetweenNodes = common.getInbetweenNodes(self._ikfkChain.ikJoints[0], self._ikfkChain.ikJoints[-1])
+        #inbetweenNodes = common.getInbetweenNodes(qself._ikfkChain.ikJoints[0], self._ikfkChain.ikJoints[-1])
         pointList.append(cmds.xform(self._ikfkChain.ikJoints[0], q = True, ws = True, rp = True))
         for i,jnt in enumerate(self._ikfkChain.ikJoints):
             if jnt == self._ikfkChain.ikJoints[-1]:
                 break
             #end if
             pointList.append(transform.averagePosition([jnt, self._ikfkChain.ikJoints[i+1]]))
-        #end loop 
+        #end loop
         pointList.append(cmds.xform(self._ikfkChain.ikJoints[-1], q = True, ws = True, rp = True))
         #spineCurve = curve.createFromPoints(pointList, degree = 3)
         spineSurface = surface.createFromPoints(pointList, name = '%s_%s' % (self.name,common.SURFACE))
         surface.createFollicle(spineSurface, name = spineSurface.replace(common.SURFACE, common.FOLLICLE), U = .5, V = .5)
+        

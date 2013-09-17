@@ -14,7 +14,9 @@ import platform
 #maya modules
 import maya.cmds as cmds
 
-PACKAGE = os.path.dirname(__file__)
+PACKAGE    = os.path.dirname(__file__)
+RELEASEDIR = os.path.join(os.environ['HOME'], 'release/rig/')
+USERDIR = os.path.join(os.environ['HOME'], 'user/wyoder/rig/')
 
 def importModule(modulePath, force = False):
     '''
@@ -56,6 +58,7 @@ def importModule(modulePath, force = False):
 
     # This returns module as an object
     return module
+
 
 #File I/O
 #-------------------------------

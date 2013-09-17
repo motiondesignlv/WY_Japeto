@@ -19,14 +19,16 @@ import maya.cmds as cmds
 import japeto
 
 #import libs
-import japeto.libs.common as common
-import japeto.libs.attribute as attribute
-import japeto.libs.joint as joint
-import japeto.libs.control as control
-import japeto.libs.ordereddict as ordereddict
+from japeto.libs import common
+from japeto.libs import attribute
+from japeto.libs import joint
+from japeto.libs import control 
+from japeto.libs import ordereddict
+from japeto.libs import fileIO
 
 #import components
-import japeto.components.component as component
+from japeto.component import component
+
 
 class Rig(object):
     def __init__(self, name):
@@ -40,10 +42,12 @@ class Rig(object):
         self.modelGroup  = 'model'
         self.__trsCtrl   = 'world_trs_%s' % common.CONTROL
         self.__shotCtrl  = 'shot_trs_%s' % common.CONTROL
-        self.components  = ordereddict.OrderedDict()
-        self.rigDir      = os.path.join(os.path.dirname(__file__), 'controls.pyon')
+        self.components  = ordereddict.OrderedDict() 
 
         self.controls    = list()
+        
+        #directory for asset variables
+
 
     #GETTERS
     @property
