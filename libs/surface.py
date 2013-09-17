@@ -15,15 +15,15 @@ import sys
 import doctest
 
 #import Maya Modules
-import maya.cmds as cmds
-import maya.mel as mel
+from maya import cmds
+from maya import mel
 
 #Import package Modules
-import japeto
-common   = japeto.importModule('libs.common', True)
-jsonData = japeto.importModule('libs.jsonData', True)
-curve = japeto.importModule('libs.curve', True)
-transform = japeto.importModule('libs.transform', True)
+from japeto.libs import common
+from japeto.libs import jsonData
+from japeto.libs import curve
+from japeto.libs import transform
+
 
 #Constant Variables
 INFORMATION = ['position','width', 'patchesU','patchesV', 'pivot', 'lengthRatio', 'axis']
@@ -34,8 +34,7 @@ def createFromTransforms(transforms, degree = 3, direction = 'x',name = "newSurf
     Build curve from transforms 
     
     Example: 
-#        >>> createFromTransforms (["transform1", "transform2"], 1,
-"newSurface")
+        createFromTransforms (["transform1", "transform2"], 1,"newSurface")
         
         
     @param transforms: Transform object to place point to draw the curve
