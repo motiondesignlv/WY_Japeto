@@ -31,6 +31,7 @@ class Chain(component.Component):
     def __init__(self, name):
         super(Chain, self).__init__(name)
         
+        self.__chainIkFk = None
     
     @component.overloadArguments
     def initialize(self,**kwargs):

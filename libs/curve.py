@@ -7,44 +7,32 @@ This is the curve module for all the curve utility functions
 '''
 
 #import maya modules
-import maya.cmds as cmds
-import maya.mel as mel
+from maya import cmds
+from maya import mel
+from maya import OpenMaya
 
 #import package modules
 from japeto.libs import common
+from japeto.libs import node
+reload(node)
 
-class Curve(object):
-    def __init__(self, name = str()):
-        self.__name         = name
-        self.__fullPathName = str()
+
+class Curve(node.Node):
+    def __init__(self, name = str(), **kwargs):
+        super(Curve, self).__init__(name, **kwargs)
+
         self.__cvPositions  = list()
         self.__cvs          = list()
-    
-    
-    #---------------
-    #GETTERS
-    #---------------
-    @property    
-    def name(self):
-        return self.__name
-    
-    @property
-    def fullPathName(self):
-        if self.__name:
-            self.__fullPathName = common.fullPathName(self.__name)
-            #end if
-        #end if
-                
-        return self.__fullPathName
+        #self.__curve        = 
     
     @property
     def cvs(self):
-        if not self.__fullPathName and not self.__name:
+        if not self._fullPathName and not self._name:
             return list()
-        if not self.__fullPathName and self.__name:
+        if not self._fullPathName and self._name:
             self.fullPathName
         #end if
-        self.cvs = cmds.ls('%s.cv[*]' % self.__fullPathName, flatten = True)
+        self.cvs = getCVs(self._fullPathName)
         return self.__cvs
         
     @property
@@ -60,6 +48,11 @@ class Curve(object):
 
         return self.__cvPositions
 
+
+    @property
+    def curve(self):
+        pass
+
     #---------------
     #SETTERS
     #---------------
@@ -67,26 +60,7 @@ class Curve(object):
     def cvs(self, value):
         cvList = common.toList(value)
         self.__cvs = cvList
-        
-    @name.setter
-    def name(self, value):
-        if not isinstance(value, basestring):
-            raise ValueError('%s must be a *str* or *unicode* object' % value)
-        #end if
-        
-        if self.__name:
-            if cmds.objExists(self.__name):
-                cmds.rename(self.__name, value)
-            #end if
-        #end if
-        
-        self.__name = value
-        self.__fullPathName = common.fullPathName(self.__name)
-        
-    def delete(self):
-        if cmds.objExists(self.fullPathName):
-            cmds.delete(self.fullPathName)
-            
+
 
 
 #----------------------------------------------------
@@ -138,3 +112,35 @@ def createFromTransforms(transforms, degree = 1, name = 'curve#'):
     curve = createFromPoints(points, degree, name)
 
     return Curve(curve)
+
+def getParamFromPosition(curve, point):
+    '''
+    Gets a curves parameter value from a position or object in space
+    
+    @param curve: Curve you want to get paremter for
+    @type curve: *str* or *MObject*
+    
+    @param point: Point in space or Node to get MPoint from
+    @type: *list* or *MPoint* or **    
+    '''
+    #get dag path for curve and assign it a nurbsCurve function object 
+    dagPath = common.getDagPath(curve)
+    mFnNurbsCurve = OpenMaya.MFnNurbsCurve(dagPath)
+    
+    #Check to see if point is a list or tuple object
+    if not isinstance(point, list) and not isinstance(point, tuple):
+        if cmds.objExists(point):
+            point = cmds.xform(point, q = True, ws = True, t = True)
+        #end if
+    #end if
+    
+    #Get and MPoint object and a double ptr
+    mPoint = OpenMaya.MPoint(point[0], point[1], point[2])
+    mDoubleUtil = OpenMaya.MScriptUtil()
+    mDoubleUtil.createFromDouble(0.0)
+    mDoublePtr = mDoubleUtil.asDoublePtr()
+    
+    #get the value from the point in space and assign it to the double pointer
+    mFnNurbsCurve.getParamAtPoint(mPoint,mDoublePtr)
+
+    return mDoubleUtil.getDouble(mDoublePtr) #return value from double pointer

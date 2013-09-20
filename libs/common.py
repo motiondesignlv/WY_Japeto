@@ -671,6 +671,7 @@ def removeCharsFromString(name, chars):
     return newName
 
 
+
 # ------------------------------------------------------------------------------
 # Display Override Functions
 
@@ -803,6 +804,9 @@ def getChildren(node):
 
 
 def getShapes(node, index = None):
+    if cmds.nodeType(node) in ['nurbsCurve', 'mesh', 'nurbsSurface']:
+        return node
+    
     shapes = cmds.listRelatives(node, c = True, shapes = True)
 
     if shapes:
