@@ -12,11 +12,12 @@ import sys
 import platform
 
 #maya modules
-import maya.cmds as cmds
+from maya import cmds
 
-PACKAGE    = os.path.dirname(__file__)
-RELEASEDIR = os.path.join(os.environ['HOME'], 'release/rig/')
-USERDIR = os.path.join(os.environ['HOME'], 'user/wyoder/rig/')
+__VERSION__ = "0.1.0"
+PACKAGE     = os.path.dirname(__file__)
+RELEASEDIR  = str() #os.path.join(os.environ['HOME'], 'release/rig/')
+USERDIR     = str() #os.path.join(os.environ['HOME'], 'user/wyoder/rig/')
 
 def importModule(modulePath, force = False):
     '''

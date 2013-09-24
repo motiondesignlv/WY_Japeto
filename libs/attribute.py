@@ -6,7 +6,7 @@ This is the attribute module for all the attribute utility functions
 :date: October 2012
 '''
 
-import maya.cmds as cmds
+from maya import cmds
 
 from japeto.libs import common
 

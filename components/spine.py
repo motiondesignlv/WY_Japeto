@@ -6,7 +6,7 @@ This is the Spine component.
 :date:    September 2013
 '''
 #import maya modules
-import maya.cmds as cmds
+from maya import cmds
 
 #import package modules
 from japeto.libs import common
@@ -17,13 +17,10 @@ from japeto.libs import transform
 from japeto.libs import joint
 from japeto.libs import curve
 from japeto.libs import surface
-reload(surface)
 
 from japeto.components import component
 from japeto.components import chain
-reload(component)
-reload(transform)
-
+reload(chain)
 
 class Spine(chain.Chain):
     def __init__(self, name):

@@ -30,6 +30,7 @@ INFORMATION = ['position','width', 'patchesU','patchesV', 'pivot', 'lengthRatio'
 
 class Surface(object):
     def __init__(self):
+        pass
 
 def createFromPoints(points, degree = 3, direction = 'x',name = "newSurface", spansU = 0, spansV = 0):
     ''' 

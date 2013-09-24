@@ -212,7 +212,9 @@ class IkFk(object):
     def delete(self):
         cmds.delete(self.group)
 
-
+#------------------------------------------------------------
+#                      IK/FK LIMB CLASS
+#------------------------------------------------------------
 
 class IkFkLimb(IkFk):
     @classmethod
@@ -380,6 +382,40 @@ class IkFkLimb(IkFk):
             cmds.parent(jnt, grp)
     
         return [targetJnt1, targetJnt2]
+    
+    @classmethod
+    def ikMatchFk(cls, fkJoints, ikDriver, pvDriver):
+        newPvPos = IkFkLimb.getPoleVectorPosition(fkJoints)
+        endJntPos = cmds.xform(fkJoints[2], q = True, ws = True, t = True)
+        
+        cmds.xform(pvDriver, ws = True, t = newPvPos)
+        cmds.xform(ikDriver, ws = True, t = endJntPos)
+        
+    @classmethod
+    def fkMatchIk(cls, joints, ikJoints):
+        if not joints:
+            try:
+                joints = cmds.ls(sl =True)
+            except:
+                raise RuntimeError('Nothing selected')
+        #end if        
+        if not isinstance(joints, list) and not isinstance(joints, tuple):
+            raise RuntimeError('%s must be a list or tuple of 3 joints' % joints)
+        #end if
+        if len(joints) != 3:
+            raise RuntimeError('%s must have 3 joints in the list' % joints)
+        #end if
+        for jnt in joints:
+            if cmds.nodeType(jnt) != 'joint':
+                raise TypeError('%s must be a joint' % jnt)
+            
+        for jnt, ikJnt in zip(joints, ikJoints):
+            trs = cmds.xform(ikJnt, q = True, ws = True, t = True)
+            rot = cmds.xform(ikJnt, q = True, ws = True, ro = True)
+            
+            cmds.xform(jnt, ws = True, t = trs)
+            cmds.xform(jnt, ws = True, ro = rot)
+        
         
         
     def __init__(self, *args, **kwargs):
@@ -402,10 +438,29 @@ class IkFkLimb(IkFk):
         
         IkFk.createIkHandle(self.ikJoints[0], self.ikJoints[2], name = self.__ikHandle, parent = self.group)
         cmds.setAttr('%s.v' % self.__ikHandle, 0)
-    
+        ikDriver = self.__ikHandle
+        
         if stretch:
             #ik stretch setup
             self.stretchTargets  = IkFkLimb.createStretchIK(self.__ikHandle, self.group)
+            ikDriver = self.stretchTargets[1]
+        
+        #add message attributes for ik and fk switching
+        fkStartAttr = attribute.addAttr(self.group, 'fkStartJnt', attrType = 'message')
+        attribute.connect('%s.message' % self.fkJoints[0],fkStartAttr)
+        
+        fkMiddleAttr = attribute.addAttr(self.group, 'fkMiddleJnt', attrType = 'message')
+        attribute.connect('%s.message' % self.fkJoints[1],fkMiddleAttr)
+        
+        fkEndAttr = attribute.addAttr(self.group, 'fkEndJnt', attrType = 'message')
+        attribute.connect('%s.message' % self.fkJoints[2],fkEndAttr)
+        
+        ikDrvAttr = attribute.addAttr(self.group, 'ikDriver', attrType = 'message')
+        attribute.connect('%s.message' % ikDriver,ikDrvAttr)
+        
+        ikPvAttr = attribute.addAttr(self.group, 'ikDriver', attrType = 'message')
+        #attribute.connect('%s.message' % ikDriver, ikPvAttr)
+
 
 #------------------------------------------------------------
 #                      IK/FK FOOT CLASS

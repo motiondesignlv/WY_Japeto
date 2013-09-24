@@ -25,7 +25,7 @@ from japeto.libs import control
 from japeto.libs import transform
 from japeto.libs import joint
 
-import japeto.components.component as component
+from japeto.components import component
 
 class Chain(component.Component):
     def __init__(self, name):
