@@ -24,6 +24,7 @@ from japeto.libs import ikfk
 from japeto.libs import control
 from japeto.libs import transform
 from japeto.libs import joint
+reload(ikfk)
 
 from japeto.components import component
 
@@ -211,7 +212,7 @@ class Chain(component.Component):
             self.endJoint,
             name = self.name)
 
-        self.__chainIkFk.create()
+        self.__chainIkFk.create(stretch = True)
         
         #parent ikfk group to the rig grp
         cmds.parent(self.__chainIkFk.group, self.jointsGrp)

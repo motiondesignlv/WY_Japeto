@@ -15,6 +15,8 @@ from japeto.libs import common
 from japeto.libs import attribute
 from japeto.libs import transform 
 from japeto.libs import ordereddict
+from japeto.libs import curve
+from japeto.libs import surface
 
 
 #------------------------------------------------------------
@@ -22,7 +24,7 @@ from japeto.libs import ordereddict
 #------------------------------------------------------------
 class IkFk(object):
     @classmethod
-    def createIkHandle(cls,startJoint, endJoint, type = 'ikRPsolver', name = None, parent = None):
+    def createIkHandle(cls,startJoint, endJoint, type = 'ikRPsolver', name = None, parent = None, crv = None):
         '''
         Example:
         ..python
@@ -55,7 +57,14 @@ class IkFk(object):
         if not name:
             name = common.IKHANDLE
             
-        ikHandle = cmds.ikHandle(n = name, sj = startJoint, ee = endJoint, sol = type)
+        if type == 'ikSplineSolver':
+            if crv:
+                ikHandle = cmds.ikHandle(n = name, sj = startJoint, ee = endJoint, c = crv, sol = type, ccv = False, roc = True, pcv = True)
+            else:
+                ikHandle = cmds.ikHandle(n = name, sj = startJoint, ee = endJoint, sol = type, ccv = True, roc = True, pcv = True)
+        else:
+            ikHandle = cmds.ikHandle(n = name, sj = startJoint, ee = endJoint, sol = type)
+
         effector = ikHandle[1]
         ikHandle = ikHandle[0]
         
@@ -125,12 +134,15 @@ class IkFk(object):
     
 
     def create(self, searchReplace = str()):
-        #create ik/fk group node
+        #check group attribute
         if self.name:
             self.group = ('%s_%s' % (self.name, self.group))
+            
+        #create ik/fk group node and add attribute
         cmds.createNode('transform', n = self.group)
         cmds.addAttr(self.group, ln = 'ikfk', at = 'double', min = 0, max = 1, dv = 0, keyable = True)
         
+        #check parent attribute
         if self.__parent:
             cmds.parent(self.group, self.__parent)
         #end if
@@ -151,6 +163,11 @@ class IkFk(object):
             cmds.setAttr('%s.overrideEnabled' % ikJnt, 1)
             cmds.setAttr('%s.overrideColor' % ikJnt, 6)
             
+            #re-connect the inverse scale
+            if self.ikJoints:
+                if not attribute.isConnected('inverseScale', ikJnt, True, False):
+                    attribute.connect('%s.scale' % parent, '%s.inverseScale' % ikJnt)
+            
             self.ikJoints.append(ikJnt)
             parent = ikJnt
         #end loop
@@ -167,6 +184,10 @@ class IkFk(object):
             #set joint colors
             cmds.setAttr('%s.overrideEnabled' % fkJnt, 1)
             cmds.setAttr('%s.overrideColor' % fkJnt, 13)
+            
+            if self.fkJoints:
+                if not attribute.isConnected('inverseScale', fkJnt, True, False):
+                    attribute.connect('%s.scale' % parent, '%s.inverseScale' % fkJnt)
             
             self.fkJoints.append(fkJnt)
             parent = fkJnt
@@ -199,6 +220,10 @@ class IkFk(object):
             cmds.connectAttr('%s.output' % blendNode_rot, '%s.rotate' % blendJnt, f = True)
             #connect to group node
             cmds.connectAttr('%s.ikfk' % self.group, '%s.blender' % blendNode_rot, f = True)
+            
+            if self.blendJoints:
+                if not attribute.isConnected('inverseScale', blendJnt, True, False):
+                    attribute.connect('%s.scale' % parent, '%s.inverseScale' % blendJnt)
             
             #add blendJoints to list
             self.blendJoints.append(blendJnt)
@@ -561,7 +586,208 @@ class IkFkFoot(IkFk):
         return ankleDriver
 	
 	
+
+class IkFkSpline(IkFk):
+    @classmethod
+    def addParametricStretch(cls, crv, scaleCompensate=None, scaleAxis='x', uniform=False, useTranslationStretch=False):
+        '''
+        Add parametric based stretching to a splineIK chain. This uses U sampling of a curve to determine the distance the curve is stretching at
+        the given joints. This allows for a non-uniform scaling to be achieved (joints near where the curve is stretching will scale more). This
+        will also prevent overshooting of the joints while the curve stretches. You may hook any curve up to this as long as the curve is feeding
+        a splineIK handle (which it uses to find the attached joints).
+        
+        .. todo:: add maintainVolume option
+        
+        @param curve: the name of the curve transform (or shape) you want to use - This curve must be connected to a splineIK. This can be a live rebuild
+        @type curve: str
+        @param scaleCompensate: a node to use as the base character scale reference to ensure character scaling is taken into account
+        @type scaleCompensate: str
+        @param scaleAxis: the axis to scale (or translate) along for stretching
+        @type scaleAxis: str (x, y, z)
+        @param uniform: whether to use uniform stretching (default is false which means joints most affected by curve distortion will stretch more)
+                        This will cause a live uniform rebuild of your source curve to connect it to the splineIK.
+                        The uniform rebuild will have the same number of cvs as the source and will be the same degree curve. If you want more control
+                        you can always create the live rebuild first, connect it to the splineIK.geometry input and then run this on the rebuild curve
+        @type uniform: bool
+        @param useTranslationStretch: whether to translate the joints rather than scale (be aware this may cause the joints to overshoot the curve.)
+        @type useTranslationStretch: bool
+        
+        '''
+        # arg validation
+        curveShape = None
+        if cmds.nodeType(crv) == 'nurbsCurve':
+            curveShape = crv
+            crv = cmds.listRelatives(curveShape, p=True)[0]
+            
+        elif cmds.nodeType(crv) == 'transform':
+            curveShape = cmds.listRelatives(crv, shapes=True)[0] or None
+            
+        if not curveShape or cmds.nodeType(curveShape) != "nurbsCurve":
+            raise Exception('You must provide a valid nurbsCurve shape or transform to addParametricStretch')
+        
+        # get the joints for the curve
+        handle = cmds.listConnections(curveShape, d=True, type='ikHandle')[0] or None
+        if not handle:
+            raise Exception('The curve provided does not appear to be part of an IkHandle')
+            
+        # get the joints
+        joints = IkFkSpline._getIkJoints(handle)
+            
+        # handle the rebuild if uniform was specified
+        if uniform:
+            degree = cmds.getAttr(curveShape + ".degree")
+            origCurve = crv
+            crv, rebuild = cmds.rebuildCurve(crv, ch=1, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, d=degree, tol=.01)
+            crv = cmds.rename(crv, origCurve + "_rebuild")
+            curveShape = cmds.listRelatives(crv, shapes=True)[0]
+            cmds.connectAttr(curveShape + ".worldSpace[0]", handle + ".geometry", f=True)
+            
+        # determine their uv position first (before we move them)
+        uValues = {}
+        for joint in joints:
+            # get the joint world position
+            pos = cmds.xform(joint, q=True, ws=True, a=True, rp=True)
+            
+            # find the closest u position
+            u = curve.getParamFromPosition(curveShape, pos)
+            
+            uValues[joint] = u
+            
+            
+        # define the poc (pointOnCurveInfo) variable to hold the previous iterations poc node
+        prevPoc = None
+        
+        # cycle over the joints
+        for joint in reversed(joints):
+            # create the nodes we need
+            poc = cmds.createNode('pointOnCurveInfo', n=joint + "_stretch_poc")
+            cmds.connectAttr('%s.worldSpace[0]' % curveShape, '%s.inputCurve' % poc)
+            cmds.setAttr('%s.parameter' % poc, uValues[joint])
+            
+            # if this is not the first loop
+            if prevPoc:
+                # create the distance between node
+                dist = cmds.createNode('distanceBetween', n= joint + "_stretch_dst")
+                
+                # handle scale compensation
+                if scaleCompensate:
+                    cmds.connectAttr('%s.worldInverseMatrix[0]' % scaleCompensate, '%s.inMatrix1' % dist)
+                    cmds.connectAttr('%s.worldInverseMatrix[0]' % scaleCompensate, '%s.inMatrix2' % dist)
+                
+                # connect the previous poc and the new one to the distance
+                cmds.connectAttr('%s.position' % prevPoc, '%s.point2' % dist)
+                cmds.connectAttr('%s.position' % poc, '%s.point1' % dist)
+                
+                # if scale based stretching
+                if not useTranslationStretch:
+                    # create the multDoubleLinear node to normalize the default distance
+                    mdl = cmds.createNode('multDoubleLinear', n=joint + "_stretch_mdl")
+                    cmds.connectAttr('%s.distance' % dist, '%s.input1' % mdl)
+                    curDist = cmds.getAttr('%s.distance' % dist)
+                    curDist = curDist if curDist > .000001 else .000001
+                    cmds.setAttr('%s.input2' % mdl, (1.00/curDist))
+                    
+                    # connect to the joint
+                    cmds.connectAttr('%s.output' % mdl, '%s.s%s' % (joint, scaleAxis.lower()))
+                    
+                # if translation based stretching
+                else:
+                    cmds.connectAttr('%s.distance' % dist, '%s.t%s' % (joint, scaleAxis.lower()))
+                    
+                
+            # update the previous poc node variable
+            prevPoc = poc
+            
+            
+                
+        return joints
+        
+        
+    @classmethod
+    def _getIkJoints(cls, ikHandle):
+        '''
+        '''
+        # find information from handle
+        endEffector = cmds.listConnections(ikHandle + ".endEffector", s=True, d=False)[0]
+        startJoint = cmds.listConnections(ikHandle + ".startJoint", s=True, d=False)[0]
+        endJoint = cmds.listConnections(endEffector, s=True, d=False, type='joint')[0]
+        
+        return IkFkSpline._getContainedChain(startJoint, endJoint)
+        
+    @classmethod
+    def _getContainedChain(cls,currentJoint, targetJoint, _joints=None):
+        '''
+        '''
+        _joints = _joints[:] if _joints else []
+        _joints.append(currentJoint)
+        
+        if currentJoint == targetJoint:
+            return _joints
+        
+        for child in cmds.listRelatives(currentJoint, c=True, type='joint') or []:
+            tmp = IkFkSpline._getContainedChain(child, targetJoint, _joints=_joints)
+            if tmp:
+                return tmp
+            else:
+                continue
+                
+        return None
+
+    
+    
+    def __init__(self, *args, **kwargs):
+        super(IkFkSpline,self).__init__(*args,**kwargs)
+        pass
+    
+    def create(self, stretch = False):
+        super(IkFkSpline, self).create()
+        
+        #create the curve for the ikSpline
+        crv = curve.createFromTransforms(self.ikJoints, degree = 3, name = '%s_%s' % (self.name, common.CURVE))
+        cmds.parent(crv.fullPathName, self.group)
+        
+        IkFk.createIkHandle(self.ikJoints[0], self.ikJoints[-1], type = 'ikSplineSolver', name = '%s_%s' % (self.name, common.IKHANDLE), parent = self.group, crv = crv.fullPathName)
+        aimAxis = transform.getAimAxis(self.ikJoints[0])
+        
+        if stretch:
+            IkFkSpline.addParametricStretch(crv.fullPathName, scaleCompensate = None, scaleAxis = aimAxis, uniform = False, useTranslationStretch = True)
+            
+            
+class IkFkRibbon(IkFk):
+    def __init__(self, *args, **kwargs):
+        super(IkFkRibbon, self).__init__(*args, **kwargs)
+        self.follicles = list()
+        pass
+    
+    def create(self, *args, **kwargs):
+        super(IkFkRibbon, self).create(*args,**kwargs)
+        
+        #create a point list
+        pointList = list()
+        pointList.append(cmds.xform(self.ikJoints[0], q = True, ws = True, rp = True))
+        
+        #grab all the inbetween nodes
+        inbetweenNodes = common.getInbetweenNodes(self.ikJoints[0], self.ikJoints[-1])
+        
+        for i,jnt in enumerate(self.ikJoints):
+            if jnt == self.ikJoints[-1]:
+                break
+            #end if
+            pointList.append(transform.averagePosition([jnt, self.ikJoints[i+1]]))
+        #end loop
+        #append to the point list
+        pointList.append(cmds.xform(self.ikJoints[-1], q = True, ws = True, rp = True))
+        spineCurve = curve.createFromPoints(pointList, degree = 3)
+        spineSurface = surface.createFromPoints(pointList, name = '%s_%s' % (self.name,common.SURFACE))
+        midFollicle = surface.createFollicle(spineSurface, name = spineSurface.replace(common.SURFACE, common.FOLLICLE), U = .5, V = .5)
+        for jnt in inbetweenNodes:
+            pass
+
 	
+#---------------------------------------------------------------------
+#NEED TO GET RID OF SOME OF THESE DEPRECATED FUNCTIONS
+#ONCE THEY ARE TAKEN OUT OF COMPONENT BUILDS!
+#---------------------------------------------------------------------
 
 def createIkHandle(startJoint, endJoint, type = 'ikRPsolver', name = None, parent = None):
     '''
@@ -595,7 +821,7 @@ def createIkHandle(startJoint, endJoint, type = 'ikRPsolver', name = None, paren
     '''
     if not name:
         name = common.IKHANDLE
-        
+    
     ikHandle = cmds.ikHandle(n = name, sj = startJoint, ee = endJoint, sol = type)
     effector = ikHandle[1]
     ikHandle = ikHandle[0]

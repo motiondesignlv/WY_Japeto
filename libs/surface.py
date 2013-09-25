@@ -17,6 +17,7 @@ import doctest
 #import Maya Modules
 from maya import cmds
 from maya import mel
+from maya import OpenMaya
 
 #Import package Modules
 from japeto.libs import common
@@ -31,6 +32,43 @@ INFORMATION = ['position','width', 'patchesU','patchesV', 'pivot', 'lengthRatio'
 class Surface(object):
     def __init__(self):
         pass
+    
+    
+def getParamFromPosition(surface, point):
+    '''
+    Gets a curves parameter value from a position or object in space
+    
+    @param surface: Surface you want to get paremter for
+    @type surface: *str* or *MObject*
+    
+    @param point: Point in space or Node to get MPoint from
+    @type: *list* or *MPoint* or **    
+    '''
+    #get dag path for curve and assign it a nurbsCurve function object 
+    dagPath = common.getDagPath(surface)
+    mFnNurbsSurface = OpenMaya.MFnNurbsSurface(dagPath)
+    
+    #Check to see if point is a list or tuple object
+    if not isinstance(point, list) and not isinstance(point, tuple):
+        if cmds.objExists(point):
+            point = cmds.xform(point, q = True, ws = True, t = True)
+        #end if
+    #end if
+    
+    #Get and MPoint object and a double ptr
+    mPoint = OpenMaya.MPoint(point[0], point[1], point[2])
+    mUDoubleUtil_u = OpenMaya.MScriptUtil()
+    mUDoubleUtil_u.createFromDouble(0.0)
+    mDoublePtr_u = mUDoubleUtil_u.asDoublePtr()
+    mUDoubleUtil_v = OpenMaya.MScriptUtil()
+    mUDoubleUtil_v.createFromDouble(0.0)
+    mDoublePtr_v = mUDoubleUtil_v.asDoublePtr()
+    
+    #get the value from the point in space and assign it to the double pointer
+    mFnNurbsSurface.getParamAtPoint(mPoint,mDoublePtr_u, mDoublePtr_v, True)
+
+    return (mUDoubleUtil_u.getDouble(mDoublePtr_u), mUDoubleUtil_v.getDouble(mDoublePtr_v)) #return value from double pointer
+
 
 def createFromPoints(points, degree = 3, direction = 'x',name = "newSurface", spansU = 0, spansV = 0):
     ''' 
@@ -162,7 +200,14 @@ def skinTwistSurfaces(joints, surface):
         
     return skinCluster
 
-
+#------------------------------------------------------------------
+#NEED TO DELETE DEPRECATED CLOSESTPOINT
+#          |
+#          |
+#          |
+#          |
+#          V
+#------------------------------------------------------------------
 def closestPointOnNurbsSurface(surface,transform):
     '''
     creates a list of both parameters U and V closest point on a surface
@@ -240,7 +285,7 @@ def buildDictClosestPointSurface(surface,transforms = []):
     #iterate through "joints" list and get the 
     #closest point on the surface in both "U" and "V"
     for transform in transforms:
-        parameters = closestPointOnNurbsSurface(surface,transform)        
+        parameters = getParamFromPosition(surface,transform)        
         #place "parameterUV" list as the Value for dictClosestPoints[j]
         dictClosestPoints[transform] = parameters
 
@@ -409,6 +454,7 @@ def getSurfaceInfo(surfaces, information = None):
      
      
     return surfaceInfoDict
+
 
 
 def writeSurfaceInfo(surfaces, filePath, component = None, information = None):
