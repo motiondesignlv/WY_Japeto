@@ -17,6 +17,8 @@ from japeto.libs import transform
 from japeto.libs import joint
 from japeto.libs import curve
 from japeto.libs import surface
+reload(ikfk)
+reload(common)
 
 from japeto.components import component
 from japeto.components import chain
@@ -43,3 +45,5 @@ class Spine(chain.Chain):
             name = self.name)
         
         self.__spineIkFk.create()
+        
+        

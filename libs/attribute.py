@@ -197,7 +197,7 @@ def connect(source, destination, force = True):
     '''
     cmds.connectAttr(source, destination,f = force)
 
-def addAttr(node, attr, attrType = 'double',keyable = True, defValue = None, min = 0, max = 0, value = None , parent = None):
+def addAttr(node, attr, attrType = 'double',keyable = True, defValue = None, min = None, max = None, value = None , parent = None):
     '''
     @param node: node to apply attribute to
     @type node: *str* or *unicode*
@@ -226,16 +226,9 @@ def addAttr(node, attr, attrType = 'double',keyable = True, defValue = None, min
             if defValue == None:
                 defValue = 0 #set default value to 0
             if parent:
-                #add attr to the parent attribute
-                if not min and not max:
-                    cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue,parent = parent)
-                else:
-                    cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue, min = min, max = max,parent = parent)
+                cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue,parent = parent)
             else:
-                if not min and not max:
-                    cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue)
-                else:
-                    cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue, min = min, max = max)
+                cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable, dv = defValue)
         elif attrType == 'enum':
             if isinstance(defValue, str):
                 enumValue = defValue
@@ -250,6 +243,11 @@ def addAttr(node, attr, attrType = 'double',keyable = True, defValue = None, min
             cmds.addAttr(node, ln=attr, at = attrType)
         elif attrType == 'message':
             cmds.addAttr(node, ln = attr, at = attrType, keyable = keyable)
+            
+        if min != None:
+            cmds.addAttr('%s.%s' % (node,attr), e = True, min = min)
+        if max != None:
+            cmds.addAttr('%s.%s' % (node,attr), e = True, max = max)
 
     if value:
         #set the value on the attribute

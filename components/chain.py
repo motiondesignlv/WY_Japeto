@@ -14,8 +14,7 @@ This is the Chain component.
 import os
 import sys
 
-import maya.cmds as cmds
-import japeto 
+from maya import cmds
 
 #import package modules
 from japeto.libs import common

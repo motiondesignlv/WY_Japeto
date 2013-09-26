@@ -206,7 +206,7 @@ def skinTwistSurfaces(joints, surface):
 #          |
 #          |
 #          |
-#          V
+#          v
 #------------------------------------------------------------------
 def closestPointOnNurbsSurface(surface,transform):
     '''

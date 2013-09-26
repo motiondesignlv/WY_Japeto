@@ -17,7 +17,10 @@ from japeto.libs import transform
 from japeto.libs import ordereddict
 from japeto.libs import curve
 from japeto.libs import surface
-
+from japeto.libs import joint
+reload(joint)
+reload(common)
+reload(attribute)
 
 #------------------------------------------------------------
 #                      IK/FK Base CLASS
@@ -84,6 +87,7 @@ class IkFk(object):
         self.__parent     = parent
         self.__name       = name
         self.__group      = '%s%s' % (common.IK, common.FK)
+        self._aimAxis     = str()
         
         #public 
         self.originalJoints = self.__getJointChain()
@@ -99,6 +103,14 @@ class IkFk(object):
     @property
     def group(self):
         return self.__group
+    
+    @property
+    def aimAxis(self):
+        if not self._aimAxis:
+            if cmds.objExists(self.__startJoint):
+                self._aimAxis = transform.getAimAxis(self.__startJoint)
+        
+        return self._aimAxis
     
     
     #SETTERS
@@ -117,9 +129,6 @@ class IkFk(object):
         
         #getting all joints inbetween start and end joint
         inbetweeenJnts = common.getInbetweenNodes(self.__startJoint, self.__endJoint, list())
-        
-        #reverse joint list
-        inbetweeenJnts.reverse()
         
         #declare origJnts as inbetweeenJnts
         origJnts = inbetweeenJnts
@@ -702,7 +711,6 @@ class IkFkSpline(IkFk):
                 
         return joints
         
-        
     @classmethod
     def _getIkJoints(cls, ikHandle):
         '''
@@ -743,47 +751,208 @@ class IkFkSpline(IkFk):
         super(IkFkSpline, self).create()
         
         #create the curve for the ikSpline
-        crv = curve.createFromTransforms(self.ikJoints, degree = 3, name = '%s_%s' % (self.name, common.CURVE))
+        crv = curve.createFromTransforms(self.ikJoints, 
+                                         degree = 3, 
+                                         name = '%s_%s' % (self.name, 
+                                                           common.CURVE)
+                                         )
         cmds.parent(crv.fullPathName, self.group)
         
-        IkFk.createIkHandle(self.ikJoints[0], self.ikJoints[-1], type = 'ikSplineSolver', name = '%s_%s' % (self.name, common.IKHANDLE), parent = self.group, crv = crv.fullPathName)
+        IkFk.createIkHandle(self.ikJoints[0], 
+                            self.ikJoints[-1],
+                            type = 'ikSplineSolver',
+                            name = '%s_%s' % (self.name, common.IKHANDLE),
+                            parent = self.group,
+                            crv = crv.fullPathName)
+        
         aimAxis = transform.getAimAxis(self.ikJoints[0])
         
         if stretch:
-            IkFkSpline.addParametricStretch(crv.fullPathName, scaleCompensate = None, scaleAxis = aimAxis, uniform = False, useTranslationStretch = True)
+            IkFkSpline.addParametricStretch(crv.fullPathName, 
+                                            scaleCompensate = None, 
+                                            scaleAxis = aimAxis, 
+                                            uniform = False, 
+                                            useTranslationStretch = True)
             
             
 class IkFkRibbon(IkFk):
     def __init__(self, *args, **kwargs):
         super(IkFkRibbon, self).__init__(*args, **kwargs)
-        self.follicles = list()
-        pass
+        self.follicles    = list()
+        self.driverJoints = dict()
+        self.upJoint      = str()
+        self.aimJoint     = str()
     
     def create(self, *args, **kwargs):
         super(IkFkRibbon, self).create(*args,**kwargs)
+        #declare variables for function
+        self.driverJoints['start']  = list()
+        self.driverJoints['middle'] = list()
+        self.driverJoints['end']    = list()
+        ikStartJoint        = self.ikJoints[0]
+        ikEndJoint          = self.ikJoints[-1]
+        ikInbetweenJoints   = self.ikJoints[1:-1]
+        averagePoint        = transform.averagePosition(ikInbetweenJoints)
+        pointList           = list()
         
         #create a point list
-        pointList = list()
-        pointList.append(cmds.xform(self.ikJoints[0], q = True, ws = True, rp = True))
-        
-        #grab all the inbetween nodes
-        inbetweenNodes = common.getInbetweenNodes(self.ikJoints[0], self.ikJoints[-1])
-        
+        pointList.append(cmds.xform(ikStartJoint,
+                                    q = True,
+                                    ws = True,
+                                    rp = True))
+
+        #gather the position between joints and add to pointList
         for i,jnt in enumerate(self.ikJoints):
             if jnt == self.ikJoints[-1]:
                 break
             #end if
-            pointList.append(transform.averagePosition([jnt, self.ikJoints[i+1]]))
+            pointList.append(transform.averagePosition([jnt,
+                                                        self.ikJoints[i+1]]))
         #end loop
+        
         #append to the point list
-        pointList.append(cmds.xform(self.ikJoints[-1], q = True, ws = True, rp = True))
-        spineCurve = curve.createFromPoints(pointList, degree = 3)
-        spineSurface = surface.createFromPoints(pointList, name = '%s_%s' % (self.name,common.SURFACE))
-        midFollicle = surface.createFollicle(spineSurface, name = spineSurface.replace(common.SURFACE, common.FOLLICLE), U = .5, V = .5)
-        for jnt in inbetweenNodes:
-            pass
+        pointList.append(cmds.xform(self.ikJoints[-1],
+                                    q = True,
+                                    ws = True,
+                                    rp = True))
+        
+        #spineCurve = curve.createFromPoints(pointList, degree = 3)
+        spineSurface = surface.createFromPoints(pointList, 
+                                                name = '%s_%s' % 
+                                                (self.name,common.SURFACE))
+        for jnt in ikInbetweenJoints:
+            #get U and V parameters on the surface 
+            jntParam_u, jntParam_v = surface.getParamFromPosition(spineSurface,
+                                                                   jnt)
+            self.follicles.append(surface.createFollicle(spineSurface, '%s_%s'% 
+                                                         (jnt,common.FOLLICLE),
+                                                         jntParam_u,
+                                                         jntParam_v))
+        #end loop
+        
+        #------------------------------------------
+        #DRIVER JOINTS
+        #------------------------------------------
+        parent = self.group
+        position = averagePoint
+        #create driver joints
+        for i in range(1,4):
+            jnt = (joint.create('%sMiddle_%s_%s_%s'% 
+                                (self.name,common.DRIVER,
+                                 common.padNumber(i, 3),
+                                 common.JOINT
+                                 ),
+                                parent = parent,
+                                position = position)
+                   )
+            #append jnt to the middle driver joint dict
+            self.driverJoints['middle'].append(jnt)                
+                
+            #declare parent as the first middle driver joint
+            parent = self.driverJoints['middle'][0]
+            position = pointList[i + 1]
+        #end loop
+        
+        parentStart = self.group
+        parentEnd = self.group
+        
+        for i in range(1,3):
+            self.driverJoints['start'].append(common.duplicate
+                                              (ikStartJoint,
+                                               '%sStart_%s_%s_%s'% 
+                                               (self.name,common.DRIVER,
+                                                common.padNumber(i, 3),
+                                                common.JOINT),
+                                               parent = parentStart))
+            #declare parent as the first middle driver joint
+            parentStart = self.driverJoints['start'][i - 1]
+            
+            self.driverJoints['end'].append(common.duplicate
+                                            (ikEndJoint,
+                                             '%sEnd_%s_%s_%s'%
+                                             (self.name,common.DRIVER,
+                                              common.padNumber(i, 3),
+                                              common.JOINT),
+                                             parent = parentEnd))
+            
+            parentEnd = self.driverJoints['end'][i - 1]
+        #end loop
 
-	
+        #declare middle driver joints
+        middleDriverJoint1 = self.driverJoints['middle'][0]
+        middleDriverJoint2 = self.driverJoints['middle'][1]
+        middleDriverJoint3 = self.driverJoints['middle'][2]
+        
+        #create up and aim joints
+        self.upJoint = common.duplicate(middleDriverJoint1,
+                                        middleDriverJoint1.replace
+                                        ('_%s_' % common.DRIVER,
+                                         '_%s_' % common.UP),
+                                        parent = self.group)
+        
+        self.aimJoint = common.duplicate(middleDriverJoint1,
+                                        middleDriverJoint1.replace
+                                        ('_%s_' % common.DRIVER,
+                                         '_%s_' % common.AIM),
+                                        parent = self.group)
+          
+        cmds.parent(middleDriverJoint1, self.aimJoint)
+        upAxis = transform.getAimAxis(self.upJoint)
+        cmds.xform(self.upJoint, relative = True, t = [0,0,1])
+        cmds.pointConstraint(self.driverJoints['start'][0],
+                             self.driverJoints['end'][0],
+                             self.aimJoint,
+                             mo = True)
+        cmds.parentConstraint(self.driverJoints['start'][0], 
+                              self.driverJoints['end'][0],
+                              self.upJoint,
+                              mo = True)
+        
+        cmds.aimConstraint(self.driverJoints['end'][0],
+                           self.aimJoint,
+                           aim = transform.AXES[self.aimAxis],
+                           u = transform.AXES[upAxis],
+                           worldUpObject = self.upJoint,
+                           worldUpType = 'object')
+        
+
+        #ADD and CONNECT attributes
+        #get translate on the aim axis
+        #trsDriver1 = cmds.getAttr('%s.t%s' % (self.driverJoints['middle'][1],
+        #                                      self.aimAxis))
+        
+        trsDriver2 = cmds.getAttr('%s.t%s' % (middleDriverJoint3,
+                                              self.aimAxis))
+        
+        #create a multiply divide to invert the attribute
+        invertMDN = cmds.createNode('multiplyDivide',
+                                    n = middleDriverJoint2.replace
+                                    ('_%s' % common.JOINT, 
+                                     '_%s' % common.MULTIPLYDIVIDE))
+        #set the multiply divide node attributes
+        cmds.setAttr('%s.input1X' % invertMDN, -1)
+        
+        #create the attribute on the main driver joint
+        driver1Attr = attribute.addAttr(middleDriverJoint1,
+                                        'driver1',
+                                        defValue = trsDriver2,
+                                        min = 0)
+        
+        driver2Attr = attribute.addAttr(middleDriverJoint1,
+                                        'driver2',
+                                        defValue = trsDriver2,
+                                        min = 0)
+        
+        #connect driver attributes to the joints
+        attribute.connect(driver1Attr,
+                          '%s.input2X' % invertMDN)
+        attribute.connect('%s.outputX' % invertMDN,
+                          '%s.t%s' % (middleDriverJoint2,
+                                      self.aimAxis))
+        attribute.connect(driver2Attr,
+                          '%s.t%s' % (middleDriverJoint3,
+                                      self.aimAxis))
+
 #---------------------------------------------------------------------
 #NEED TO GET RID OF SOME OF THESE DEPRECATED FUNCTIONS
 #ONCE THEY ARE TAKEN OUT OF COMPONENT BUILDS!

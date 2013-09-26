@@ -34,17 +34,15 @@ def create(name, parent = None, position = [0,0,0]):
     #clear selection
     cmds.select(cl = True)
 
+    jnt = cmds.joint(n = name, position = position)
+
     if parent:
         if not cmds.objExists(parent):
             cmds.createNode('transform', n = parent)
-        #if parent, create joint under parent and position
-        jnt = cmds.joint(n = name)
+            cmds.xform(parent, ws = True, t = position)
+        
         cmds.parent(jnt, parent)
-        cmds.xform(parent, ws = True, t = position)
-        return jnt
-
-    #if no parent, just create joint at position
-    jnt = cmds.joint(n = name, position = position)
+        
 
     return jnt
 

@@ -103,6 +103,8 @@ POLEVECTOR        = "pv"
 GIMBAL            = "gimbal"
 CONDITION         = "condition"
 SET               = "set"
+AIM               = 'aim'
+UP                = 'up'
 
 
 #Type constants
@@ -826,11 +828,12 @@ def duplicate(node, name = None, parent = None):
         dupNode = cmds.duplicate(node, parentOnly = True)[0]
 
     if parent:
-        cmds.parent(dupNode, parent)
+        if not getParent(node) == parent:
+            cmds.parent(dupNode, parent)
 
     return dupNode
 
-def getInbetweenNodes(startNode, endNode, inbetweenNodes = list()):
+def getInbetweenNodes(startNode, endNode, inbetweenNodes = None):
     '''
     Gets all the nodes inbetween the two given nodes
 
@@ -851,6 +854,7 @@ def getInbetweenNodes(startNode, endNode, inbetweenNodes = list()):
         sys.stderr.write('%s or %s do not exists in the current scene' % (startNode, endNode))
     #end if
 
+    inbetweenNodes = inbetweenNodes[:] if inbetweenNodes else []
 
     #get parent
     parent = cmds.listRelatives(endNode, p = True)        
@@ -861,7 +865,7 @@ def getInbetweenNodes(startNode, endNode, inbetweenNodes = list()):
              return inbetweenNodes
 
         #Add parent to inbetween node list
-        inbetweenNodes.append(parent[0])
+        inbetweenNodes.insert(0,parent[0])
 
         return getInbetweenNodes(startNode, parent[0], inbetweenNodes)	
 
