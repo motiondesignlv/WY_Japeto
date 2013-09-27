@@ -88,6 +88,7 @@ class IkFk(object):
         self.__name       = name
         self.__group      = '%s%s' % (common.IK, common.FK)
         self._aimAxis     = str()
+        self.upAxis       = str()
         
         #public 
         self.originalJoints = self.__getJointChain()
@@ -550,7 +551,7 @@ class IkFkFoot(IkFk):
         parent = self.group
         for grp in footRollGrpList:
             #store each group in the footRollDict
-            self.__footRollGrpDict[grp] = cmds.createNode('transform', n = '%s_%s' % (self.name(), grp))
+            self.__footRollGrpDict[grp] = cmds.createNode('transform', n = '%s_%s' % (self.name, grp))
             grpFootRollAttr = attribute.addAttr(self.__footRollGrpDict[grp] , 'footRolls', attrType = 'message')
             #connect foot roll attr on ik/fk group to message attribute
             attribute.connect(footRollAttr, grpFootRollAttr)
@@ -825,6 +826,7 @@ class IkFkRibbon(IkFk):
         self.surface = surface.createFromPoints(pointList, 
                                                 name = '%s_%s' % 
                                                 (self.name,common.SURFACE))
+        cmds.parent(self.surface, self.group)
         for i,jnt in enumerate(ikInbetweenJoints):
             #get U and V parameters on the surface 
             jntParam_u, jntParam_v = surface.getParamFromPosition(self.surface,
@@ -848,6 +850,7 @@ class IkFkRibbon(IkFk):
             cmds.parent(follicleTrans,self.group)
             cmds.parentConstraint(targetJnt, jnt)
             self.follicles.append(follicleTrans)
+            self.targetJoints.append(targetJnt)
         #end loop
         
         
@@ -925,6 +928,7 @@ class IkFkRibbon(IkFk):
         
         cmds.xform(startUpJoint, ws = True, relative = True, t = [0,0,1])
         upAxis = transform.getAimAxis(startUpJoint) #<---get up axis
+        self.upAxis = upAxis #<---need to have all variables match proceeding
         
         cmds.xform(startDriverJoint2, ws = True, t = pointList[1])
         

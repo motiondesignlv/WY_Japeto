@@ -32,9 +32,18 @@ from japeto.components import limb
 from japeto.components import leg
 from japeto.components import arm
 from japeto.components import foot
-from japeto.components import chain
+from japeto.components import chain, spine
 from japeto.components import finger
 from japeto.components import hand
+reload(component)
+reload(limb)
+reload(leg)
+reload(arm)
+reload(foot)
+reload(chain)
+reload(spine)
+reload(finger)
+reload(hand)
 
 
 class Biped(rig.Rig):
@@ -64,9 +73,9 @@ class Biped(rig.Rig):
         super(Biped,self).initialize()
         #center
         self.register('Spine',
-            chain.Chain('c_spine'),
+            spine.Spine('c_spine'),
             position = [0,15,0],
-            numJoints = 4)
+            numJoints = 5)
 
         #left side
         self.register('Left Leg',
@@ -132,7 +141,7 @@ class Biped(rig.Rig):
 
         cmds.parent(self.rootJoint, self.jointsGrp)
 
-        rootCtrl = control.create(self.rootJoint.replace('_%s' % common.JOINT,''),
+        rootCtrl=control.create(self.rootJoint.replace('_%s' %common.JOINT,''),
             type = 'square',
             parent = self._trsCtrl,
             color = 'yellow')
@@ -156,7 +165,7 @@ class Biped(rig.Rig):
 
         cmds.parent(self.hipJoint,self.jointsGrp)
 
-        hipCtrl = control.create(self.hipJoint.replace('_%s' % common.JOINT, ''),
+        hipCtrl=control.create(self.hipJoint.replace('_%s' % common.JOINT, ''),
             type = 'square',
             parent = rootCtrl,
             color = 'yellow')
@@ -166,7 +175,8 @@ class Biped(rig.Rig):
             spineCtrlSize + 1,
             spineCtrlSize + 1])
 
-        cmds.xform(common.getParent(hipCtrl), ws = True, t = self.components['Spine'].position)
+        cmds.xform(common.getParent(hipCtrl), ws = True,
+                   t = self.components['Spine'].position)
         cmds.parentConstraint(hipCtrl, self.hipJoint, mo = True)
 
         #connect fingers
@@ -183,50 +193,76 @@ class Biped(rig.Rig):
             cmds.delete(cmds.parent(rightFingers[finger].rigGrp))
 
         #connect left ikfk attributes to the leg
-        cmds.setAttr('%s.ikfk' % self.components['Left Leg'].ikfkGroup, l = False)
-        attribute.connect('%s.ikfk' % self.components['Left Foot'].footCtrl, '%s.ikfk' % self.components['Left Leg'].ikfkGroup)
+        cmds.setAttr('%s.ikfk' % self.components['Left Leg'].ikfkGroup,
+                     l = False)
+        attribute.connect('%s.ikfk' % self.components['Left Foot'].footCtrl,
+                          '%s.ikfk' % self.components['Left Leg'].ikfkGroup)
 
         #connect right ikfk attributes to the leg
         cmds.setAttr('%s.ikfk' % self.components['Right Leg'].ikfkGroup, l = False)
-        attribute.connect('%s.ikfk' % self.components['Right Foot'].footCtrl, '%s.ikfk' % self.components['Right Leg'].ikfkGroup)
+        attribute.connect('%s.ikfk' % self.components['Right Foot'].footCtrl,
+                          '%s.ikfk' % self.components['Right Leg'].ikfkGroup)
 
         #copy and connect attributes from foot control to the ik control
-        for part in [self.components['Left Foot'], self.components['Right Foot']]:
+        for part in [self.components['Left Foot'], 
+                     self.components['Right Foot']]:
             for attrPath in part.footRollAttrs:
-		attrPathSplit = attrPath.split('.')
-		node = attrPathSplit[0]
-		attr = attrPathSplit[1]
-            if attr == 'ikfk':
-                continue
-            #end if
+                attrPathSplit = attrPath.split('.')
+                node = attrPathSplit[0]
+                attr = attrPathSplit[1]
+                if attr == 'ikfk':
+                    continue
+                #end if
 
-            if cmds.objExists(attrPath):
-                if part._getSide() == common.LEFT:
-		    attribute.copy(attr, node, destination = self.components['Left Leg'].controls['ik'][0], connect = True,reverseConnect = False)
-                elif part._getSide() == common.RIGHT:
-		    attribute.copy(attr, node, destination = self.components['Right Leg'].controls['ik'][0], connect = True,reverseConnect = False)
-		    attribute.hide(attrPath)
+                if cmds.objExists(attrPath):
+                    if part._getSide() == common.LEFT:
+                        attribute.copy(attr, node, destination = self.components
+                                       ['Left Leg'].controls['ik'][0],
+                                       connect = True,reverseConnect = False)
+                    elif part._getSide() == common.RIGHT:
+                        attribute.copy(attr, node,destination = self.components
+                                       ['Right Leg'].controls['ik'][0],
+                                       connect = True,reverseConnect = False)
+                        attribute.hide(attrPath)
+                    #end elif
+                #end if
+            #end loop
+        #end loop
 
         #setup ikfk attr on the arms
-        for part in [self.components['Right Hand'], self.components['Left Hand']]:
+        for part in [self.components['Right Hand'],
+                     self.components['Left Hand']]:
             if part._getSide() == common.LEFT:
-                cmds.setAttr('%s.ikfk' % self.components['Left Arm'].ikfkGroup, l = False)
-                attribute.copy('ikfk', self.components['Left Arm'].ikfkGroup, destination = part.handCtrl, connect = True,reverseConnect = False)
+                cmds.setAttr('%s.ikfk' % self.components['Left Arm'].ikfkGroup,
+                             l = False)
+                attribute.copy('ikfk', self.components['Left Arm'].ikfkGroup,
+                               destination = part.handCtrl,connect = True,
+                               reverseConnect = False)
             elif part._getSide() == common.RIGHT:
-                cmds.setAttr('%s.ikfk' % self.components['Right Arm'].ikfkGroup, l = False)
-                attribute.copy('ikfk', self.components['Right Arm'].ikfkGroup, destination = part.handCtrl, connect = True,reverseConnect = False)
+                cmds.setAttr('%s.ikfk'%self.components['Right Arm'].ikfkGroup,
+                             l = False)
+                attribute.copy('ikfk', self.components['Right Arm'].ikfkGroup,
+                               destination = part.handCtrl, connect = True,
+                               reverseConnect = False)
+            #end elif
+        #end loop
 
 
         for part in [self.components['Left Leg'], self.components['Right Leg']]:
             for shape in common.getShapes(part.controls['fk'][-1]):
-	        attrPath = '%s.v' % shape
-		attrConnections = attribute.getConnections (attrPath, incoming = True, outgoing = False, plugs = True)
-            if attrConnections:
-                for attr in attrConnections:
-		    cmds.disconnectAttr(attr,attrPath)
-
-            cmds.setAttr(attrPath, 0)
-
+                attrPath = '%s.v' % shape
+                attrConnections = attribute.getConnections (attrPath,
+                                                            incoming = True,
+                                                            outgoing = False,
+                                                            plugs = True)
+                if attrConnections:
+                    for attr in attrConnections:
+                        cmds.disconnectAttr(attr,attrPath)
+                    #end loop
+                #end if
+                cmds.setAttr(attrPath, 0)
+            #end loop
+        #end loop
 
     def postBuild(self):
         super(Biped, self).postBuild()

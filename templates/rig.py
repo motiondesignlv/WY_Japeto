@@ -27,7 +27,7 @@ from japeto.libs import ordereddict
 from japeto.libs import fileIO
 
 #import components
-from japeto.component import component
+from japeto.components import component
 
 
 class Rig(object):

@@ -33,6 +33,9 @@ class Chain(component.Component):
         
         self.__chainIkFk = None
         self.ikFkGroup   = str()
+        self.fkJoints    = list()
+        self.ikJoints    = list()
+        self.blendJoints = list()
     
     @component.overloadArguments
     def initialize(self,**kwargs):
@@ -212,27 +215,29 @@ class Chain(component.Component):
             self.endJoint,
             name = self.name)
 
-        self.__chainIkFk.create(stretch = True)
-        self.ikFkGroup = self.__chainIkFk.group
-        
-        #parent ikfk group to the rig grp
-        cmds.parent(self.__chainIkFk.group, self.jointsGrp)
-        
-        
+        self.__chainIkFk.create()
+        self.ikFkGroup   = self.__chainIkFk.group
+        self.fkJoints    = self.__chainIkFk.fkJoints
+        self.ikJoints    = self.__chainIkFk.ikJoints
+        self.blendJoints = self.__chainIkFk.blendJoints
         #----FK Setup---
-        fkCtrls = self._fkControlSetup(self.__chainIkFk.fkJoints)
+        self.controls['fk'] = self._fkControlSetup(self.fkJoints)
         
             
-        cmds.setAttr('%s.ikfk' % self.__chainIkFk.group, 1) #<--- might change to IK
+    def postRig(self):
+        super(Chain, self).postRig()
+        #parent ikfk group to the rig grp
+        cmds.parent(self.ikFkGroup, self.jointsGrp)
+        
+        cmds.setAttr('%s.ikfk' % self.ikFkGroup, 1) #<--- might change to IK
         
         #turn off visibility of joints
-        for jnt in [self.__chainIkFk.fkJoints[0], self.__chainIkFk.ikJoints[0],self.__chainIkFk.blendJoints[0]]:
+        for jnt in [self.fkJoints[0], self.ikJoints[0],self.blendJoints[0]]:
             cmds.setAttr('%s.v' % jnt, 0)
 
         #assign hooks
-        self.hookRoot.extend([self.__chainIkFk.ikJoints[0],
-                common.getParent(fkCtrls[0])])
-        self.hookPoint.extend([self.__chainIkFk.blendJoints[-1]])
+        self.hookRoot.extend([self.ikJoints[0],common.getParent(self.controls['fk'][0])])
+        self.hookPoint.extend([self.blendJoints[-1]])
         
     def _fkControlSetup(self, joints):
         '''
@@ -250,7 +255,7 @@ class Chain(component.Component):
         '''
         joints = common.toList(joints)
         
-        if not isinstance(joints, list) or not isinstance(joints, tuple):
+        if not isinstance(joints, list) and not isinstance(joints, tuple):
             raise RuntimeError('%s must be a *list* or *tuple*' % joints)
         
         fkCtrls = list()
@@ -270,12 +275,15 @@ class Chain(component.Component):
             for shape in common.getShapes(ctrl):
                 if self.ikFkGroup:
                     attribute.connect('%s.ikfk' % self.ikFkGroup,
-                            '%s.v' % shape)
-
-            #end for
+                                      '%s.v' % shape)
+                #end if
+            #end loop
 
             parent = ctrl
             fkCtrls.append(ctrl)
+        #end loop
+            
+        return fkCtrls
         
     def _createAimLocator(self, position = [0,0,0], color = None):
         #create aim locator and move into position

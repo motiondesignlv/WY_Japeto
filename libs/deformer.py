@@ -224,7 +224,7 @@ class SkinCluster(object):
         
         #check to see if extension is attached to the filePath
         if not filePath.endswith(SkinCluster.kFileExtension):
-            filePath += kFileExtension
+            filePath += SkinCluster.kFileExtension
         
         #gather the data
         self.getData()

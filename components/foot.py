@@ -21,6 +21,7 @@ import japeto.libs.ikfk as ikfk
 import japeto.libs.control as control
 import japeto.libs.transform as transform
 import japeto.libs.joint as joint
+reload(ikfk)
 
 #import components
 import japeto.components.component as component
