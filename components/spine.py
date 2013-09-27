@@ -45,5 +45,10 @@ class Spine(chain.Chain):
             name = self.name)
         
         self.__spineIkFk.create()
+        self.ikFkGroup = self.__spineIkFk.group
         
+        #FK Control Setup
+        fkCtrls = self._fkControlSetup(self.__spineIkFk.fkJoints)        
         
+        #IK Controls Setup
+        #startIkControl = control.create(self.ikJoints[0].replace('_%s_' % common.JOINT, '_%s_' % common.CONTROL), type = 'circle', parent = None, color = 'yellow')

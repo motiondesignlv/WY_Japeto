@@ -32,6 +32,7 @@ class Chain(component.Component):
         super(Chain, self).__init__(name)
         
         self.__chainIkFk = None
+        self.ikFkGroup   = str()
     
     @component.overloadArguments
     def initialize(self,**kwargs):
@@ -212,34 +213,15 @@ class Chain(component.Component):
             name = self.name)
 
         self.__chainIkFk.create(stretch = True)
+        self.ikFkGroup = self.__chainIkFk.group
         
         #parent ikfk group to the rig grp
         cmds.parent(self.__chainIkFk.group, self.jointsGrp)
         
         
         #----FK Setup---
-        fkCtrls = list()
-        parent = self.controlsGrp
-
-        for jnt in self.__chainIkFk.fkJoints:            
-            ctrl = control.create(name= jnt.split('_%s' % common.JOINT)[0],
-                    type = 'circle',
-                    parent = parent,
-                    color = common.SIDE_COLOR[self._getSide()])
-
-            ctrlParent = common.getParent(ctrl)
-            transform.matchXform(jnt, ctrlParent, type = 'pose')
-            cmds.parentConstraint(ctrl, jnt, mo = True) #----> might change this to connect rotations and not use translation
-            
-            #connect visibility of shapes to foot control
-            for shape in common.getShapes(ctrl):
-                attribute.connect('%s.ikfk' % self.__chainIkFk.group,
-                        '%s.v' % shape)
-
-            #end for
-
-            parent = ctrl
-            fkCtrls.append(ctrl)
+        fkCtrls = self._fkControlSetup(self.__chainIkFk.fkJoints)
+        
             
         cmds.setAttr('%s.ikfk' % self.__chainIkFk.group, 1) #<--- might change to IK
         
@@ -251,6 +233,49 @@ class Chain(component.Component):
         self.hookRoot.extend([self.__chainIkFk.ikJoints[0],
                 common.getParent(fkCtrls[0])])
         self.hookPoint.extend([self.__chainIkFk.blendJoints[-1]])
+        
+    def _fkControlSetup(self, joints):
+        '''
+        Creates FK control setup on the input joints
+        
+        Example:
+            ...python:
+                    self._fkControlSetup(["jnt1", "jnt2", "jnt3"])
+                    #Return: ["ctrl1", "ctrl2", "ctrl3"]
+                    
+        @param joints: Joints to have controls drive
+        @type joints: *list* or *tupple* or *str*
+        
+        
+        '''
+        joints = common.toList(joints)
+        
+        if not isinstance(joints, list) or not isinstance(joints, tuple):
+            raise RuntimeError('%s must be a *list* or *tuple*' % joints)
+        
+        fkCtrls = list()
+        parent = self.controlsGrp
+
+        for jnt in joints:            
+            ctrl = control.create(name= jnt.split('_%s' % common.JOINT)[0],
+                    type = 'circle',
+                    parent = parent,
+                    color = common.SIDE_COLOR[self._getSide()])
+
+            ctrlParent = common.getParent(ctrl)
+            transform.matchXform(jnt, ctrlParent, type = 'pose')
+            cmds.parentConstraint(ctrl, jnt, mo = True) #----> might change this to connect rotations and not use translation
+            
+            #connect visibility of shapes to foot control
+            for shape in common.getShapes(ctrl):
+                if self.ikFkGroup:
+                    attribute.connect('%s.ikfk' % self.ikFkGroup,
+                            '%s.v' % shape)
+
+            #end for
+
+            parent = ctrl
+            fkCtrls.append(ctrl)
         
     def _createAimLocator(self, position = [0,0,0], color = None):
         #create aim locator and move into position
