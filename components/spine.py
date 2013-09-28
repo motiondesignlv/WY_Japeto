@@ -35,6 +35,8 @@ class Spine(chain.Chain):
     def initialize(self,**kwargs):
         super(Spine,self).initialize(**kwargs)
         
+        self.addArgument('numControls', 2)
+        
         #TODO: Place builds arguments specific to the spine
 
     def setupRig(self):
@@ -42,6 +44,34 @@ class Spine(chain.Chain):
         
     def rig(self):
         component.Component.rig(self)
+        
+        self.__spineIkFk = ikfk.SplineIk(self.startJoint,
+            self.endJoint,
+            name = self.name)
+        
+        if self.numControls == 2:
+            self.__spineIkFk.create([0, 4])#len(self.__spineIkFk.originalJoint) - 1)
+        elif self.numControls == 3:
+            self.__spineIkFk.create([0, 2, 4])
+        
+        self.ikFkGroup    = self.__spineIkFk.group
+        ikHipJnt = self.__spineIkFk.ikJoints[0]
+        ikChest  = self.__spineIkFk.ikJoints[-1]
+        self.ikJoints     = self.__spineIkFk.ikJoints
+        self.fkJoints     = self.__spineIkFk.fkJoints
+        self.blendJoints  = self.__spineIkFk.blendJoints
+        
+        #FK Control Setup
+        self.controls['fk'] = self._fkControlSetup(self.__spineIkFk.fkJoints)
+        
+        
+        
+        
+        #stretch spine
+        #ikfk.IkFkSpline.addParametricStretch(crv= 'c_spineIkSplineCurve', scaleCompensate= False, scaleAxis='y', uniform=False, useTranslationStretch=False)
+        
+        #----------------------------------        
+        '''
         #initialize the spine class (ribbon ik/fk setup)
         self.__spineIkFk = ikfk.IkFkRibbon(self.startJoint,
             self.endJoint,
@@ -141,6 +171,9 @@ class Spine(chain.Chain):
             self.controls['tweak'].append(tweakControl)#add to tweak list
         #end loop
         
+        
+        #connect controls
+        
         #-----------------------
         #Get tweak control rotations to work correctly.
         #@TODO: Still needs to be cleaned up. The aim isn't setup smoothly
@@ -168,6 +201,7 @@ class Spine(chain.Chain):
                                worldUpObject = tweakUpJnt, skip=["x","y"])
             
             cmds.setAttr('%s.rotateOrder' % tweakParent, 1 )
+
         
     def postRig(self):
         super(Spine, self).postRig()
@@ -220,3 +254,4 @@ class Spine(chain.Chain):
         #end loop
         
         cmds.setAttr('%s.ikfk' % self.ikFkGroup, 0)
+        '''

@@ -18,6 +18,7 @@ __VERSION__ = "0.1.0"
 PACKAGE     = os.path.dirname(__file__)
 RELEASEDIR  = str() #os.path.join(os.environ['HOME'], 'release/rig/')
 USERDIR     = str() #os.path.join(os.environ['HOME'], 'user/wyoder/rig/')
+PLUGINDIR   = os.path.join(os.path.dirname(__file__), 'plugins/')
 
 def importModule(modulePath, force = False):
     '''

@@ -11,6 +11,7 @@ from maya import cmds
 from maya import OpenMaya
 
 #import package modules
+import japeto
 from japeto.libs import common
 from japeto.libs import attribute
 from japeto.libs import transform 
@@ -18,9 +19,14 @@ from japeto.libs import ordereddict
 from japeto.libs import curve
 from japeto.libs import surface
 from japeto.libs import joint
+from japeto.libs import fileIO
 reload(joint)
 reload(common)
 reload(attribute)
+reload(japeto)
+
+#load plugins
+fileIO.loadPlugin('%sdecomposeRotation.py' % japeto.PLUGINDIR)
 
 #------------------------------------------------------------
 #                      IK/FK Base CLASS
@@ -778,6 +784,8 @@ class IkFkSpline(IkFk):
                                             uniform = False, 
                                             useTranslationStretch = True)
             
+        
+            
 #------------------------------------------------------------
 #                      IK/FK RIBBON CLASS 
 #                (Only works for spine Right now)
@@ -1036,6 +1044,293 @@ class IkFkRibbon(IkFk):
                          swi = 1,
                          sw = 1.0,
                          omi = True)
+
+
+
+
+class SplineIk(IkFk):
+    @classmethod
+    def rbf1D (cls,value, values): #<--------Need to put in a util library
+        '''
+        Function to interpolate data in one dimension.
+    
+        Example:
+    
+        >>> rbf1D (2.1, [1, 2, 3, 4, 5])
+        [0, 0.9, 0.1, 0, 0]
+    
+        @param value: Value to be interpolated
+        @type value: C{int} or C{float}
+    
+        @param values: Key values for interpolation
+        @type values: C{list} or C{tuple}
+    
+        @return: Weights per each value in values
+        @rtype: C{list}
+        '''
+        # get cell
+        prev = -1
+        next = -1
+        prevDist = 999999999999.9
+        nextDist = 999999999999.9
+        for i in range(len(values)):
+        
+            # get prev
+            if values[i]<=value:
+                dist = value-values[i]
+                if dist<prevDist:
+                    prevDist = dist
+                    prev = i
+            # get next    
+            if values[i]>=value:
+                dist = values[i]-value
+                if dist<nextDist:
+                    nextDist = dist
+                    next = i
+        
+        # get weights
+        weights = [0.0]*len(values)
+        
+        # if out of range
+        if prev == -1:
+            weights[next] = 1.0
+            return weights
+        if next == -1:
+            weights[prev] = 1.0
+            return weights
+        
+        # if in range
+        if prev!=next:
+            weights[next] = 1.0 / (values[next]-values[prev]) * ( value - values[prev] )
+            weights[prev] = 1.0-weights[next]
+            return weights
+        else:
+            weights[prev] = 1.0
+            return weights
+    # Create IK Spline Function
+    @classmethod
+    def createSpline(cls, startJoint, endJoint , indices, parent = None, name = "ikSpline"):
+        '''
+        Creates ikSpline rig with basic functionality for stretch and twist.
+        Use to tool as starting point for your ikSpline rig like: spine, tails, neck, etc.
+        
+        :param startJoint: First joint of your chain
+        :type startJoint: *str*
+    
+        :param endJoint: Last joint of your chain
+        :type endJoint:  *str*
+    
+        :param indices: Indices where you want to create your driver controls
+        :type indices: *list* or *tuple*
+    
+        :param parent: Parent for the top group
+        :type parent: *str*
+    
+        :param name: IK spline system name
+        :type name: *str*
+    
+        :return: ikSpline group
+        :rtype: *str*
+    
+        .. python:
+            import maya.cmds as cmds
+        
+            for i in range (7):
+                cmds.joint (p = (0,2 * i, 0))
+            ikSpline ("joint1", "joint7", [0, 3, 6], name = "spineIk")
+        '''
+        # Load IK Stretch and decompose rotation plugins
+        #application.loadPlugin ("ikStretch", quiet = True)
+        #fileIO.loadPlugin ("decomposeRotation.py", quiet = True)
+        
+        # get chain
+        joints = [startJoint]
+        joints.extend(common.getInbetweenNodes( startJoint, endJoint))
+        joints.append(endJoint)
+        
+        # get aim axis
+        aimAxis = transform.getAimAxis( startJoint, allowNegative=False )
+        
+        # check indices
+        if max(indices) > len(joints):
+            raise IndexError, 'list index out of range'
+        
+        # create groups
+        grp = cmds.createNode ("transform", name = name, parent = parent)
+        
+        # duplicate chain
+        
+        ikJoints = list()
+        parent = grp
+        for jnt in joints:
+            ikJoint = common.duplicate( jnt , name= '%sIK' % jnt, parent=parent )
+            if parent != grp:
+                if not attribute.isConnected('inverseScale', ikJoint, True, False):
+                    attribute.connect('%s.scale' % parent, '%s.inverseScale' % ikJoint)
+            parent = ikJoint
+            ikJoints.append(ikJoint)
+        
+        # --------------------------------------------------------------------------
+        # CREATE DRIVERS
+        
+        numDrivers= len(indices)
+        driverGrp = []
+        driverJoints = []
+        for i in indices:
+            j = common.duplicate( joints[i], name='%sDriverGrp' % joints[i], parent = grp )
+            jj = common.duplicate( joints[i], name='%sDriver' % joints[i], parent = j )
+            driverGrp.append( j )
+            driverJoints.append( jj )
+        
+        # --------------------------------------------------------------------------
+        # CREATE NURBS CURVE
+        
+        nurbsCurve = curve.createFromTransforms (joints, degree = 1, name = "%sCurve" % name)
+        cmds.parent( nurbsCurve.name, grp )
+        nurbsShape = cmds.listRelatives(nurbsCurve.name,s=True,ni=True)[0]
+        cmds.setAttr('%s.%s' % (nurbsShape,'dispCV'), True)
+        cmds.setAttr('%s.%s' % (nurbsCurve.name,'inheritsTransform'), False)
+        # --------------------------------------------------------------------------
+        # CREATE SKINCLUSTER WEIGHTS
+        
+        # add rebuildCurve pre-skinCluster
+        tweakTemp = cmds.deformer(nurbsShape,type='tweak')
+        cmds.rebuildCurve(nurbsShape,ch=True,rpo=1,rt=0,end=1,kr=0,kcp=False,kep=False,kt=False,s=len(joints)*2,d=3,tol=0.01,name='linearToCubic_rebuildCurve')
+        
+        # smooth curve
+        cmds.smoothCurve( '%s.cv[*]' % nurbsShape, constructionHistory=True, smoothness=10 )
+        
+        # add skinCluster
+        skinCluster = cmds.skinCluster (driverJoints, nurbsCurve.name, tsb = True, name = "%sScls" % name) [0]
+        
+        # delete temporal tweak
+        cmds.delete(tweakTemp)
+        
+        # --------------------------------------------------------------------------
+        # EDIT SKINCLUSTER WEIGHTS
+        
+        # get drivers parameter
+        parameters = []
+        for i in range(numDrivers):
+            pos = cmds.xform( driverJoints[i] ,q=True,ws=True,rp=True )
+            param = curve.getParamFromPosition( nurbsShape, pos )
+            parameters.append( param )
+        
+        # connect drivers to curve
+        cvs = cmds.ls( '%s.cv[*]' % nurbsCurve.name, fl=True )
+        for i in range(len(cvs)):
+            
+            # get cv parameter
+            cv      = cvs[i]
+            cvPos   = cmds.pointPosition( cv, world=True ) 
+            cvParam = curve.getParamFromPosition( nurbsShape,cvPos )
+            
+            # weights
+            weights = SplineIk.rbf1D( cvParam, parameters )
+            
+            for ii in range(numDrivers):
+                cmds.skinPercent(skinCluster, cv,
+                                 transformValue=(driverJoints[ii],weights[ii]))
+        
+        # --------------------------------------------------------------------------
+        # CREATE IK-HANDLE
+        
+        ikHandle = IkFk.createIkHandle (ikJoints[0], ikJoints[-1],
+                                        name="%s_%s" % (name,common.IKHANDLE),
+                                        type = "ikSplineSolver",
+                                        crv = nurbsCurve.name,parent = grp)
+        #joint.addStretch(ikHandle, axis=aimAxis, stretch=True, squash = False, volume = False, parametric = True, normalize = True)
+        
+        # --------------------------------------------------------------------------
+        # NORMALIZE CURVE
+        #@todo: Normalize curve if need be
+
+        # --------------------------------------------------------------------------
+        # ADD TWIST
+        
+        # create twist driver joints
+        for i in range(numDrivers):
+            
+            for j in [driverGrp[i],driverJoints[i]]:
+                attribute.addAttr(j,  'twist', 'double' )
+                decomRot = cmds.createNode('decomposeRotation')
+                cmds.connectAttr( '%s.%s' % (j,'rotate'), '%s.%s' % (decomRot,'targetRotation') )
+                cmds.connectAttr( '%s.%s' % (decomRot,'twist%s' % aimAxis.upper() ), '%s.%s' % (j,'twist') )
+        
+        # create twist ik joints
+        twistJoints = []
+        for i in range(len(ikJoints)):
+            # create twist joint
+            twistJoint = cmds.createNode( 'joint', name='%s_twist' % ikJoints[i], parent=ikJoints[i] )
+            cmds.setAttr( '%s.%s' % (twistJoint,'displayScalePivot'), True )
+            cmds.setAttr( '%s.%s' % (twistJoint,'displayLocalAxis'), True )
+            twistJoints.append( twistJoint )
+            
+            # get weights
+            twistPos = cmds.xform( twistJoint ,q=True,ws=True,rp=True )
+            twistParam = curve.getParamFromPosition( nurbsShape, twistPos )
+            weights = SplineIk.rbf1D( twistParam, parameters )
+            
+            # add twist
+            plusNode = cmds.createNode('plusMinusAverage')
+            for ii in range(numDrivers):
+                # add driverGrp twist
+                multNode = cmds.createNode('multDoubleLinear')
+                cmds.connectAttr( '%s.%s' % (driverGrp[ii],'twist'), '%s.%s' % (multNode,'input1') )
+                cmds.setAttr( '%s.%s' % (multNode,'input2'), weights[ii] )
+                cmds.connectAttr( '%s.%s' % (multNode,'output'), '%s.%s[%i]' % (plusNode,'input1D',ii) )
+            
+                # add driverJoint twist
+                multNode = cmds.createNode('multDoubleLinear')
+                cmds.connectAttr( '%s.%s' % (driverJoints[ii],'twist'), '%s.%s' % (multNode,'input1') )
+                cmds.setAttr( '%s.%s' % (multNode,'input2'), weights[ii] )
+                cmds.connectAttr( '%s.%s' % (multNode,'output'), '%s.%s[%i]' % (plusNode,'input1D',ii+numDrivers ) )
+            
+            cmds.connectAttr( '%s.%s' % (plusNode,'output1D'), '%s.%s' % (twistJoint,'rotate%s' % aimAxis.upper()) )
+        
+        # --------------------------------------------------------------------------
+        # CONNECT FIRST & LAST JOINT
+        # Needs to be implemented the twist in startJoint
+        #
+        attribute.addAttr( grp,'startOrient', 'double', min = 0.0, max = 1.0, defValue = 1.0 )
+        attribute.addAttr( grp,'endOrient', 'double', min = 0.0, max = 1.0, defValue = 1.0 )
+    
+        # startOrient
+        cmds.disconnectAttr( cmds.listConnections( '%s.%s' % ( twistJoints[0] , 'rotate%s' % aimAxis.upper()), s=True,d=False, plugs=True )[0], '%s.%s' % ( twistJoints[0] , 'rotate%s' % aimAxis.upper()) )
+        constraint = cmds.orientConstraint( driverJoints[0], ikJoints[0], twistJoints[0] )[0]
+        cmds.setAttr( '%s.%s' % (constraint,'interpType') , 2 )
+        attribute.connect( '%s.%s' % (grp,'startOrient'),  '%s.%sW0' % (constraint,driverJoints[0]) )
+        inv = cmds.createNode ("reverse", name = "%sStartOrient" % grp)
+        attribute.connect( '%s.%s' % (grp,'startOrient'),  '%s.inputX' % inv)
+        attribute.connect( '%s.%s' % (inv,'outputX'),  '%s.%sW1' % (constraint,ikJoints[0]))
+    
+        # endOrient
+        cmds.disconnectAttr( cmds.listConnections( '%s.%s' % ( twistJoints[-1] , 'rotate%s' % aimAxis.upper()), s=True,d=False, plugs=True )[0], '%s.%s' % ( twistJoints[-1] , 'rotate%s' % aimAxis.upper()) )
+        constraint = cmds.orientConstraint( driverJoints[-1], ikJoints[-1], twistJoints[-1] )[0]
+        cmds.setAttr( '%s.%s' % (constraint,'interpType') , 2 )
+        attribute.connect( '%s.%s' % (grp,'endOrient'),  '%s.%sW0' % (constraint,driverJoints[-1]) )
+        inv = cmds.createNode ("reverse", name = "%sStartOrient" % grp)
+        attribute.connect( '%s.%s' % (grp,'endOrient'),  '%s.inputX' % inv)
+        attribute.connect( '%s.%s' % (inv,'outputX'),  '%s.%sW1' % (constraint,ikJoints[-1]))
+        
+        # --------------------------------------------------------------------------
+        # CONNECT TO JOINTS
+        
+        for i in range(len(joints)):
+            cmds.parentConstraint( twistJoints[i], joints[i] )
+        
+        return grp
+
+
+    def __init__(self, *args, **kwargs):
+        super(SplineIk, self).__init__(*args, **kwargs)
+        self.curve = str()
+        
+    def create(self, indices):
+        super(SplineIk, self).create()
+        SplineIk.createSpline(self.ikJoints[0], self.ikJoints[-1], indices, name = self.name, parent = self.group)
+
+
 
 #---------------------------------------------------------------------
 #NEED TO GET RID OF SOME OF THESE DEPRECATED FUNCTIONS
