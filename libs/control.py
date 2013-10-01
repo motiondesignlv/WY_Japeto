@@ -47,11 +47,6 @@ class Control(object):
     #------------------    
 
 
-
-    
-    
-    
-
 def create(name, type = 'circle', parent = None, color = 'yellow'):
     data = pyon.load(CONTROL_FILEPATH)
     #create zero group for the control

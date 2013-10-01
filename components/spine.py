@@ -27,9 +27,12 @@ reload(chain)
 class Spine(chain.Chain):
     def __init__(self, name):
         super(Spine, self).__init__(name)
-        self.__spineIkFk = str()
+        self.__spineIkFk       = str()
         self.controls['tweak'] = list()
-        self.controls['ik'] = list()
+        self.controls['ik']    = list()
+        self.controls['fk']    = list()
+        self.curve             = str()
+        self.driverJoints      = list()
     
     @component.overloadArguments
     def initialize(self,**kwargs):
@@ -53,24 +56,67 @@ class Spine(chain.Chain):
             self.__spineIkFk.create([0, 4])#len(self.__spineIkFk.originalJoint) - 1)
         elif self.numControls == 3:
             self.__spineIkFk.create([0, 2, 4])
+            torsoDriverJnt = self.__spineIkFk.driverJoints[1] 
         
         self.ikFkGroup    = self.__spineIkFk.group
-        ikHipJnt = self.__spineIkFk.ikJoints[0]
-        ikChest  = self.__spineIkFk.ikJoints[-1]
+        self.curve        = self.__spineIkFk.curve
+        ikHipJnt          = self.__spineIkFk.ikJoints[0]
+        ikChest           = self.__spineIkFk.ikJoints[-1]
         self.ikJoints     = self.__spineIkFk.ikJoints
         self.fkJoints     = self.__spineIkFk.fkJoints
         self.blendJoints  = self.__spineIkFk.blendJoints
+        self.driverJoints = self.__spineIkFk.driverJoints
+        #upAxis            = self.__spineIkFk.upAxis
+        aimAxis           = self.__spineIkFk.aimAxis
+        hipDriverJnt      = self.__spineIkFk.driverJoints[0]
+        chestDriverJnt    = self.__spineIkFk.driverJoints[-1]
         
         #FK Control Setup
-        self.controls['fk'] = self._fkControlSetup(self.__spineIkFk.fkJoints)
-        
-        
-        
+        self.controls['fk'] = self._fkControlSetup(self.__spineIkFk.fkJoints)    
         
         #stretch spine
-        #ikfk.IkFkSpline.addParametricStretch(crv= 'c_spineIkSplineCurve', scaleCompensate= False, scaleAxis='y', uniform=False, useTranslationStretch=False)
+        ikfk.IkFkSpline.addParametricStretch(crv= self.curve.name, scaleCompensate= False, scaleAxis=aimAxis, uniform=False, useTranslationStretch=False)
+    
+    def postRig(self):
+        super(Spine, self).postRig()
+        cmds.setAttr('%s.ikfk' % self.ikFkGroup, 0)
         
+        cmds.setAttr('%s.v' % self.curve.fullPathName,0)
+        cmds.setAttr('%s.v' % self.__spineIkFk.ikHandle,0)
         #----------------------------------        
+    
+    def _ikControlSetup(self, drivers):
+        '''
+        Takes driver joints that drive the IK spine and create controls for them
+        
+        @param drivers: list of drivers you want to put controls on
+        @type drivers: *list* or *tuple* or *str* 
+        
+        @return: IK controls which were created to drive the driver joints passed in
+        @rtype: *list*
+        '''
+        ikControls = list()
+        
+        drivers = common.toList(drivers)
+        
+        for i,driver in enumerate(drivers):
+            nameDescription = common.getDescription(driver)
+            ctrlName = '%s_%s_%s' % (self._getSide(),nameDescription, common.IK)
+            ctrl = control.create(ctrlName, type = 'implicitSphere', parent = self.controlsGrp, color = common.SIDECOLOR[self._getSide()])
+            ctrlZero = common.getParent(ctrl)
+            driverParent = common.getParent(driver)
+            #move control in to position of driver jnt
+            transform.matchXform(driver, ctrlZero, 'pose')
+            cmds.parent(ctrlZero, driverParent)
+            cmds.parent(driver, ctrl)
+            
+            ikControls.append(ctrl)
+        #end loop
+            
+        return ikControls
+            
+        
+        
         '''
         #initialize the spine class (ribbon ik/fk setup)
         self.__spineIkFk = ikfk.IkFkRibbon(self.startJoint,

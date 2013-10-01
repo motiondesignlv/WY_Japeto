@@ -1167,8 +1167,11 @@ class SplineIk(IkFk):
             if parent != grp:
                 if not attribute.isConnected('inverseScale', ikJoint, True, False):
                     attribute.connect('%s.scale' % parent, '%s.inverseScale' % ikJoint)
+                #end if
+            #end if
             parent = ikJoint
             ikJoints.append(ikJoint)
+        #end loop
         
         # --------------------------------------------------------------------------
         # CREATE DRIVERS
@@ -1181,6 +1184,7 @@ class SplineIk(IkFk):
             jj = common.duplicate( joints[i], name='%sDriver' % joints[i], parent = j )
             driverGrp.append( j )
             driverJoints.append( jj )
+        #end loop
         
         # --------------------------------------------------------------------------
         # CREATE NURBS CURVE
@@ -1235,7 +1239,7 @@ class SplineIk(IkFk):
         # --------------------------------------------------------------------------
         # CREATE IK-HANDLE
         
-        ikHandle = IkFk.createIkHandle (ikJoints[0], ikJoints[-1],
+        ikHandle, effector = IkFk.createIkHandle (ikJoints[0], ikJoints[-1],
                                         name="%s_%s" % (name,common.IKHANDLE),
                                         type = "ikSplineSolver",
                                         crv = nurbsCurve.name,parent = grp)
@@ -1318,8 +1322,15 @@ class SplineIk(IkFk):
         
         for i in range(len(joints)):
             cmds.parentConstraint( twistJoints[i], joints[i] )
+            
+        splineInfo = {'group' : grp,
+                      'ikHandle' : ikHandle,
+                      'curve' : nurbsCurve, #<---This is an instance of the Curve object
+                      'driverJoints' : driverJoints,
+                      'aimAxis' : aimAxis
+                      }
         
-        return grp
+        return splineInfo
 
 
     def __init__(self, *args, **kwargs):
@@ -1328,7 +1339,11 @@ class SplineIk(IkFk):
         
     def create(self, indices):
         super(SplineIk, self).create()
-        SplineIk.createSpline(self.ikJoints[0], self.ikJoints[-1], indices, name = self.name, parent = self.group)
+        splineInfo        = SplineIk.createSpline(self.ikJoints[0], self.ikJoints[-1], indices, name = self.name, parent = self.group)
+        self.curve        = splineInfo['curve'] #<---This is an instance of the Curve object
+        self.driverJoints = splineInfo['driverJoints']
+        self.ikHandle     = splineInfo['ikHandle']
+        
 
 
 
