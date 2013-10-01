@@ -26,7 +26,6 @@ from japeto.libs import joint
 from japeto.components import component
 from japeto.components import limb
 
-
 class Leg(limb.Limb):
     @component.overloadArguments
     def initialize(self,**kwargs):

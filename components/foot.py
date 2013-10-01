@@ -372,10 +372,9 @@ class Foot(component.Component):
         ikfkAttr      = \
             attribute.addAttr(self.__footCtrl,
                     'ikfk' ,
-                    attrType = 'double',
-                    defValue = 0,
-                    min = 0,
-                    max = 1)
+                    attrType = 'enum',
+                    defValue = ['off', 'on'],
+                    value = 0)
 
         bankAttr      = \
             attribute.addAttr(self.__footCtrl,

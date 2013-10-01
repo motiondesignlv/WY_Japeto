@@ -19,7 +19,7 @@ import maya.cmds as cmds
 import japeto
 
 import japeto.templates.rig as rig
-reload(rig)
+#reload(rig)
 #import libs
 from japeto.libs import common
 from japeto.libs import attribute
@@ -32,9 +32,10 @@ from japeto.components import limb
 from japeto.components import leg
 from japeto.components import arm
 from japeto.components import foot
-from japeto.components import chain, spine
+from japeto.components import chain, spine , neck
 from japeto.components import finger
 from japeto.components import hand
+'''
 reload(component)
 reload(limb)
 reload(leg)
@@ -42,9 +43,10 @@ reload(arm)
 reload(foot)
 reload(chain)
 reload(spine)
+reload(neck)
 reload(finger)
 reload(hand)
-
+'''
 
 class Biped(rig.Rig):
     def __init__(self, name):
@@ -75,7 +77,15 @@ class Biped(rig.Rig):
         self.register('Spine',
             spine.Spine('c_spine'),
             position = [0,15,0],
-            numJoints = 5)
+            numJoints = 5, 
+            numControls = 3)
+        
+        self.register('Neck',
+            neck.Neck('c_neck'),
+            position = [0,27,0],
+            numJoints = 4, 
+            numControls = 2,
+            parent = 'c_endspine_sc_jnt')
 
         #left side
         self.register('Left Leg',
@@ -223,8 +233,8 @@ class Biped(rig.Rig):
                         attribute.copy(attr, node,destination = self.components
                                        ['Right Leg'].controls['ik'][0],
                                        connect = True,reverseConnect = False)
-                        attribute.hide(attrPath)
                     #end elif
+                    attribute.hide(attrPath)
                 #end if
             #end loop
         #end loop
@@ -263,6 +273,10 @@ class Biped(rig.Rig):
                 cmds.setAttr(attrPath, 0)
             #end loop
         #end loop
+        print rootCtrl
+        attribute.copy('ikfk', self.components['Spine'].ikFkGroup,
+                               destination = rootCtrl,connect = True,
+                               reverseConnect = False)
 
     def postBuild(self):
         super(Biped, self).postBuild()
@@ -284,6 +298,8 @@ class Biped(rig.Rig):
         #spine to arms
         cmds.parentConstraint(self.components['Spine'].hookPoint[0], self.components['Left Arm'].hookRoot[0], mo = True)
         cmds.parentConstraint(self.components['Spine'].hookPoint[0], self.components['Right Arm'].hookRoot[0], mo = True)
+        cmds.parentConstraint(self.components['Spine'].hookPoint[0], self.components['Neck'].hookRoot[0], mo = True)
+        cmds.parentConstraint(self.components['Spine'].hookPoint[0], self.components['Neck'].hookRoot[1], mo = True)
 
         #hip to legs
         cmds.parentConstraint(self.hipJoint, self.components['Left Leg'].hookRoot[0], mo = True)

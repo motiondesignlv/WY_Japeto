@@ -17,12 +17,9 @@ from japeto.libs import transform
 from japeto.libs import joint
 from japeto.libs import curve
 from japeto.libs import surface
-reload(ikfk)
-reload(common)
 
 from japeto.components import component
 from japeto.components import chain
-reload(chain)
 
 class Spine(chain.Chain):
     def __init__(self, name):
@@ -53,9 +50,9 @@ class Spine(chain.Chain):
             name = self.name)
         
         if self.numControls == 2:
-            self.__spineIkFk.create([0, 4])#len(self.__spineIkFk.originalJoint) - 1)
+            self.__spineIkFk.create([0, -1])
         elif self.numControls == 3:
-            self.__spineIkFk.create([0, 2, 4])
+            self.__spineIkFk.create([0, 2, -1])
             torsoDriverJnt = self.__spineIkFk.driverJoints[1] 
         
         self.ikFkGroup    = self.__spineIkFk.group
@@ -74,8 +71,21 @@ class Spine(chain.Chain):
         #FK Control Setup
         self.controls['fk'] = self._fkControlSetup(self.__spineIkFk.fkJoints)    
         
+        #IK Controls setup
+        self.controls['ik'] = self._ikControlSetup(self.driverJoints)
+        
+        if len(self.controls['ik']) == 3:
+            cmds.pointConstraint(self.controls['ik'][0],
+                                 self.controls['ik'][-1],
+                                 common.getParent(self.controls['ik'][1]),
+                                 mo = True)
+        #end if
+        
         #stretch spine
-        ikfk.IkFkSpline.addParametricStretch(crv= self.curve.name, scaleCompensate= False, scaleAxis=aimAxis, uniform=False, useTranslationStretch=False)
+        ikfk.IkFkSpline.addParametricStretch(crv= self.curve.name,
+                                             scaleCompensate= False,
+                                             scaleAxis= aimAxis,uniform= False,
+                                             useTranslationStretch= False)
     
     def postRig(self):
         super(Spine, self).postRig()
@@ -83,6 +93,17 @@ class Spine(chain.Chain):
         
         cmds.setAttr('%s.v' % self.curve.fullPathName,0)
         cmds.setAttr('%s.v' % self.__spineIkFk.ikHandle,0)
+        
+        #add roots and point hooks
+        self.hookRoot.pop(0)
+        self.hookRoot.insert(0,common.getParent(self.controls['ik']))
+        
+        for jnt in self.__spineIkFk.splineJoints:
+            cmds.setAttr('%s.v' % jnt, 0)
+        
+        for jnt in self.__spineIkFk.driverJoints:
+            cmds.setAttr('%s.v' % common.getParent(jnt), 0)
+        
         #----------------------------------        
     
     def _ikControlSetup(self, drivers):
@@ -95,22 +116,43 @@ class Spine(chain.Chain):
         @return: IK controls which were created to drive the driver joints passed in
         @rtype: *list*
         '''
+        #create an empty list to store ik controls in so we can return them
         ikControls = list()
         
         drivers = common.toList(drivers)
         
         for i,driver in enumerate(drivers):
             nameDescription = common.getDescription(driver)
-            ctrlName = '%s_%s_%s' % (self._getSide(),nameDescription, common.IK)
-            ctrl = control.create(ctrlName, type = 'implicitSphere', parent = self.controlsGrp, color = common.SIDECOLOR[self._getSide()])
+            ctrlName = '%s_%s_%s' % (self._getSide(),nameDescription,common.IK)
+            ctrl = control.create(ctrlName, type = 'implicitSphere',
+                                  parent = self.controlsGrp,
+                                  color = common.SIDE_COLOR[self._getSide()])
             ctrlZero = common.getParent(ctrl)
             driverParent = common.getParent(driver)
             #move control in to position of driver jnt
             transform.matchXform(driver, ctrlZero, 'pose')
-            cmds.parent(ctrlZero, driverParent)
-            cmds.parent(driver, ctrl)
+            #cmds.parent(ctrlZero, driverParent)
+            #cmds.parent(driver, ctrl)
+            cmds.parentConstraint(ctrl, driver,mo = True)
+            
+            
+            #connect ik/fk attr from group to  visibility of shapes
+            reverse = cmds.createNode('reverse', n = '%s_%s_%s' % (self.name,
+                                                                common.IK,
+                                                                common.REVERSE
+                                                                ))
+            attribute.connect('%s.ikfk' % self.ikFkGroup,'%s.inputX' % reverse)
+            for shape in common.getShapes(ctrl):
+                if self.ikFkGroup:
+                    attribute.connect('%s.outputX' % reverse,
+                                      '%s.v' % shape)
+                #end if
+            #end loop
             
             ikControls.append(ctrl)
+            
+            
+            
         #end loop
             
         return ikControls

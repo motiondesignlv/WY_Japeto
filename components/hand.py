@@ -34,7 +34,7 @@ class Hand(component.Component):
         #create controls
         self.__handCtrl = '%s_hand_%s' % (self._getSide(), common.CONTROL)
         self.__fingers = ordereddict.OrderedDict()
-	self.__handPosition = list()
+        self.__handPosition = list()
 
     @component.overloadArguments
     def initialize(self, **kwargs):
@@ -120,11 +120,6 @@ class Hand(component.Component):
         #TODO: Place build code for fingers here
         for obj in self.fingers:
             self.__fingers[obj].rig()
-            #assign hooks
-            self.hookRoot.extend(self.__fingers[obj].hookRoot)
-
-        self.hookRoot.append(handCtrlZero)
-
 
 
     def postRig(self):
@@ -134,5 +129,11 @@ class Hand(component.Component):
         #TODO: Place build code for fingers here
         for obj in self.fingers:
             self.__fingers[obj].postRig()
+            #assign hooks
+            self.hookRoot.extend(self.__fingers[obj].hookRoot)
 
+        self.hookRoot.append(common.getParent(self.__handCtrl))
         attribute.lockAndHide(['t', 'r', 's', 'v'], self.__handCtrl)
+        
+        
+        

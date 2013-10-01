@@ -20,10 +20,6 @@ from japeto.libs import curve
 from japeto.libs import surface
 from japeto.libs import joint
 from japeto.libs import fileIO
-reload(joint)
-reload(common)
-reload(attribute)
-reload(japeto)
 
 #load plugins
 fileIO.loadPlugin('%sdecomposeRotation.py' % japeto.PLUGINDIR)
@@ -156,7 +152,8 @@ class IkFk(object):
             
         #create ik/fk group node and add attribute
         cmds.createNode('transform', n = self.group)
-        cmds.addAttr(self.group, ln = 'ikfk', at = 'double', min = 0, max = 1, dv = 0, keyable = True)
+        attribute.addAttr(self.group, attr = 'ikfk', attrType = 'enum', defValue = ['off','on'],value = 0)
+        #cmds.addAttr(self.group, ln = 'ikfk', at = 'double', min = 0, max = 1, dv = 0, keyable = True)
         
         #check parent attribute
         if self.__parent:
@@ -428,9 +425,11 @@ class IkFkLimb(IkFk):
     def ikMatchFk(cls, fkJoints, ikDriver, pvDriver):
         newPvPos = IkFkLimb.getPoleVectorPosition(fkJoints)
         endJntPos = cmds.xform(fkJoints[2], q = True, ws = True, t = True)
+        endJntRot = cmds.xform(fkJoints[2], q = True, ws = True, ro = True)
         
         cmds.xform(pvDriver, ws = True, t = newPvPos)
         cmds.xform(ikDriver, ws = True, t = endJntPos)
+        #cmds.xform(ikDriver, ws = True, ro = endJntRot)
         
     @classmethod
     def fkMatchIk(cls, joints, ikJoints):
@@ -1243,7 +1242,6 @@ class SplineIk(IkFk):
                                         name="%s_%s" % (name,common.IKHANDLE),
                                         type = "ikSplineSolver",
                                         crv = nurbsCurve.name,parent = grp)
-        #joint.addStretch(ikHandle, axis=aimAxis, stretch=True, squash = False, volume = False, parametric = True, normalize = True)
         
         # --------------------------------------------------------------------------
         # NORMALIZE CURVE
@@ -1323,11 +1321,12 @@ class SplineIk(IkFk):
         for i in range(len(joints)):
             cmds.parentConstraint( twistJoints[i], joints[i] )
             
-        splineInfo = {'group' : grp,
-                      'ikHandle' : ikHandle,
-                      'curve' : nurbsCurve, #<---This is an instance of the Curve object
+        splineInfo = {'group'        : grp,
+                      'ikHandle'     : ikHandle,
+                      'curve'        : nurbsCurve, #<---This is an instance of the Curve object
                       'driverJoints' : driverJoints,
-                      'aimAxis' : aimAxis
+                      'aimAxis'      : aimAxis,
+                      'ikJoints'     : ikJoints
                       }
         
         return splineInfo
@@ -1343,6 +1342,7 @@ class SplineIk(IkFk):
         self.curve        = splineInfo['curve'] #<---This is an instance of the Curve object
         self.driverJoints = splineInfo['driverJoints']
         self.ikHandle     = splineInfo['ikHandle']
+        self.splineJoints = splineInfo['ikJoints']
         
 
 
@@ -1568,7 +1568,7 @@ def create(jointChain, stretch = False):
     
     
     #createikfk attr
-    ikfkAttr = attribute.addAttr(grp, 'ikfk', defValue = 0, value = 0, min = 0, max = 1)
+    ikfkAttr = attribute.addAttr(grp, attr = 'ikfk', attrType = 'enum', defValue = ['off','on'],value = 0)
     
     #attatch blend chain to ik and fk chain
     for i,jnt in enumerate(blendJnts):

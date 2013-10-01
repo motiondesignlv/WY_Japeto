@@ -23,7 +23,6 @@ from japeto.libs import ikfk
 from japeto.libs import control
 from japeto.libs import transform
 from japeto.libs import joint
-reload(ikfk)
 
 from japeto.components import component
 
@@ -95,7 +94,6 @@ class Chain(component.Component):
             aimCtrlPosition = [positions[0][0],
                     positions[0][1],
                     positions[0][2] + 5]
-
         #end elif
 
         for i,jnt in enumerate(self.skinClusterJnts):

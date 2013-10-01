@@ -237,8 +237,7 @@ class Limb(component.Component):
         step   = 1.0 / (self.numSegments + 1)
         parent = self.startJoint
         for i in range( 1, self.numSegments + 1 ):
-            j = \
-                joint.create( name='%s' % (self.startJoint.replace('_%s' % common.SKINCLUSTER, 'Twist_%s_%s' % (common.padNumber(i,3), common.SKINCLUSTER))), parent=parent )
+            j = joint.create( name='%s' % (self.startJoint.replace('_%s' % common.SKINCLUSTER, 'Twist_%s_%s' % (common.padNumber(i,3), common.SKINCLUSTER))), parent=parent )
             transform.matchXform( self.startJoint,j, type='rotate' )
             constraint = cmds.pointConstraint( self.startJoint, self.midJoint, j )[0]
             weightAliasList = cmds.pointConstraint( constraint, q=True, weightAliasList=True )
@@ -251,8 +250,7 @@ class Limb(component.Component):
         self.loTwistJnts = list()
         parent = self.midJoint
         for i in range( 1, self.numSegments + 1):
-            j = \
-                joint.create( name='%s' % (self.midJoint.replace('_%s' % common.SKINCLUSTER, 'Twist_%s_%s' % (common.padNumber(i,3), common.SKINCLUSTER))), parent=parent )
+            j = joint.create( name='%s' % (self.midJoint.replace('_%s' % common.SKINCLUSTER, 'Twist_%s_%s' % (common.padNumber(i,3), common.SKINCLUSTER))), parent=parent )
             transform.matchXform( self.midJoint,j, type='rotate' )
             constraint = cmds.pointConstraint( self.midJoint, self.tipJoint, j )[0]
             weightAliasList = cmds.pointConstraint( constraint, q=True, weightAliasList=True )
@@ -280,21 +278,19 @@ class Limb(component.Component):
         upVector = self.upVector
         aimVector = self.aimVector
 
-    #call parent class rig function
+        #call parent class rig function
         super(Limb, self).rig()
 
         #create ik fk switch
-        ikfkDict = \
-            ikfk.create(jointChain = [self.startJoint, self.midJoint, self.tipJoint], stretch = self.stretch)
-        ikfkDict['group'] = \
-            cmds.rename(ikfkDict['group'], '%s_%s' % (self.name,ikfkDict['group']))
+        ikfkDict = ikfk.create(jointChain = [self.startJoint, self.midJoint, self.tipJoint], stretch = self.stretch)
+        ikfkDict['group'] = cmds.rename(ikfkDict['group'], '%s_%s' % (self.name,ikfkDict['group']))
 
         #set the visibility on the ik/fk/blend joints to off
         cmds.setAttr('%s.v' % ikfkDict['fkJoints'][0], 0)
         cmds.setAttr('%s.v' % ikfkDict['ikJoints'][0], 0)
         cmds.setAttr('%s.v' % ikfkDict['blendJoints'][0], 0)
 
-        ikfkAttr = attribute.addAttr(self.rigGrp, attr = 'ikfk', min = 0, max = 1)
+        ikfkAttr = attribute.addAttr(self.rigGrp, attr = 'ikfk', attrType = 'enum', defValue = ['off','on'],value = 0)
 
         cmds.connectAttr(ikfkAttr, '%s.ikfk' % ikfkDict['group'], l = True, f = True)
 
@@ -303,13 +299,11 @@ class Limb(component.Component):
 
         #rename all ik and blend joints
         for i,jnt in enumerate(ikfkDict['ikJoints']):
-            jnt = \
-                cmds.rename(jnt, jnt.replace('%s_%s_%s' % (common.SKINCLUSTER,common.JOINT, common.IK), '%s_%s' % (common.IK, common.JOINT)))
+            jnt = cmds.rename(jnt, jnt.replace('%s_%s_%s' % (common.SKINCLUSTER,common.JOINT, common.IK), '%s_%s' % (common.IK, common.JOINT)))
             ikfkDict['ikJoints'][i] = jnt
 
         for i,jnt in enumerate(ikfkDict['blendJoints']):
-            jnt = \
-                cmds.rename(jnt, jnt.replace('%s_%s_%s' % (common.SKINCLUSTER,common.JOINT, common.BLEND), '%s_%s' % (common.BLEND, common.JOINT)))
+            jnt = cmds.rename(jnt, jnt.replace('%s_%s_%s' % (common.SKINCLUSTER,common.JOINT, common.BLEND), '%s_%s' % (common.BLEND, common.JOINT)))
             ikfkDict['blendJoints'][i] = jnt
 
         #create ik setup
