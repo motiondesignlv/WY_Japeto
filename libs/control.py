@@ -250,7 +250,7 @@ def save(controls, filepath = None, append = True):
             data = pyon.load(filepath)
     #check to see if controls is a proper data type
     if isinstance(controls, basestring):
-        controls = [controls]
+        controls = common.toList(controls)
     if not isinstance(controls, list):
         raise TypeError('%s is not of type list()' % controls)
 
@@ -300,17 +300,17 @@ def load(filepath, name = None, type = 'circle'):
 
     return data
 
-def tag_as_control(control):
+def tag_as_control(ctrl):
     '''
     @param control: node to tag as a control
     @type control: *str* or *list*
     '''
-    if not isinstance(control, list):
-        if not isinstance(control, basestring):
+    if not isinstance(ctrl, list):
+        if not isinstance(ctrl, basestring):
             raise TypeError('%s must be of type *str*, *unicode*, or *list*' % ctrl)
-        ctrls = common.toList(control)
+        ctrls = common.toList(ctrl)
     else:
-        ctrls = common.toList(control)
+        ctrls = common.toList(ctrl)
 
     for ctrl in ctrls:
         tagAttr = attribute.addAttr(ctrl, 'tag_controls', attrType = 'message')

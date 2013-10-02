@@ -5,11 +5,6 @@ This is the Hand component
 :contact: walteryoder@gmail.com
 :date:    July 2013
 '''
-
-#import python modules------
-import os
-import sys
-
 #import maya modules------
 import maya.cmds as cmds
 
@@ -17,10 +12,7 @@ import maya.cmds as cmds
 #import libs
 import japeto.libs.common as common
 import japeto.libs.attribute as attribute
-import japeto.libs.ikfk as ikfk
 import japeto.libs.control as control
-import japeto.libs.transform as transform
-import japeto.libs.joint as joint
 import japeto.libs.ordereddict as ordereddict
 
 #import components
@@ -93,13 +85,16 @@ class Hand(component.Component):
                 self.__fingers[obj] = finger.Finger('%s_%s' % (self._getSide(), obj))
                 self.__fingers[obj].initialize(numJoints = self.numJoints, position = [self.position[0] - 10, self.position[1], (self.position[2] + 2 ) - i], parent = self.parent)
                 self.__fingers[obj].setupRig()
-
-		cmds.parentConstraint(self.masterGuide, common.getParent(self.__fingers[obj].masterGuide), mo = True)
-	
-		for guide in self.__fingers[obj].getGuides():
-		    #tag the guide control with a tag_guides attribute
-		    tagAttr = attribute.addAttr(guide, 'hand_guides', attrType = 'message')
-		    attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
+            
+                cmds.parentConstraint(self.masterGuide, common.getParent(self.__fingers[obj].masterGuide), mo = True)
+        
+                for guide in self.__fingers[obj].getGuides():
+                    #tag the guide control with a tag_guides attribute
+                    tagAttr = attribute.addAttr(guide, 'hand_guides', attrType = 'message')
+                    attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
+                #end loop
+            #end loop
+        #end elif
 
     def postSetupRig(self):
         super(Hand, self).postSetupRig()
@@ -112,7 +107,13 @@ class Hand(component.Component):
         super(Hand, self).rig()
 
         #TODO: Put build code here
-        control.create(self.name, type = 'square', parent = self.controlsGrp, color = common.SIDE_COLOR[self._getSide()])
+        control.create(self.name, type = 'implicitSphere',
+                       parent = self.controlsGrp,
+                       color = common.SIDE_COLOR[self._getSide()])
+        
+        for i in range(len(common.getShapes(self.handCtrl))):
+            control.scaleShape (self.handCtrl,scale = [.3,.3,.3],index = i)
+        #end loop
         handCtrlZero = common.getParent(self.handCtrl)
         cmds.xform(handCtrlZero, ws = True, t = self.handPosition)
         cmds.xform(handCtrlZero, r = True, t = [0,1,0])

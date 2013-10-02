@@ -126,104 +126,104 @@ class Component(object):
     #----------------------------------
     @puppetNode.setter
     def puppetNode(self, value):
-	self._puppetNode = value
+        self._puppetNode = value
 	
     def _setSide(self, value):
-	self.__side = value
+        self.__side = value
 	
     def _setLocation(self, value):
-	self.__location = value
+        self.__location = value
 	
     def _addSetupConstraints(self, constraint):
-	self.setupConstraints.append(constraint)
+        self.setupConstraints.append(constraint)
 
 
     #Initialize
     @overloadArguments
     def initialize(self, **kwargs):
-	self.addArgument('position', [0,0,0])
-	self.addArgument('controlScale', 1)
-	self.addArgument('parent', str())
+        self.addArgument('position', [0,0,0])
+        self.addArgument('controlScale', 1)
+        self.addArgument('parent', str())
 
     #----------------------------------
     #SETUP FUNCTIONS
     #----------------------------------    
     def setupRig(self):
-	#makes component a puppet node
-	self.puppetNode = puppet.create(self.name)
-	
-	#Create master guide control and 
-	self.masterGuide = control.createSetup('%s_master' % self.name, type = 'square')
-	common.setColor(self.masterGuide, 'darkred')
-	
-	#create hierarchy
-	cmds.createNode('transform', n = self.setupRigGrp)
-	cmds.createNode('transform', n = self.skeletonGrp)
-	cmds.createNode('transform', n = self.guidesGrp)
-	
-	cmds.parent(self.skeletonGrp, self.setupRigGrp)
-	cmds.parent(self.guidesGrp, self.setupRigGrp)
-	cmds.parent(common.getParent(self.masterGuide),self.guidesGrp)
-	
-	#add attributes to groups
-	attribute.addAttr(self.setupRigGrp, 'tag_guides', attrType = 'message')
-	masterGuideAttr = attribute.addAttr(self.setupRigGrp, 'master_guide', attrType = 'message')
-	attribute.connect(masterGuideAttr, '%s.tag_controls' % self.masterGuide)
+        #makes component a puppet node
+        self.puppetNode = puppet.create(self.name)
+        
+        #Create master guide control and 
+        self.masterGuide = control.createSetup('%s_master' % self.name, type = 'square')
+        common.setColor(self.masterGuide, 'darkred')
+        
+        #create hierarchy
+        cmds.createNode('transform', n = self.setupRigGrp)
+        cmds.createNode('transform', n = self.skeletonGrp)
+        cmds.createNode('transform', n = self.guidesGrp)
+        
+        cmds.parent(self.skeletonGrp, self.setupRigGrp)
+        cmds.parent(self.guidesGrp, self.setupRigGrp)
+        cmds.parent(common.getParent(self.masterGuide),self.guidesGrp)
+        
+        #add attributes to groups
+        attribute.addAttr(self.setupRigGrp, 'tag_guides', attrType = 'message')
+        masterGuideAttr = attribute.addAttr(self.setupRigGrp, 'master_guide', attrType = 'message')
+        attribute.connect(masterGuideAttr, '%s.tag_controls' % self.masterGuide)
 
     
     def postSetupRig(self):
-	'''
-	clean up section for the setup rig
-	'''
-	#create attributes and lock/hide attrs on top nodes as well as masterGuide control
-	displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')	
-	attribute.lockAndHide(['r','t','s','v'], [self.setupRigGrp, self.skeletonGrp,self.guidesGrp, common.getParent(self.masterGuide)])
-	attribute.lockAndHide('v', self.masterGuide)
-	
-	#resize guide controls
-	for guide in self.getGuides():
-	    cmds.setAttr('%s.radius' % common.getShapes(guide, 0), self.controlScale * .5)
-	
-	#resize masterGuide control
-	control.scaleShape(self.masterGuide, scale = [self.controlScale * 2, self.controlScale * 2, self.controlScale * 2])
-	
-	#declaring skeleton joints
-	skeletonJnts = self.getSkeletonJnts()
-	
-	#connect joints to the attributes on the masterGuide control
-	for jnt in skeletonJnts:
-	    if cmds.objExists(jnt):
-		attribute.connect(displayAttr , '%s.displayLocalAxis' % jnt)
-		common.setDisplayType(jnt, 'reference')	
-		
-	#parent all constraints to guides group
-	if self.setupConstraints:
-	    cmds.parent(self.setupConstraints, self.guidesGrp)
+        '''
+        clean up section for the setup rig
+        '''
+        #create attributes and lock/hide attrs on top nodes as well as masterGuide control
+        displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')	
+        attribute.lockAndHide(['r','t','s','v'], [self.setupRigGrp, self.skeletonGrp,self.guidesGrp, common.getParent(self.masterGuide)])
+        attribute.lockAndHide('v', self.masterGuide)
+        
+        #resize guide controls
+        for guide in self.getGuides():
+            cmds.setAttr('%s.radius' % common.getShapes(guide, 0), self.controlScale * .5)
+        
+        #resize masterGuide control
+        control.scaleShape(self.masterGuide, scale = [self.controlScale * 2, self.controlScale * 2, self.controlScale * 2])
+        
+        #declaring skeleton joints
+        skeletonJnts = self.getSkeletonJnts()
+        
+        #connect joints to the attributes on the masterGuide control
+        for jnt in skeletonJnts:
+            if cmds.objExists(jnt):
+        	attribute.connect(displayAttr , '%s.displayLocalAxis' % jnt)
+        	common.setDisplayType(jnt, 'reference')	
+        	
+        #parent all constraints to guides group
+        if self.setupConstraints:
+            cmds.parent(self.setupConstraints, self.guidesGrp)
 
-	#Put the build attributes onto setup rigs
-	'''
-	cmds.addAttr(self.setupRigGrp, ln = 'kwargs', dt = "string")
-	cmds.setAttr('%s.kwargs' % self.setupRigGrp, str(self._buildAttrs), type = "string")
-	'''
-	attribute.copy('displayAxis', self.masterGuide, self.name, reverseConnect = True)
-	
-	#parent setup under puppet node
-	self._puppetNode.addChild(self.setupRigGrp)
-	
-	if self.parent:
-	    if cmds.objExists(self.parent):
-		displayLine = control.displayLine(self.masterGuide, self.parent, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
-		cmds.parent(displayLine, self.guidesGrp)
-		
-	#set build args on puppet node
-	self.puppetNode.storeArgs(**self.buildArguments)
-	
+        #Put the build attributes onto setup rigs
+        '''
+        cmds.addAttr(self.setupRigGrp, ln = 'kwargs', dt = "string")
+        cmds.setAttr('%s.kwargs' % self.setupRigGrp, str(self._buildAttrs), type = "string")
+        '''
+        attribute.copy('displayAxis', self.masterGuide, self.name, reverseConnect = True)
+        
+        #parent setup under puppet node
+        self._puppetNode.addChild(self.setupRigGrp)
+        
+        if self.parent:
+            if cmds.objExists(self.parent):
+        	displayLine = control.displayLine(self.masterGuide, self.parent, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
+        	cmds.parent(displayLine, self.guidesGrp)
+        	
+        #set build args on puppet node
+        self.puppetNode.storeArgs(**self.buildArguments)
+        
     def runSetupRig(self):
-	'''
-	runs both the setup and postSetup for the rig. 
-	'''
-	self.setupRig()
-	self.postSetupRig()
+        '''
+        runs both the setup and postSetup for the rig. 
+        '''
+        self.setupRig()
+        self.postSetupRig()
 	
     
     #----------------------------------

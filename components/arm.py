@@ -42,13 +42,14 @@ class Arm(limb.Limb):
 		cmds.delete([self.endJoint, self.endJoint.replace(common.JOINT, common.GUIDES)])
 
 		if self._getSide() == common.LEFT:
-		    positions = ([self.position[0] + .5, self.position[1], self.position[2] + 1],
+			positions = (
+				[self.position[0] + .5, self.position[1], self.position[2] + 1],
 				[self.position[0] + 2, self.position[1], self.position[2]],
 				[self.position[0] + 5, self.position[1], self.position[2] - 1],
 				[self.position[0] + 8, self.position[1], self.position[2]]
 				)
 		elif self._getSide() == common.RIGHT:
-		    positions = (
+			positions = (
 				[self.position[0] + -.5, self.position[1], self.position[2] + 1],
 				[self.position[0] - 2, self.position[1], self.position[2]],
 				[self.position[0] - 5, self.position[1], self.position[2] - 1],
@@ -79,7 +80,12 @@ class Arm(limb.Limb):
 			return True
 		
 		#create pelvis control
-		clavicleCtrl = control.create(name = self.clavicleJoint.replace('_%s' % common.JOINT, ''),type = 'circle', parent = self.controlsGrp,color = common.SIDE_COLOR[self._getSide()])
+		clavicleCtrl = control.create(
+							name = self.clavicleJoint.replace('_%s' % common.JOINT,''),
+							type = 'cube',
+							parent = self.controlsGrp,
+							color = common.SIDE_COLOR[self._getSide()])
+		
 		common.setColor(clavicleCtrl, color = common.SIDE_COLOR[self._getSide()])
 		clavicleCtrlZero = common.getParent(clavicleCtrl)
 		transform.matchXform(self.clavicleJoint, clavicleCtrlZero, type = 'pose')

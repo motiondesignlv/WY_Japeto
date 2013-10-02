@@ -5,19 +5,12 @@ This is the leg component
 :contact: walteryoder@gmail.com
 :date:    October 2012
 '''
-
-#import python modules
-import os
-import sys
-
 #import maya modules
 import maya.cmds as cmds
 
 #import package modules
 #import libs
 from japeto.libs import common
-from japeto.libs import attribute
-from japeto.libs import ikfk
 from japeto.libs import control
 from japeto.libs import transform
 from japeto.libs import joint
@@ -90,14 +83,11 @@ class Leg(limb.Limb):
                 self.pelvisJoint.replace('_%s' % common.JOINT, ''),
                 self.pelvisJoint
             )
-        startJointGuide  = \
-            self.startJoint.replace(common.JOINT, common.GUIDES)
+        startJointGuide  = self.startJoint.replace(common.JOINT, common.GUIDES)
 
-        midJointGuide    = \
-            self.midJoint.replace(common.JOINT, common.GUIDES)
+        midJointGuide    = self.midJoint.replace(common.JOINT, common.GUIDES)
 
-        tipJointGuide    = \
-            self.tipJoint.replace(common.JOINT, common.GUIDES)
+        tipJointGuide    = self.tipJoint.replace(common.JOINT, common.GUIDES)
 
         #change guide positions
         for i, guide in enumerate([pelvisJointGuide,startJointGuide,midJointGuide, tipJointGuide]):
@@ -121,9 +111,10 @@ class Leg(limb.Limb):
         #create pelvis control
         pelvisCtrl = \
             control.create(name = self.pelvisJoint.replace('_%s' % common.JOINT, ''),
-                    type = 'circle',
+                    type = 'cube',
                     parent = self.controlsGrp,
                     color = common.SIDE_COLOR[self._getSide()])
+        #end loop
 
         common.setColor(pelvisCtrl, color = common.SIDE_COLOR[self._getSide()])
         pelvisCtrlZero = common.getParent(pelvisCtrl)

@@ -5,11 +5,6 @@ This is the foot component
 :contact: walteryoder@gmail.com
 :date:    July 2013
 '''
-
-#import python modules------
-import os
-import sys
-
 #import maya modules------
 import maya.cmds as cmds
 
@@ -20,8 +15,6 @@ import japeto.libs.attribute as attribute
 import japeto.libs.ikfk as ikfk
 import japeto.libs.control as control
 import japeto.libs.transform as transform
-import japeto.libs.joint as joint
-reload(ikfk)
 
 #import components
 import japeto.components.component as component
@@ -289,9 +282,9 @@ class Foot(component.Component):
         #create controls
         self.__footCtrl      = \
             control.create(name= self.name,
-                    type = 'circle',
+                    type = 'implicitSphere',
                     parent = self.controlsGrp,
-                    color = common.SIDE_COLOR_SECONDARY[self._getSide()])
+                    color = common.SIDE_COLOR[self._getSide()])
 
         self.__bankInCtrl    = \
             control.create(name= footRollGroups[self.__bankIn] ,
@@ -311,13 +304,13 @@ class Foot(component.Component):
                     parent = self.controlsGrp,
                     color = common.SIDE_COLOR_SECONDARY[self._getSide()])
 
-        #parent of coontrols
+        #parent of controls
         parentBankOutCtrl   = common.getParent(self.__bankOutCtrl)
         parentBankInCtrl    = common.getParent(self.__bankInCtrl)
         parentHeelPivotCtrl = common.getParent(self.__heelPivotCtrl)
 
         #scale controls
-        for ctrl in [self.__bankOutCtrl, self.__bankInCtrl, self.__heelPivotCtrl]:
+        for ctrl in [self.__footCtrl,self.__bankOutCtrl, self.__bankInCtrl, self.__heelPivotCtrl]:
             for i in range(len(common.getShapes(ctrl))):
                 control.scaleShape (ctrl, scale = [.3, .3, .3], index = i)
 
@@ -560,7 +553,7 @@ class Foot(component.Component):
         for jnt in self.__footIkFk.fkJoints:
             if jnt == self.__footIkFk.fkJoints[-1]:
                 continue
-            #end elif
+            #end if
 
             ctrl = \
                 control.create(name= jnt.split('_%s' % common.JOINT)[0],
@@ -582,7 +575,7 @@ class Foot(component.Component):
                 attribute.connect(ikfkAttr, '%s.v' % shape)
             #end for    
             parent = ctrl
-	    fkCtrls.append(ctrl)
+            fkCtrls.append(ctrl)
 
         #assign hooks
         self.hookRoot.extend([footRollGroups['anklePivot'], common.getParent(fkCtrls[0])])

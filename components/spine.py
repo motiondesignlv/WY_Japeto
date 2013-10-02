@@ -14,9 +14,6 @@ from japeto.libs import attribute
 from japeto.libs import ikfk
 from japeto.libs import control
 from japeto.libs import transform
-from japeto.libs import joint
-from japeto.libs import curve
-from japeto.libs import surface
 
 from japeto.components import component
 from japeto.components import chain
@@ -53,20 +50,20 @@ class Spine(chain.Chain):
             self.__spineIkFk.create([0, -1])
         elif self.numControls == 3:
             self.__spineIkFk.create([0, 2, -1])
-            torsoDriverJnt = self.__spineIkFk.driverJoints[1] 
+            #torsoDriverJnt = self.__spineIkFk.driverJoints[1] 
         
         self.ikFkGroup    = self.__spineIkFk.group
         self.curve        = self.__spineIkFk.curve
-        ikHipJnt          = self.__spineIkFk.ikJoints[0]
-        ikChest           = self.__spineIkFk.ikJoints[-1]
+        #ikHipJnt          = self.__spineIkFk.ikJoints[0]
+        #ikChest           = self.__spineIkFk.ikJoints[-1]
         self.ikJoints     = self.__spineIkFk.ikJoints
         self.fkJoints     = self.__spineIkFk.fkJoints
         self.blendJoints  = self.__spineIkFk.blendJoints
         self.driverJoints = self.__spineIkFk.driverJoints
         #upAxis            = self.__spineIkFk.upAxis
         aimAxis           = self.__spineIkFk.aimAxis
-        hipDriverJnt      = self.__spineIkFk.driverJoints[0]
-        chestDriverJnt    = self.__spineIkFk.driverJoints[-1]
+        #hipDriverJnt      = self.__spineIkFk.driverJoints[0]
+        #chestDriverJnt    = self.__spineIkFk.driverJoints[-1]
         
         #FK Control Setup
         self.controls['fk'] = self._fkControlSetup(self.__spineIkFk.fkJoints)    
@@ -124,11 +121,11 @@ class Spine(chain.Chain):
         for i,driver in enumerate(drivers):
             nameDescription = common.getDescription(driver)
             ctrlName = '%s_%s_%s' % (self._getSide(),nameDescription,common.IK)
-            ctrl = control.create(ctrlName, type = 'implicitSphere',
+            ctrl = control.create(ctrlName, type = 'cube',
                                   parent = self.controlsGrp,
                                   color = common.SIDE_COLOR[self._getSide()])
             ctrlZero = common.getParent(ctrl)
-            driverParent = common.getParent(driver)
+            #driverParent = common.getParent(driver)
             #move control in to position of driver jnt
             transform.matchXform(driver, ctrlZero, 'pose')
             #cmds.parent(ctrlZero, driverParent)

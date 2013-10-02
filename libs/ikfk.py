@@ -126,7 +126,7 @@ class IkFk(object):
     
     def __getJointChain(self):
         '''
-        @TODO: Get all the joints from original chain
+        This returns all the joints in the chain 
         '''
         origJnts = list()
         
@@ -508,11 +508,11 @@ class IkFkLimb(IkFk):
 class IkFkFoot(IkFk):
     def __init__(self, startJoint, endJoint, name = str(), parent = str()):
         super(IkFkFoot, self).__init__(startJoint, endJoint, name, parent)
-	
-    	#class variables
-    	self.__footRollGrpDict = ordereddict.OrderedDict()
-    	self.__ankleDriver = str()
-    	self.__ikHandles = list()
+        
+        #class variables
+        self.__footRollGrpDict = ordereddict.OrderedDict()
+        self.__ankleDriver = str()
+        self.__ikHandles = list()
         
     #GETTERS
     def getFootRolls(self):
@@ -522,7 +522,7 @@ class IkFkFoot(IkFk):
         return self.__footRollGrpDict
     
     def getAnkleDriver(self):
-    	'''
+        '''
     	Returns node that is driving the ankle
     	'''
         return self.__ankleDriverNode
@@ -543,8 +543,12 @@ class IkFkFoot(IkFk):
         
         #create ik handles for the ik setup
         for i in range(len(self.ikJoints) - 1):
-            ikHdl , effector = createIkHandle(self.ikJoints[i], self.ikJoints[i+1], type = 'ikSCsolver',
-        		   name = common.searchReplaceRename(self.ikJoints[i+1], '_%s' % common.JOINT, '_%s' % common.HANDLE), parent = self.group)
+            ikHdl= createIkHandle(self.ikJoints[i], self.ikJoints[i+1],
+                                  type = 'ikSCsolver',
+                                  name = common.searchReplaceRename(self.ikJoints[i+1],
+                                                      '_%s' % common.JOINT,
+                                                      '_%s' % common.HANDLE),
+                                  parent = self.group)[0]
             #append ik handle to ikHandles list
             self.__ikHandles.append(ikHdl)
         #end loop
@@ -570,14 +574,14 @@ class IkFkFoot(IkFk):
                 cmds.parent(self.__ikHandles[-1], self.__footRollGrpDict[grp])
             
             parent = self.__footRollGrpDict[grp]
-	    
-	
+
+
     def __createAnkleDriver(self):
         '''
         Check for ankle driver, if there is none, then this creates one
         '''
         ikJntConnections = cmds.listConnections('%s.tx' % self.ikJoints[0])
-        	
+        
         if ikJntConnections:
             for node in ikJntConnections:
                 if cmds.nodeType(node) == 'ikEffector':
@@ -599,8 +603,7 @@ class IkFkFoot(IkFk):
         
         self.__ikHandles.insert(0, ankleDriver)
         return ankleDriver
-	
-	
+
 #------------------------------------------------------------
 #                      IK/FK SPLINE CLASS 
 #                        (not finished)
@@ -655,7 +658,7 @@ class IkFkSpline(IkFk):
         if uniform:
             degree = cmds.getAttr(curveShape + ".degree")
             origCurve = crv
-            crv, rebuild = cmds.rebuildCurve(crv, ch=1, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, d=degree, tol=.01)
+            crv = cmds.rebuildCurve(crv, ch=1, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, d=degree, tol=.01)[0]
             crv = cmds.rename(crv, origCurve + "_rebuild")
             curveShape = cmds.listRelatives(crv, shapes=True)[0]
             cmds.connectAttr(curveShape + ".worldSpace[0]", handle + ".geometry", f=True)
@@ -1059,13 +1062,13 @@ class SplineIk(IkFk):
         [0, 0.9, 0.1, 0, 0]
     
         @param value: Value to be interpolated
-        @type value: C{int} or C{float}
+        @type value: *int* or *float*
     
         @param values: Key values for interpolation
-        @type values: C{list} or C{tuple}
+        @type values: *list* or *tuple*
     
         @return: Weights per each value in values
-        @rtype: C{list}
+        @rtype: *list*
         '''
         # get cell
         prev = -1
@@ -1238,10 +1241,10 @@ class SplineIk(IkFk):
         # --------------------------------------------------------------------------
         # CREATE IK-HANDLE
         
-        ikHandle, effector = IkFk.createIkHandle (ikJoints[0], ikJoints[-1],
+        ikHandle = IkFk.createIkHandle (ikJoints[0], ikJoints[-1],
                                         name="%s_%s" % (name,common.IKHANDLE),
                                         type = "ikSplineSolver",
-                                        crv = nurbsCurve.name,parent = grp)
+                                        crv = nurbsCurve.name,parent = grp)[0]
         
         # --------------------------------------------------------------------------
         # NORMALIZE CURVE
@@ -1472,16 +1475,16 @@ def createStretchIK(ikHandle, grp):
     jntLength = jnt1Distance + jnt2Distance
     cmds.setAttr('%s.operation' % multiplyDivide, 2)    
     if jntLength < 0:
-    	negDistanceMultiply = cmds.createNode('multiplyDivide', n = '%s_distanceNeg_%s' % (grp, common.MULTIPLYDIVIDE))
-    	cmds.connectAttr('%s.distance' % distanceBetween, '%s.input1X' % negDistanceMultiply, f = True)
-    	cmds.setAttr('%s.input2X' % negDistanceMultiply, -1)
-    	cmds.connectAttr('%s.outputX' % negDistanceMultiply, '%s.input1X' % multiplyDivide, f = True)
-    	cmds.connectAttr('%s.outputX' % negDistanceMultiply, '%s.firstTerm' % condition, f = True)
-    	cmds.setAttr('%s.operation' % condition, 4)
+        negDistanceMultiply = cmds.createNode('multiplyDivide', n = '%s_distanceNeg_%s' % (grp, common.MULTIPLYDIVIDE))
+        cmds.connectAttr('%s.distance' % distanceBetween, '%s.input1X' % negDistanceMultiply, f = True)
+        cmds.setAttr('%s.input2X' % negDistanceMultiply, -1)
+        cmds.connectAttr('%s.outputX' % negDistanceMultiply, '%s.input1X' % multiplyDivide, f = True)
+        cmds.connectAttr('%s.outputX' % negDistanceMultiply, '%s.firstTerm' % condition, f = True)
+        cmds.setAttr('%s.operation' % condition, 4)
     else:
-    	cmds.connectAttr('%s.distance' % distanceBetween, '%s.input1X' % multiplyDivide, f = True)
-    	cmds.connectAttr('%s.distance' % distanceBetween, '%s.firstTerm' % condition, f = True)
-    	cmds.setAttr('%s.operation' % condition, 2)
+        cmds.connectAttr('%s.distance' % distanceBetween, '%s.input1X' % multiplyDivide, f = True)
+        cmds.connectAttr('%s.distance' % distanceBetween, '%s.firstTerm' % condition, f = True)
+        cmds.setAttr('%s.operation' % condition, 2)
 
     cmds.connectAttr('%s.outputX' % multiplyDivide, '%s.input1X' % multiplyDivideJnt1, f = True)
     cmds.connectAttr('%s.outputX' % multiplyDivide, '%s.input1Y' % multiplyDivideJnt1, f = True)
@@ -1517,8 +1520,8 @@ def createStretchIK(ikHandle, grp):
     
     #turn off visibility of targetJnts and parent under grp node
     for jnt in [targetJnt1, targetJnt2]:
-    	cmds.setAttr('%s.v' % jnt, 0)
-    	cmds.parent(jnt, grp)
+        cmds.setAttr('%s.v' % jnt, 0)
+        cmds.parent(jnt, grp)
 
     return [targetJnt1, targetJnt2]
 
@@ -1586,12 +1589,12 @@ def create(jointChain, stretch = False):
 
         cmds.parentConstraint(jnt, jointChain[i])
 
-    ikHandle, effector = createIkHandle(ikJnts[0], ikJnts[2], name = ikJnts[0].replace(common.JOINT, common.HANDLE), parent = grp)
+    ikHandle = createIkHandle(ikJnts[0], ikJnts[2], name = ikJnts[0].replace(common.JOINT, common.HANDLE), parent = grp)[0]
     cmds.setAttr('%s.v' % ikHandle, 0)
     
     if stretch:
-    	#ik stretch setup
-    	targetJnts  = createStretchIK(ikHandle, grp)
+        #ik stretch setup
+        targetJnts  = createStretchIK(ikHandle, grp)
 
     ikfkDict = {'group' : grp, 'ikJoints' : ikJnts, 'fkJoints' : fkJnts, 'blendJoints' : blendJnts, 'ikHandle' : ikHandle, 'targetJnts' : targetJnts}
         

@@ -5,13 +5,7 @@ This is the limb component
 :contact: walteryoder@gmail.com
 :date:    October 2012
 '''
-
-#import python modules
-import os
-import sys
-
 import maya.cmds as cmds
-import japeto 
 
 #import package modules
 from japeto.libs import common
@@ -307,7 +301,7 @@ class Limb(component.Component):
             ikfkDict['blendJoints'][i] = jnt
 
         #create ik setup
-        ikCtrl = control.create(name = ikfkDict['ikJoints'][2].replace('_%s' % common.JOINT, ''),type = 'implicitSphere', parent = self.controlsGrp, color = common.SIDE_COLOR[self._getSide()])
+        ikCtrl = control.create(name = ikfkDict['ikJoints'][2].replace('_%s' % common.JOINT, ''),type = 'cube', parent = self.controlsGrp, color = common.SIDE_COLOR[self._getSide()])
         ikCtrlZero = common.getParent(ikCtrl)
         attribute.copy('stretch', ikfkDict['group'], destination = ikCtrl, connect = True,reverseConnect = False)
         attribute.copy('stretchTop', ikfkDict['group'], destination = ikCtrl, connect = True,reverseConnect = False)
@@ -321,7 +315,7 @@ class Limb(component.Component):
             common.setColor(ikCtrl, common.SIDE_COLOR[self._getSide()])
 
             #setup poleVector
-            pvCtrl = control.create(name = ikfkDict['ikJoints'][2].replace('_%s' % common.JOINT, '_%s' % common.POLEVECTOR),type = 'implicitSphere', parent = self.controlsGrp, color = common.SIDE_COLOR[self._getSide()])
+            pvCtrl = control.create(name = ikfkDict['ikJoints'][2].replace('_%s' % common.JOINT, '_%s' % common.POLEVECTOR),type = 'cube', parent = self.controlsGrp, color = common.SIDE_COLOR[self._getSide()])
             #size polevector control
 
         for i in range(len(common.getShapes(pvCtrl))):
@@ -373,25 +367,26 @@ class Limb(component.Component):
             #create controls, set color, and make connections
             fkCtrl = control.create(name = jnt.replace('_%s' % common.JOINT, ''),type = 'circle', parent = parent, color = common.SIDE_COLOR[self._getSide()])
             fkCtrlZero = common.getParent(fkCtrl)
+        #end loop
 
-	    if fkOrient == 'Local':
-		transform.matchXform(jnt, fkCtrlZero, type = 'pose')
-	    else:
-		transform.matchXform(jnt, fkCtrlZero, type = 'position')
-	    
-	    cmds.connectAttr('%s.ikfk' % ikfkDict['group'], '%s.v' % common.getShapes(fkCtrl)[0], f = True)
-	    cmds.parentConstraint(fkCtrl, jnt, mo = True)
-	    attribute.lockAndHide('t', fkCtrl)
-	    attribute.lockAndHide('s', fkCtrl)
-	    attribute.lockAndHide('v', fkCtrl)
-	    #get joint rotate order and apply to control and parent group
-	    rotateOrder = attribute.getValue('rotateOrder', jnt)
-	    for node in [fkCtrl, fkCtrlZero]:
-		cmds.setAttr('%s.rotateOrder' % node, rotateOrder)
+        if fkOrient == 'Local':
+            transform.matchXform(jnt, fkCtrlZero, type = 'pose')
+        else:
+            transform.matchXform(jnt, fkCtrlZero, type = 'position')
+        
+        cmds.connectAttr('%s.ikfk' % ikfkDict['group'], '%s.v' % common.getShapes(fkCtrl)[0], f = True)
+        cmds.parentConstraint(fkCtrl, jnt, mo = True)
+        attribute.lockAndHide('t', fkCtrl)
+        attribute.lockAndHide('s', fkCtrl)
+        attribute.lockAndHide('v', fkCtrl)
+        #get joint rotate order and apply to control and parent group
+        rotateOrder = attribute.getValue('rotateOrder', jnt)
+        for node in [fkCtrl, fkCtrlZero]:
+            cmds.setAttr('%s.rotateOrder' % node, rotateOrder)
 
             fkCtrls.append(fkCtrl)
             parent = fkCtrl
-
+        #end loop
 
         aimAxis = transform.getAimAxis(ikfkDict['blendJoints'][0], allowNegative = False)    
         #Up Twist Joint Setup
@@ -407,22 +402,26 @@ class Limb(component.Component):
             step   = 1.0 / (len(self.upTwistJnts) +1)
             for i in range( 1, (len(self.upTwistJnts)+1) ):
                 twsitMultNode = cmds.createNode('multiplyDivide', n = self.upTwistJnts[i - 1].replace('%s_%s' % (common.SKINCLUSTER,common.JOINT), '%s_%s' % (common.UTILITY, common.MULTIPLYDIVIDE)))
-		cmds.connectAttr('%s.r%s' % (ikfkDict['blendJoints'][0], aimAxis), '%s.input1X' % twsitMultNode, f = True)
-		cmds.setAttr('%s.input2X' % twsitMultNode, -(1-(step*i))  )
-		cmds.connectAttr('%s.outputX' % twsitMultNode, '%s.r%s' % (self.upTwistJnts[i -1], aimAxis),f = True)
+                cmds.connectAttr('%s.r%s' % (ikfkDict['blendJoints'][0], aimAxis), '%s.input1X' % twsitMultNode, f = True)
+                cmds.setAttr('%s.input2X' % twsitMultNode, -(1-(step*i))  )
+                cmds.connectAttr('%s.outputX' % twsitMultNode, '%s.r%s' % (self.upTwistJnts[i -1], aimAxis),f = True)
+            #end loop
 
             self.upTwistJnts.insert(0, noTwistJnt)
+        #end if
 
         if self.loTwistJnts:
             twistJnt = common.duplicate(self.midJoint, name = self.midJoint.replace('%s' % common.SKINCLUSTER, 'loTwist_%s' % common.SKINCLUSTER), parent = self.midJoint)
             constraint = cmds.aimConstraint(ikfkDict['blendJoints'][2],twistJnt,aimVector =  aimVector, upVector  = upVector,  worldUpType ="objectrotation", worldUpVector = upVector, worldUpObject = self.tipJoint)
+        #end if
 
-	    step   = 1.0 / (len(self.loTwistJnts) +1)
-	    for i in range( 1, (len(self.loTwistJnts)+1) ):
-		twsitMultNode = cmds.createNode('multiplyDivide', n = self.loTwistJnts[i - 1].replace('%s_%s' % (common.SKINCLUSTER,common.JOINT), '%s_%s' % (common.UTILITY, common.MULTIPLYDIVIDE)))
-		cmds.connectAttr('%s.r%s' % (ikfkDict['blendJoints'][2], aimAxis), '%s.input1X' % twsitMultNode, f = True)
-		cmds.setAttr('%s.input2X' % twsitMultNode, 1-(step*i) )
-		cmds.connectAttr('%s.outputX' % twsitMultNode, '%s.r%s' % (self.loTwistJnts[i -1], aimAxis),f = True)
+        step   = 1.0 / (len(self.loTwistJnts) +1)
+        for i in range( 1, (len(self.loTwistJnts)+1) ):
+            twsitMultNode = cmds.createNode('multiplyDivide', n = self.loTwistJnts[i - 1].replace('%s_%s' % (common.SKINCLUSTER,common.JOINT), '%s_%s' % (common.UTILITY, common.MULTIPLYDIVIDE)))
+            cmds.connectAttr('%s.r%s' % (ikfkDict['blendJoints'][2], aimAxis), '%s.input1X' % twsitMultNode, f = True)
+            cmds.setAttr('%s.input2X' % twsitMultNode, 1-(step*i) )
+            cmds.connectAttr('%s.outputX' % twsitMultNode, '%s.r%s' % (self.loTwistJnts[i -1], aimAxis),f = True)
+        #end loop
 
         #------------------------
         #Add to class variables

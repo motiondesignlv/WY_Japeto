@@ -7,16 +7,14 @@ This is the Finger component.
 '''
 
 #import python modules
-import os
-import sys
-
 import maya.cmds as cmds
-import japeto 
 
 #import package modules
-from japeto.libs import common, attribute, ikfk, control, transform, joint
-import japeto.components.component as component
-import japeto.components.chain as chain
+from japeto.libs import common
+from japeto.libs import control
+
+from japeto.components import component
+from japeto.components import  chain
 
 class Finger(chain.Chain):
     def __init__(self, name):
@@ -30,14 +28,13 @@ class Finger(chain.Chain):
     def setupRig(self):
         super(Finger, self).setupRig()
 
-	#TODO: Put setup code here
-	if self._getSide() == common.LEFT:
-	    cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [-4.0, 0, 0])
-	elif self._getSide() == common.RIGHT:
-	    cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [4.0, 0, 0])
-	    
+        if self._getSide() == common.LEFT:
+            cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [-4.0, 0, 0])
+        elif self._getSide() == common.RIGHT:
+            cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [4.0, 0, 0])
+        
     def rig(self):
         super(Finger, self).rig()
         
-        
-        
+        for ctrl in self.controls['fk']:
+            control.scaleShape(ctrl,scale = [self.controlScale  * .5,self.controlScale *.5,self.controlScale * .5])
