@@ -10,12 +10,14 @@ import maya.cmds as cmds
 
 #import package modules
 import japeto.templates.rig as rig
-reload(rig)
+
 #import libs
 from japeto.libs import common
 from japeto.libs import attribute
 from japeto.libs import joint
 from japeto.libs import control
+from japeto.libs import spaces
+from japeto.libs import transform
 
 #import components
 from japeto.components import component
@@ -26,30 +28,24 @@ from japeto.components import foot
 from japeto.components import chain, spine , neck
 from japeto.components import finger
 from japeto.components import hand
-reload(component)
-reload(limb)
-reload(leg)
-reload(arm)
-reload(foot)
-reload(chain)
-reload(spine)
-reload(neck)
-reload(finger)
-reload(hand)
-
-
 
 class Biped(rig.Rig):
     def __init__(self, name):
         super(Biped, self).__init__(name)
 
         self.__rootJoint = '%s_root_%s_%s' % (common.CENTER,
-            common.SKINCLUSTER,
-            common.JOINT)
+                                              common.SKINCLUSTER,
+                                              common.JOINT)
 
         self.__hipJoint = '%s_hip_%s_%s' % (common.CENTER,
-            common.SKINCLUSTER,
-            common.JOINT)
+                                            common.SKINCLUSTER,
+                                            common.JOINT)
+
+        self.__rootCtrl  = '%s_root_%s' % (common.CENTER,
+                                            common.CONTROL)
+        
+        self.__hipCtrl  = '%s_hip_%s' % (common.CENTER,
+                                            common.CONTROL)
 
     @property
     def rootJoint(self):
@@ -58,6 +54,14 @@ class Biped(rig.Rig):
     @property
     def hipJoint(self):
         return self.__hipJoint
+    
+    @property
+    def hipCtrl(self):
+        return self.__hipCtrl
+    
+    @property
+    def rootCtrl(self):
+        return self.__rootCtrl
 
     def initialize(self):
         '''
@@ -69,7 +73,7 @@ class Biped(rig.Rig):
         self.register('Spine',
                       spine.Spine('c_spine'),
                       position = [0,15,0],
-                      numJoints = 5, 
+                      numJoints = 4, 
                       numControls = 2)
         
         self.register('Neck',
@@ -152,7 +156,7 @@ class Biped(rig.Rig):
 
         cmds.parent(self.rootJoint, self.jointsGrp)
 
-        rootCtrl=control.create(self.rootJoint.replace('_%s' %common.JOINT,''),
+        rootCtrl=control.create(self.rootCtrl.replace('_%s'%common.CONTROL,''),
                                 type = 'square',
                                 parent = self._trsCtrl,
                                 color = 'yellow')
@@ -173,7 +177,7 @@ class Biped(rig.Rig):
         #parent the joint to 
         cmds.parent(self.hipJoint,self.jointsGrp)
         
-        hipCtrl=control.create(self.hipJoint.replace('_%s' % common.JOINT, ''),
+        hipCtrl = control.create(self.hipCtrl.replace('_%s' % common.CONTROL, ''),
                                type = 'square',
                                parent = rootCtrl,
                                color = 'yellow')
@@ -305,6 +309,7 @@ class Biped(rig.Rig):
         
         @todo: Figure out where things will go and scaling
         '''
+                
         if common.isValid('Puppet'):
             cmds.delete('Puppet')
 
@@ -353,3 +358,128 @@ class Biped(rig.Rig):
         cmds.parentConstraint(self.components['Left Foot'].hookPoint[0], self.components['Left Leg'].hookRoot[-1], mo = True)
         cmds.parentConstraint(self.components['Right Foot'].hookPoint[0], self.components['Right Leg'].hookRoot[-1], mo = True)
         
+    def createSpaces(self):
+        spineEndIk      = self.components['Spine'].controls['ik'][-1]
+        spineStartIk    = self.components['Spine'].controls['ik'][0]
+        neckIk          = self.components['Neck'].controls['ik'][-1]
+        leftArmIk       = self.components['Left Arm'].controls['ik'][0]
+        leftArmPv       = self.components['Left Arm'].controls['ik'][1]
+        leftLegPv       = self.components['Left Leg'].controls['ik'][1]
+        rightArmIk      = self.components['Right Arm'].controls['ik'][0]
+        rightArmPv      = self.components['Right Arm'].controls['ik'][1]
+        rightLegPv      = self.components['Right Leg'].controls['ik'][1]
+        
+        #create space groups
+        #SPINE SPACE
+        #-----------------------------
+        spineEndIkGrp = cmds.createNode('transform',
+                                       n = self.components['Spine'].name + '_end_space_grp',
+                                       parent = common.getParent(spineEndIk))
+        transform.matchXform(spineEndIkGrp, spineEndIk, 'pose')
+        cmds.parent(spineEndIk, spineEndIkGrp)
+        spaces.create( spaceNode = spineEndIkGrp, spaceAttrNode = spineEndIk, parent=self._trsCtrl)
+        spineEndIkSpace = spaces.Spaces(spineEndIkGrp)
+        spineEndIkSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        spineEndIkSpace.switch(1)
+        
+        #HIP SPACE
+        #-----------------------------
+        hipGrp = cmds.createNode('transform',
+                                       n = 'hip_space_grp',
+                                       parent = common.getParent(self.hipCtrl))
+        transform.matchXform(hipGrp, self.hipCtrl, 'pose')
+        cmds.parent(self.hipCtrl, hipGrp)
+        spaces.create( spaceNode = hipGrp, spaceAttrNode = self.hipCtrl, parent=self.rootJoint)
+        hipSpace = spaces.Spaces(hipGrp)
+        hipSpace.addSpace(self.components['Spine'].skinClusterJnts[0], name='Spine', mode='parent')
+        hipSpace.switch(1)
+        
+        
+        #NECK SPACE
+        #-----------------------------
+        neckIkGrp = cmds.createNode('transform',
+                                       n = self.components['Neck'].name + '_space_grp',
+                                       parent = common.getParent(neckIk))
+        transform.matchXform(neckIkGrp, neckIk, 'pose')
+        cmds.parent(neckIk, neckIkGrp)
+        spaces.create( spaceNode = neckIkGrp, spaceAttrNode = neckIk, parent=self._trsCtrl)
+        neckIkGrpSpace = spaces.Spaces(neckIkGrp)
+        neckIkGrpSpace.addSpace(self.components['Spine'].skinClusterJnts[-1], name='Chest', mode='parent')
+        neckIkGrpSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        neckIkGrpSpace.switch(1)
+        
+        
+        
+        #LEFT ARM SPACE
+        #-----------------------------
+        #arm ik control
+        leftArmIkGrp = cmds.createNode('transform',
+                                       n = leftArmIk.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(leftArmIk))
+        transform.matchXform(leftArmIkGrp, leftArmIk, 'pose')
+        cmds.parent(leftArmIk, leftArmIkGrp)
+        spaces.create( spaceNode = leftArmIkGrp, spaceAttrNode = leftArmIk, parent=self._trsCtrl)
+        leftArmIkSpace = spaces.Spaces(leftArmIkGrp)
+        leftArmIkSpace.addSpace(self.components['Spine'].skinClusterJnts[-1], name='Chest', mode='parent')
+        leftArmIkSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        
+        #arm pv control
+        leftArmPvGrp = cmds.createNode('transform',
+                                       n = leftArmPv.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(leftArmPv))
+        transform.matchXform(leftArmPvGrp, leftArmPv, 'pose')
+        cmds.parent(leftArmPv, leftArmPvGrp)
+        spaces.create( spaceNode = leftArmPvGrp, spaceAttrNode = leftArmPv, parent=self._trsCtrl)
+        leftArmPvSpace = spaces.Spaces(leftArmPvGrp)
+        leftArmPvSpace.addSpace(self.components['Spine'].skinClusterJnts[-1], name='Chest', mode='parent')
+        leftArmPvSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        
+        #LEFT LEG SPACE
+        #-----------------------------
+        #leg pv control
+        leftLegPvGrp = cmds.createNode('transform',
+                                       n = leftLegPv.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(leftLegPv))
+        transform.matchXform(leftLegPvGrp, leftLegPv, 'pose')
+        cmds.parent(leftLegPv, leftLegPvGrp)
+        spaces.create( spaceNode = leftLegPvGrp, spaceAttrNode = leftLegPv, parent=self._trsCtrl)
+        leftLegPvSpace = spaces.Spaces(leftLegPvGrp)
+        leftLegPvSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        #leftLegPvSpace.addSpace(self.components['Left Foot'].controls['ik'][0], name='Ankle', mode='parent')
+        
+        #RIGHT ARM SPACE
+        #-----------------------------
+        rightArmIkGrp = cmds.createNode('transform',
+                                       n = rightArmIk.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(rightArmIk))
+        transform.matchXform(rightArmIkGrp, rightArmIk, 'pose')
+        cmds.parent(rightArmIk, rightArmIkGrp)
+        spaces.create( spaceNode = rightArmIkGrp, spaceAttrNode = rightArmIk, parent=self._trsCtrl)
+        rightArmIkSpace = spaces.Spaces(rightArmIkGrp)
+        rightArmIkSpace.addSpace(self.components['Spine'].skinClusterJnts[-1], name='Chest', mode='parent')
+        rightArmIkSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        
+        #arm pv control
+        rightArmPvGrp = cmds.createNode('transform',
+                                       n = rightArmPv.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(rightArmPv))
+        transform.matchXform(rightArmPvGrp, rightArmPv, 'pose')
+        cmds.parent(rightArmPv, rightArmPvGrp)
+        spaces.create( spaceNode = rightArmPvGrp, spaceAttrNode = rightArmPv, parent=self._trsCtrl)
+        rightArmPvSpace = spaces.Spaces(rightArmPvGrp)
+        rightArmPvSpace.addSpace(self.components['Spine'].skinClusterJnts[-1], name='Chest', mode='parent')
+        rightArmPvSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        
+        #RIGHT LEG SPACE
+        #-----------------------------
+        #leg pv control
+        rightLegPvGrp = cmds.createNode('transform',
+                                       n = rightLegPv.replace('_%s' % common.CONTROL, '_space_grp'),
+                                       parent = common.getParent(rightLegPv))
+        transform.matchXform(rightLegPvGrp, rightLegPv, 'pose')
+        cmds.parent(rightLegPv, rightLegPvGrp)
+        spaces.create( spaceNode = rightLegPvGrp, spaceAttrNode = rightLegPv, parent=self._trsCtrl)
+        rightLegPvSpace = spaces.Spaces(rightLegPvGrp)
+        rightLegPvSpace.addSpace(self.rootJoint, name='Root', mode='parent')
+        #rightLegPvSpace.addSpace(self.components['Right Foot'].controls['ik'][0], name='Ankle', mode='parent')
+

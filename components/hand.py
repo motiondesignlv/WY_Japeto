@@ -130,6 +130,7 @@ class Hand(component.Component):
         #TODO: Place build code for fingers here
         for obj in self.fingers:
             self.__fingers[obj].postRig()
+            self.skinClusterJnts.extend(self.__fingers[obj].skinClusterJnts)
             #assign hooks
             self.hookRoot.extend(self.__fingers[obj].hookRoot)
 

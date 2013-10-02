@@ -18,7 +18,7 @@ from maya import cmds
 from japeto.libs import common
 from japeto.libs import attribute
 from japeto.libs import joint
-from japeto.libs import control 
+from japeto.libs import control
 from japeto.libs import ordereddict
 
 #import components
@@ -89,8 +89,11 @@ class Rig(object):
         self.components  = ordereddict.OrderedDict() 
         self.functions   = ordereddict.OrderedDict() 
         self.controls    = list()
+        self.filePath    = os.path.join(os.path.dirname(__file__), 
+                                        '%s.%s' % (self.name, common.CONTROL))
         
         self.__registeredItems = list()
+        self.skinClusterJoints = list()
 
 
     #GETTERS
@@ -195,10 +198,16 @@ class Rig(object):
                                 #end if
                             #end loop
                         #end loop
+                        for jnt in self.components[item].skinClusterJnts:
+                            if jnt not in self.skinClusterJoints:
+                                    self.skinClusterJoints.append(jnt)
+                                #end if
+                            #end loop
+                        #end loop
                     #end if
                 #end if
-                elif self.functions.has_key(item):
-                    self._runFunction(item)
+                #elif self.functions.has_key(item):
+                    #self._runFunction(item)
                 #end elif
             #end loop
         #end if
@@ -242,17 +251,9 @@ class Rig(object):
 
     def build(self):
         '''
-        build rig hiearchy and attatch components
+        build rig hierarchy and attach components
         '''
-        #create nodes on the rigGrp node
-        tagAttr = control.tag_as_control(self.rigGrp)
-
-        if self.controls:
-            for ctrl in self.controls:
-                attribute.connect(tagAttr, '%s.%s' % (ctrl, tagAttr.split('.')[1]))
-            #end loop
-        #end if
-
+        
         for component in self.components:
             cmds.parent(self.components[component].controlsGrp, self._trsCtrl)
             cmds.parent(self.components[component].jointsGrp, self.jointsGrp)
@@ -263,7 +264,29 @@ class Rig(object):
     def postBuild(self):
         '''
         clean up rig asset
+        
+        @todo: Finish complete cleanup of the rig
         '''
+        #create nodes on the rigGrp node
+        tagControlsAttr = control.tag_as_control(self.rigGrp)
+        cmds.addAttr(self.rigGrp, ln = 'deform_joints', at = 'message')
+        tagJointsAttr  = '%s.deform_joints' % self.rigGrp
+
+        if self.controls:
+            for ctrl in self.controls:
+                attribute.connect(tagControlsAttr, '%s.%s' % (ctrl, tagControlsAttr.split('.')[1]))
+            #end loop
+        #end if
+
+        if self.skinClusterJoints:
+            for jnt in self.skinClusterJoints:
+                if common.isValid(jnt):
+                    cmds.addAttr(jnt, ln = 'deform_joints', at = 'message')
+                    attribute.connect(tagJointsAttr, '%s.deform_joints' % jnt)
+                #end if
+            #end loop
+        #end if
+
         attribute.lockAndHide(['s', 'v'], [self._shotCtrl, self._trsCtrl])
 
     def _runFunction(self, name):

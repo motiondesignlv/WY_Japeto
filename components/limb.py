@@ -367,25 +367,27 @@ class Limb(component.Component):
             #create controls, set color, and make connections
             fkCtrl = control.create(name = jnt.replace('_%s' % common.JOINT, ''),type = 'circle', parent = parent, color = common.SIDE_COLOR[self._getSide()])
             fkCtrlZero = common.getParent(fkCtrl)
-        #end loop
-
-        if fkOrient == 'Local':
-            transform.matchXform(jnt, fkCtrlZero, type = 'pose')
-        else:
-            transform.matchXform(jnt, fkCtrlZero, type = 'position')
-        
-        cmds.connectAttr('%s.ikfk' % ikfkDict['group'], '%s.v' % common.getShapes(fkCtrl)[0], f = True)
-        cmds.parentConstraint(fkCtrl, jnt, mo = True)
-        attribute.lockAndHide('t', fkCtrl)
-        attribute.lockAndHide('s', fkCtrl)
-        attribute.lockAndHide('v', fkCtrl)
-        #get joint rotate order and apply to control and parent group
-        rotateOrder = attribute.getValue('rotateOrder', jnt)
-        for node in [fkCtrl, fkCtrlZero]:
-            cmds.setAttr('%s.rotateOrder' % node, rotateOrder)
-
-            fkCtrls.append(fkCtrl)
-            parent = fkCtrl
+            
+            if fkOrient == 'Local':
+                transform.matchXform(jnt, fkCtrlZero, type = 'pose')
+            #end if
+            else:
+                transform.matchXform(jnt, fkCtrlZero, type = 'position')
+            #end else
+            
+            cmds.connectAttr('%s.ikfk' % ikfkDict['group'], '%s.v' % common.getShapes(fkCtrl)[0], f = True)
+            cmds.parentConstraint(fkCtrl, jnt, mo = True)
+            attribute.lockAndHide('t', fkCtrl)
+            attribute.lockAndHide('s', fkCtrl)
+            attribute.lockAndHide('v', fkCtrl)
+            #get joint rotate order and apply to control and parent group
+            rotateOrder = attribute.getValue('rotateOrder', jnt)
+            for node in [fkCtrl, fkCtrlZero]:
+                cmds.setAttr('%s.rotateOrder' % node, rotateOrder)
+    
+                fkCtrls.append(fkCtrl)
+                parent = fkCtrl
+            #end loop
         #end loop
 
         aimAxis = transform.getAimAxis(ikfkDict['blendJoints'][0], allowNegative = False)    

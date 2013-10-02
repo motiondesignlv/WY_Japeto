@@ -15,7 +15,12 @@ import maya.cmds as cmds
 
 #import package modules
 #import libs
-from japeto.libs import common, attribute, ikfk, control, transform, joint
+from japeto.libs import common
+from japeto.libs import attribute
+from japeto.libs import ikfk
+from japeto.libs import control
+from japeto.libs import transform
+from japeto.libs import joint
 
 #import components
 import japeto.components.component as  component
