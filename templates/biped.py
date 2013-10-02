@@ -10,6 +10,7 @@ import maya.cmds as cmds
 
 #import package modules
 import japeto.templates.rig as rig
+reload(rig)
 
 #import libs
 from japeto.libs import common
@@ -28,6 +29,17 @@ from japeto.components import foot
 from japeto.components import chain, spine , neck
 from japeto.components import finger
 from japeto.components import hand
+reload(component)
+reload(limb)
+reload(leg)
+reload(arm)
+reload(foot)
+reload(chain)
+reload(spine)
+reload(neck)
+reload(finger)
+reload(hand)
+
 
 class Biped(rig.Rig):
     def __init__(self, name):
@@ -146,6 +158,7 @@ class Biped(rig.Rig):
         '''
         super(Biped,self).build()
 
+        displayAttr = '%s.displayJnts' % self.name
         #get the control size of the spine
         spineCtrlSize = self.components['Spine'].controlScale
 
@@ -192,6 +205,10 @@ class Biped(rig.Rig):
         
         #constrain the hip joint the the hip control
         cmds.parentConstraint(hipCtrl, self.hipJoint, mo = True)
+        
+        for jnt in [self.rootJoint, self.hipJoint]:
+            cmds.setAttr('%s.overrideEnabled' % jnt, 1)
+            attribute.connect(displayAttr, '%s.overrideDisplayType' % jnt)
 
         #connect fingers
         leftFingers = self.components['Left Hand'].getFingers
@@ -309,7 +326,9 @@ class Biped(rig.Rig):
         
         @todo: Figure out where things will go and scaling
         '''
-                
+        for ctrl in [self.rootCtrl, self.hipCtrl]:
+            attribute.lockAndHide(['v','s'], ctrl)
+        
         if common.isValid('Puppet'):
             cmds.delete('Puppet')
 

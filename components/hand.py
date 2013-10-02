@@ -10,14 +10,15 @@ import maya.cmds as cmds
 
 #import package modules------
 #import libs
-import japeto.libs.common as common
-import japeto.libs.attribute as attribute
-import japeto.libs.control as control
-import japeto.libs.ordereddict as ordereddict
+from japeto.libs import common
+from japeto.libs import attribute
+from japeto.libs import control
+from japeto.libs import ordereddict
+from japeto.libs import joint
 
 #import components
-import japeto.components.component as component
-import japeto.components.finger as finger
+from japeto.components import component
+from japeto.components import finger
 
 class Hand(component.Component):
     def __init__(self, name):
@@ -27,6 +28,7 @@ class Hand(component.Component):
         self.__handCtrl = '%s_hand_%s' % (self._getSide(), common.CONTROL)
         self.__fingers = ordereddict.OrderedDict()
         self.__handPosition = list()
+        self.handJoint = '%s_hand_%s' % (self._getSide(), common.JOINT)
 
     @component.overloadArguments
     def initialize(self, **kwargs):
@@ -58,21 +60,32 @@ class Hand(component.Component):
 
     def setupRig(self):
         super(Hand, self).setupRig()
+        
 
         if self._getSide() == common.LEFT:
         #move master  guide into position
-            cmds.xform(common.getParent(self.masterGuide), ws = True, t = self.handPosition)
+            cmds.xform(common.getParent(self.masterGuide), ws = True,
+                       t = self.handPosition)
 
             for i,obj in enumerate(self.fingers):
-                self.__fingers[obj] = finger.Finger('%s_%s' % (self._getSide(), obj))
-                self.__fingers[obj].initialize(numJoints = self.numJoints, position = [self.position[0] + 10, self.position[1], (self.position[2] + 2 )- i], parent = self.parent)
+                self.__fingers[obj] = finger.Finger('%s_%s' % (self._getSide(),
+                                                               obj))
+                self.__fingers[obj].initialize(numJoints = self.numJoints,
+                                               position=[self.position[0] + 10,
+                                                 self.position[1],
+                                                 (self.position[2] + 2 )- i],
+                                               parent = self.parent)
                 self.__fingers[obj].setupRig()
 
-                cmds.parentConstraint(self.masterGuide, common.getParent(self.__fingers[obj].masterGuide), mo = True)
+                cmds.parentConstraint(self.masterGuide,
+                            common.getParent(self.__fingers[obj].masterGuide),
+                            mo = True)
                 for guide in self.__fingers[obj].getGuides():
                     #tag the guide control with a tag_guides attribute
-                    tagAttr = attribute.addAttr(guide, 'hand_guides', attrType = 'message')
-                    attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
+                    tagAttr = attribute.addAttr(guide, 'hand_guides',
+                                                attrType = 'message')
+                    attribute.connect('%s.tag_guides' % self.setupRigGrp,
+                                      tagAttr)
                 #end loop
             #end loop
         #end if
@@ -95,6 +108,13 @@ class Hand(component.Component):
                 #end loop
             #end loop
         #end elif
+        
+        #create joint and guide
+        joint.create(self.handJoint, self.skeletonGrp, self.handPosition)
+        self.handGuide = self.setupCtrl(self.handJoint.replace(common.JOINT,
+                                                               common.CONTROL),
+                                        self.handJoint,
+                                        common.SIDE_COLOR[self._getSide()])
 
     def postSetupRig(self):
         super(Hand, self).postSetupRig()
@@ -104,10 +124,14 @@ class Hand(component.Component):
             self.__fingers[obj].postSetupRig()
 
     def rig(self):
+        #TODO: Place build code for fingers here
+        for obj in self.fingers:
+            self.__fingers[obj].rig()
+        
         super(Hand, self).rig()
-
         #TODO: Put build code here
-        control.create(self.name, type = 'implicitSphere',
+        control.create(self.handCtrl.replace('_%s' % common.CONTROL, ''),
+                       type = 'implicitSphere',
                        parent = self.controlsGrp,
                        color = common.SIDE_COLOR[self._getSide()])
         
@@ -115,12 +139,11 @@ class Hand(component.Component):
             control.scaleShape (self.handCtrl,scale = [.3,.3,.3],index = i)
         #end loop
         handCtrlZero = common.getParent(self.handCtrl)
-        cmds.xform(handCtrlZero, ws = True, t = self.handPosition)
-        cmds.xform(handCtrlZero, r = True, t = [0,1,0])
+        transform.matchXform(self.handJoint,handCtrlZero, 'pose')
+        #cmds.xform(handCtrlZero, ws = True, t = self.handPosition)
+        cmds.xform(handCtrlZero, ws = True, r = True, t = [0,1,0])
 
-        #TODO: Place build code for fingers here
-        for obj in self.fingers:
-            self.__fingers[obj].rig()
+        
 
 
     def postRig(self):
@@ -134,8 +157,11 @@ class Hand(component.Component):
             #assign hooks
             self.hookRoot.extend(self.__fingers[obj].hookRoot)
 
+        cmds.delete(self.handJoint)
+
         self.hookRoot.append(common.getParent(self.__handCtrl))
         attribute.lockAndHide(['t', 'r', 's', 'v'], self.__handCtrl)
+
         
         
         

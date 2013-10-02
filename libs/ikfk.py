@@ -152,7 +152,7 @@ class IkFk(object):
             
         #create ik/fk group node and add attribute
         cmds.createNode('transform', n = self.group)
-        attribute.addAttr(self.group, attr = 'ikfk', attrType = 'enum', defValue = ['off','on'],value = 0)
+        attribute.addAttr(self.group, attr = 'ikfk', attrType = 'enum', defValue = ['IK','FK'],value = 0)
         #cmds.addAttr(self.group, ln = 'ikfk', at = 'double', min = 0, max = 1, dv = 0, keyable = True)
         
         #check parent attribute

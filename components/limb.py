@@ -415,6 +415,7 @@ class Limb(component.Component):
         if self.loTwistJnts:
             twistJnt = common.duplicate(self.midJoint, name = self.midJoint.replace('%s' % common.SKINCLUSTER, 'loTwist_%s' % common.SKINCLUSTER), parent = self.midJoint)
             constraint = cmds.aimConstraint(ikfkDict['blendJoints'][2],twistJnt,aimVector =  aimVector, upVector  = upVector,  worldUpType ="objectrotation", worldUpVector = upVector, worldUpObject = self.tipJoint)
+            cmds.setAttr('%s.v' % twistJnt, 0)
         #end if
 
         step   = 1.0 / (len(self.loTwistJnts) +1)

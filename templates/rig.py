@@ -253,10 +253,26 @@ class Rig(object):
         '''
         build rig hierarchy and attach components
         '''
-        
         for component in self.components:
             cmds.parent(self.components[component].controlsGrp, self._trsCtrl)
             cmds.parent(self.components[component].jointsGrp, self.jointsGrp)
+            for attr in ['displayJnts', 'jointVis']:
+                fullAttrPath  = '%s.%s' % (self.name, attr)
+                componentAttr = '%s.%s' % (self.components[component].rigGrp, attr)
+                if cmds.objExists(componentAttr):
+                    if not cmds.objExists(fullAttrPath):
+                        attribute.copy(attr, self.components[component].rigGrp, self.name, reverseConnect=False)
+                    #end if
+                    
+                    connectedAttrs = attribute.getConnections(attr, self.components[component].rigGrp, incoming = False)
+                    if connectedAttrs:
+                        for connectedAttr in connectedAttrs:
+                            cmds.disconnectAttr(componentAttr, connectedAttr)
+                            attribute.connect(fullAttrPath, connectedAttr)
+                        #end for
+                    #end if
+                #end if
+            #end for
             cmds.delete(self.components[component].rigGrp)
         #end loop
 
@@ -287,7 +303,12 @@ class Rig(object):
             #end loop
         #end if
 
+        #lock and hide attributes
         attribute.lockAndHide(['s', 'v'], [self._shotCtrl, self._trsCtrl])
+        attribute.lockAndHide(['t', 'r', 's', 'v'], self.name)
+        
+        #clear selection
+        cmds.select(cl = True)
 
     def _runFunction(self, name):
         '''
