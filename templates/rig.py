@@ -20,6 +20,7 @@ from japeto.libs import attribute
 from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import ordereddict
+reload(control)
 
 #import components
 from japeto.components import component

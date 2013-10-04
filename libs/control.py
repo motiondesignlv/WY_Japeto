@@ -260,12 +260,15 @@ def save(controls, filepath = None, append = True):
         if shapes:
             data[ctrl]['shapes'] = dict()
             for shape in shapes:
-                if cmds.nodeType(shape) == 'nurbsCurve':
-                    data[ctrl]['shapes'][shape] = dict()
-                    data[ctrl]['shapes'][shape]['degree'] = cmds.getAttr('%s.degree' % shape)
-                    data[ctrl]['shapes'][shape]['color'] = cmds.getAttr('%s.overrideColor' % shape)
-                    cvs = curve.getCVs(shape) #delete the curve
-                    data[ctrl]['shapes'][shape]['cvPosition'] = curve.getCVpositions(cvs)
+                try:
+                    if cmds.nodeType(shape) == 'nurbsCurve':
+                        data[ctrl]['shapes'][shape] = dict()
+                        data[ctrl]['shapes'][shape]['degree'] = cmds.getAttr('%s.degree' % shape)
+                        data[ctrl]['shapes'][shape]['color'] = cmds.getAttr('%s.overrideColor' % shape)
+                        cvs = curve.getCVs(shape) #delete the curve
+                        data[ctrl]['shapes'][shape]['cvPosition'] = curve.getCVpositions(cvs)
+                except:
+                    continue
 
 
     return pyon.save(data, filepath)
