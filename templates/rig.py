@@ -115,6 +115,7 @@ class Rig(object):
         return self.__registeredItems
 
     def initialize(self):
+        self.register('Build', self.build)
         return True
 
     def mirror(self, side = common.LEFT):
