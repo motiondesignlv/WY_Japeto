@@ -102,7 +102,7 @@ class Encoder( object ):
 def dump( data ):
     '''Converts the data to string using pyson parser
     '''
-    return Encoder().encode( data ) #pyson.dumps( data, cls=Encoder, sort_keys=True, indent=4 )
+    return Encoder().encode( data ) 
 
 def save( data, filepath=None ):
     '''Write to file with python encoding.
