@@ -1,5 +1,6 @@
-from japeto.mlRig import block
 from japeto.mlRig import mlRig_dict
+from japeto.mlRig import block
+from japeto.mlRig import node
 import inspect
 
 
@@ -14,7 +15,7 @@ class Graph(mlRig_dict.MlRigDict):
         @param blocks: Blocks that will be arranged on the graph
         @type blocks: *str* or *list* or *tuple* or *mlRig.block.Block*    
         '''
-        super(Base,self).__init__(*args, **kwargs)
+        super(Graph,self).__init__(*args, **kwargs)
         
         self.__name = name
         

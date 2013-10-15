@@ -65,27 +65,27 @@ def overloadArguments (func):
 
 class Component(object):
     def __init__(self, name):
-    	self.name = name
-    	
-    	#declare group names of variables
-    	self.setupRigGrp = '%s_setup_%s' % (name, common.GROUP)
-    	self.skeletonGrp = '%s_skeleton_%s' %(name,common.GROUP)
-    	self.guidesGrp   = '%s_guides_%s' % (name, common.GROUP)
-    	
-    	self.rigGrp   = '%s_rig_%s' % (name, common.GROUP)
-    	self.jointsGrp   = '%s_joints_%s' % (name, common.GROUP)
-    	self.controlsGrp   = '%s_controls_%s' % (name, common.GROUP)
-    	self.setupConstraints = list()
-    	self.__side = common.getSide(name) #checks if there is a side based off name template
-    	self.__location = common.getLocation(name) #checks if there is a location based off name template
-    	self.skinClusterJnts = list()
-    	self.joints = dict()
-    	self.controls = dict()
-    	self.hookRoot = list()
-    	self.hookPoint = list()
-    	self._buildArguments = dict()
-    	self._puppetNode = str()
+        self.name = name
         
+        #declare group names of variables
+        self.setupRigGrp = '%s_setup_%s' % (name, common.GROUP)
+        self.skeletonGrp = '%s_skeleton_%s' %(name,common.GROUP)
+        self.guidesGrp   = '%s_guides_%s' % (name, common.GROUP)
+        
+        self.rigGrp   = '%s_rig_%s' % (name, common.GROUP)
+        self.jointsGrp   = '%s_joints_%s' % (name, common.GROUP)
+        self.controlsGrp   = '%s_controls_%s' % (name, common.GROUP)
+        self.setupConstraints = list()
+        self.__side = common.getSide(name) #checks if there is a side based off name template
+        self.__location = common.getLocation(name) #checks if there is a location based off name template
+        self.skinClusterJnts = list()
+        self.joints = dict()
+        self.controls = dict()
+        self.hookRoot = list()
+        self.hookPoint = list()
+        self._buildArguments = dict()
+        self._puppetNode = str()
+
     #----------------------------------
     #GETTERS
     #----------------------------------
@@ -193,9 +193,9 @@ class Component(object):
         #connect joints to the attributes on the masterGuide control
         for jnt in skeletonJnts:
             if cmds.objExists(jnt):
-            	attribute.connect(displayAttr , '%s.displayLocalAxis' % jnt)
-            	common.setDisplayType(jnt, 'reference')	
-        	
+                attribute.connect(displayAttr , '%s.displayLocalAxis' % jnt)
+                common.setDisplayType(jnt, 'reference')	
+
         #parent all constraints to guides group
         if self.setupConstraints:
             cmds.parent(self.setupConstraints, self.guidesGrp)
@@ -212,9 +212,9 @@ class Component(object):
         
         if self.parent:
             if cmds.objExists(self.parent):
-            	displayLine = control.displayLine(self.masterGuide, self.parent, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
-            	cmds.parent(displayLine, self.guidesGrp)
-        	
+                displayLine = control.displayLine(self.masterGuide, self.parent, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
+                cmds.parent(displayLine, self.guidesGrp)
+
         #set build args on puppet node
         self.puppetNode.storeArgs(**self.buildArguments)
         
@@ -224,81 +224,80 @@ class Component(object):
         '''
         self.setupRig()
         self.postSetupRig()
-	
+
     
     #----------------------------------
     #BUILD FUNCTIONS
     #----------------------------------		    
     def rig(self):
-    	'''
-    	this is the build section for the rig.
-    	'''
-    	#resolve build arguments
-    	self.puppetNode.restoreArgs(self)
-    	
-    	cmds.createNode('transform', n = self.rigGrp)
-    	cmds.createNode('transform', n = self.jointsGrp)
-    	cmds.createNode('transform', n = self.controlsGrp)
-    	
-    	cmds.parent([self.jointsGrp, self.controlsGrp], self.rigGrp)
-    	
-    	if not self.skinClusterJnts:
-    		self.skinClusterJnts.extend(self.getSkeletonJnts())
-    	
-    	for jnt in self.skinClusterJnts:
-    	    if cmds.objExists(jnt):
+        '''
+        this is the build section for the rig.
+        '''
+        #resolve build arguments
+        self.puppetNode.restoreArgs(self)
+        
+        cmds.createNode('transform', n = self.rigGrp)
+        cmds.createNode('transform', n = self.jointsGrp)
+        cmds.createNode('transform', n = self.controlsGrp)
+        
+        cmds.parent([self.jointsGrp, self.controlsGrp], self.rigGrp)
+        
+        if not self.skinClusterJnts:
+            self.skinClusterJnts.extend(self.getSkeletonJnts())
+        
+        for jnt in self.skinClusterJnts:
+            if cmds.objExists(jnt):
                 common.setDisplayType(jnt, 'normal')
                 #get parent jnt 
                 parent = cmds.listRelatives(jnt, p = True)
                 if parent:
                     if parent[0] == self.skeletonGrp:
                         cmds.parent(jnt, self.jointsGrp)
-    					
-    	cmds.delete(self.setupRigGrp)
-    	
-    	for jnt in self.skinClusterJnts:
-    	    if cmds.objExists(jnt):
-        		#turn display axis off
-        		cmds.setAttr('%s.displayLocalAxis' % jnt, 0)
-        		#take the rotations of the joint and make the orientaion
-        		joint.rotateToOrient(jnt)
-    		
-    	    
+        
+        cmds.delete(self.setupRigGrp)
+        
+        for jnt in self.skinClusterJnts:
+            if cmds.objExists(jnt):
+                #turn display axis off
+                cmds.setAttr('%s.displayLocalAxis' % jnt, 0)
+                #take the rotations of the joint and make the orientaion
+                joint.rotateToOrient(jnt)
+
+
     def postRig(self):
-    	'''
-    	clean up for the rig build.
-    	'''
-    	jointVisAttr     = attribute.addAttr(self.rigGrp, 'jointVis', attrType = 'enum', defValue = 'off:on')
-    	scaleAttr        = attribute.addAttr(self.rigGrp, 'uniformScale', attrType = 'double', defValue = 1, min = 0)
-    	jointDisplayAttr = attribute.addAttr(self.rigGrp, 'displayJnts', attrType = 'enum', defValue = 'Normal:Template:Reference')
-    	
-    	cmds.setAttr(jointDisplayAttr, 2)
-    	
-    	#setup attribute for uniform scale
-    	attribute.connect(scaleAttr, '%s.sx' % self.rigGrp)
-    	attribute.connect(scaleAttr, '%s.sy' % self.rigGrp)
-    	attribute.connect(scaleAttr, '%s.sz' % self.rigGrp)
-    	    
-    	if self.skinClusterJnts:
-    	    for jnt in self.skinClusterJnts:
+        '''
+        clean up for the rig build.
+        '''
+        jointVisAttr     = attribute.addAttr(self.rigGrp, 'jointVis', attrType = 'enum', defValue = 'off:on')
+        scaleAttr        = attribute.addAttr(self.rigGrp, 'uniformScale', attrType = 'double', defValue = 1, min = 0)
+        jointDisplayAttr = attribute.addAttr(self.rigGrp, 'displayJnts', attrType = 'enum', defValue = 'Normal:Template:Reference')
+        
+        cmds.setAttr(jointDisplayAttr, 2)
+        
+        #setup attribute for uniform scale
+        attribute.connect(scaleAttr, '%s.sx' % self.rigGrp)
+        attribute.connect(scaleAttr, '%s.sy' % self.rigGrp)
+        attribute.connect(scaleAttr, '%s.sz' % self.rigGrp)
+            
+        if self.skinClusterJnts:
+            for jnt in self.skinClusterJnts:
                 if cmds.objExists(jnt):
                     attribute.connect(jointVisAttr , '%s.v' % jnt)
                     cmds.setAttr('%s.overrideEnabled' % jnt, 1)
                     attribute.connect(jointDisplayAttr , '%s.overrideDisplayType' % jnt)
-    				    
-    				    
-    	#set joint visibility attribute
-    	cmds.setAttr(jointVisAttr, 1)
-    	
-    	for grp in [self.rigGrp, self.jointsGrp, self.controlsGrp]:
-    	    attribute.lockAndHide(['t', 'r', 's', 'v'], grp)
-	
+
+        #set joint visibility attribute
+        cmds.setAttr(jointVisAttr, 1)
+        
+        for grp in [self.rigGrp, self.jointsGrp, self.controlsGrp]:
+            attribute.lockAndHide(['t', 'r', 's', 'v'], grp)
+
     
     def runRig(self):
-    	self.rig()
-    	self.postRig()
-	
-	
+        self.rig()
+        self.postRig()
+
+
     #-------------------------------
     #utility functions
     #-------------------------------

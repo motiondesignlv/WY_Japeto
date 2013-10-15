@@ -1,7 +1,7 @@
+#from japeto.mlRig import graph
+from japeto.mlRig import mlRig_dict
 from japeto.mlRig import graph
 from japeto.mlRig import node
-from japeto.mlRig import mlRig_dict
-
 
 class BaseBlock(mlRig_dict.MlRigDict):
     __graph__ = None

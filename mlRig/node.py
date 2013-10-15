@@ -1,12 +1,15 @@
 from japeto.mlRig import mlRig_dict
-from japeto.mlRig import block
+reload(mlRig_dict)
+
 import inspect
 
 class Node(mlRig_dict.MlRigDict):
-    __block__ = None
-    
-    def __init__(self, name, *args, **kwargs):
-        self.__name = name
+    def __init__(self, name, block = None, parent = None, *args, **kwargs):
+        super(Node, self).__init__(*args, **kwargs)
+        self.__name     = name
+        self.__block    = block
+        self.__parent   = parent
+        self.__children = mlRig_dict.MlRigDict()
         
     @property
     def name(self):
@@ -14,20 +17,33 @@ class Node(mlRig_dict.MlRigDict):
     
     @property
     def block(self):
-        return self.__block__
-
-    @block.setter
-    def block(self, value):
-        if isinstance(value, block.Block): 
-            self.__block__ = value
+        return self.__block
+    
+    @property
+    def parent(self):
+        return self.__parent
+    
+    @property
+    def children(self):
+        return self.__children.keys()
+            
+    def setBlock(self, block):
+        '''
+        Sets the block for the node
+        '''
+        if not self.__block:
+            self.__block = block
+    
     
     def setData(self, name, value, **kwargs):
         '''
         sets the data on the node based on key :value pairs and takes 
         additional keyword arguments to hand overloading of arguments 
         on the functions or classes.
+        
         @example:
             >>> setData("Left Arm", limb.arm(), position = [20,10,10])
+            {"Left Arm" : []}
             
         @param name: Nice name for user interface
         @type name: *str*
@@ -35,13 +51,24 @@ class Node(mlRig_dict.MlRigDict):
         @param value: python object to be called when run() is called
         @type value: *method* or *function* or *class*
         '''
-        if not len(self.keys()) < 1:
+        #need to figure out how to store the data
+        """
+        if not len(self.keys()) < 1 and self.values():
             raise RuntimeError('%s already has data on it. Must be setting %s. Try addArgument(key, value)' % (self.name, self.keys()[0]))
-        
-        self.add(name, (value,kwargs))
-        
-    def setAddress(self, address):
-        return True
+        """
+        self.add(name, (value,kwargs), index = 0)
+    
+    '''
+    def setParent(self, parent = None):
+        if self.__block:
+            if self.__block.has_key(parent):
+                if self.__block[parent].has_key("children"):
+    '''             
+    
+    def addChild(self, child = None):
+        if not isinstance(child, Node):
+            raise TypeError("%s must be of type *japeto.mlRig.node.Node*" % child)
+        self.__children[child.name] = child
     
     def addArgument(self, key, value):
         if self.values():
@@ -50,7 +77,7 @@ class Node(mlRig_dict.MlRigDict):
     def getData(self):
         '''
         Returns the key of the node. Normally this will be a 
-        class or function. 
+        class or function.
         '''  
         return self.values()[0]
     
@@ -61,30 +88,36 @@ class Node(mlRig_dict.MlRigDict):
         '''
         return self.values()[0][0]
     
+    def hasChild(self, name = str()):
+        '''
+        Returns True or False depending on whether or not self 
+        has child node.
+        
+        @param name: Name of the child to query
+        @type name: *str*
+        
+        @return: True if it has child, False if it does not
+        @rtype: *bool*  
+        '''
+        #check to see if the node has a child
+        if self.__children.has_key(name):
+            return True
+        
+        return False
+    
+    def getChild(self, name = str()):
+        '''
+        Gets child by name
+        
+        @param name: Name of the child to query
+        @type name: *str*
+        
+        @return: Child node
+        @rtype: *node.Node*  
+        '''
+        if self.__children.has_key(name):
+            return self.__children[name]
+    
     def getParent(self):
         return True
     
-    
-    def execute(self):
-        if len(self.keys()) < 1:
-            return 
-        print "in execute"
-        objName = self.keys()[0]
-        kwargs = self[objName][1]
-        
-        if inspect.isclass(self[objName][0]):
-            obj = self[objName][0](objName)
-            if isinstance(obj, component.Component):
-                self._executeComponent(obj, **kwargs)
-        elif inspect.isfunction(self[objName][0]):
-            obj = self[objName][0](**kwargs)
-            
-
-    def _executeComponent(self, obj, **kwargs):
-        obj.initialize(**kwargs)
-        obj.runSetupRig()
-        obj.runRig()
-        print 'executed component %s' % obj.__class__.__name__
-        
-    def _executeFunction(self):
-        return

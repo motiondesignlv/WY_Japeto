@@ -70,14 +70,14 @@ def getCVs(curve):
     
     
 def getCVpositions(pointList):
-	positions = list()
-	
-	for point in pointList:
-		ws = cmds.xform(point, q = True, ws = True, t = True)
-		positions.append(ws)
-	
-	return positions
-	
+    positions = list()
+    
+    for point in pointList:
+        ws = cmds.xform(point, q = True, ws = True, t = True)
+        positions.append(ws)
+    
+    return positions
+
 #----------------------------------------------------
 # Create functions
 def createFromPoints(points, degree = 1, name = 'curve#'):

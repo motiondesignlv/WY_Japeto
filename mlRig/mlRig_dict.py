@@ -2,7 +2,7 @@ from japeto.libs import ordereddict
 
 class MlRigDict(ordereddict.OrderedDict):
     def __init__(self, *args, **kwargs):
-        super(Base,self).__init__(*args, **kwargs)
+        super(MlRigDict,self).__init__(*args, **kwargs)
         
     def __repr__(self):
         '''
@@ -19,7 +19,10 @@ class MlRigDict(ordereddict.OrderedDict):
         values = self.values()
         
         #build you string to store keys:values
-        reprStr = "{" 
+        reprStr = "{"
+        if not keys or not values:
+            return  '%s}' % reprStr
+        
         for k,v in zip(keys, values):
             if k == keys[-1]:
                 reprStr = "%s'%s' : %s}" % (reprStr,k, v)    
@@ -37,6 +40,17 @@ class MlRigDict(ordereddict.OrderedDict):
         adds a key:value pair to the dictionary based on index.
         If no index is passed in, then it will just add it to 
         the end of the key:value pairs lists
+        
+        @example:
+            >>> mlDict = mlRig_dict.MlRigDict('one' = 1, 'two' = 2)
+            >>> mlDict.add(key = 'three', value = 3)
+            {'one':1, 'two':2, 'three' : 3}
+            
+        
+        @example:
+            >>> mlDict = mlRig_dict.MlRigDict('one' = 1, 'two' = 2)
+            >>> mlDict.add(key = 'three', value = 3, index = 1)
+            {'one':1, 'three' : 3, 'two':2}
         
         @param key: Name for the key in the dictionary
         @type key: *str*
