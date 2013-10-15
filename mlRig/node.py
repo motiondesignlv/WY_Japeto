@@ -4,12 +4,26 @@ reload(mlRig_dict)
 import inspect
 
 class Node(mlRig_dict.MlRigDict):
+    @classmethod
+    def isValid(cls, node):
+        if not isinstance(node, Node):
+            return False
+        
+        return True
+    
+    @classmethod
+    def inValidError(cls, node):
+        raise TypeError("%s is not of type japeto.mlRig.node.Node" % node)
+    
     def __init__(self, name, block = None, parent = None, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
         self.__name     = name
         self.__block    = block
         self.__parent   = parent
         self.__children = mlRig_dict.MlRigDict()
+    
+    def __repr__(self):
+        return "< %s %s >" % (self.__class__.__name__, self.name)
         
     @property
     def name(self):
@@ -22,6 +36,10 @@ class Node(mlRig_dict.MlRigDict):
     @property
     def parent(self):
         return self.__parent
+    
+    @parent.setter
+    def parent(self, value):
+        self.setParent(value)
     
     @property
     def children(self):
@@ -65,10 +83,20 @@ class Node(mlRig_dict.MlRigDict):
                 if self.__block[parent].has_key("children"):
     '''             
     
-    def addChild(self, child = None):
+    def addChild(self, child, index = -1):
+        #check the index, make sure it's never 0
+        if index == 0:
+            index = 1
+        #check to see if there is a parent
         if not isinstance(child, Node):
-            raise TypeError("%s must be of type *japeto.mlRig.node.Node*" % child)
+            raise TypeError("%s must be of type jepeto.mlRig.node.Node" % child)
+
+        #add self as parent of child node
+        child.setParent(self)
+        
+        #child.setParent(self)
         self.__children[child.name] = child
+        self.add(child.name, child, index)
     
     def addArgument(self, key, value):
         if self.values():
@@ -118,6 +146,77 @@ class Node(mlRig_dict.MlRigDict):
         if self.__children.has_key(name):
             return self.__children[name]
     
+    def removeChild(self, child):
+        '''
+        Removes child node from list of children and take is out of self
+        
+        @example:
+            >>> a.children
+            ['B', 'C']
+            >>> b.parent.name
+            A
+            >>> a.removeChild(b)
+            >>> a.children
+            ['C']
+        
+        @param child: Node you want to remove from self
+        @type child: *node.Node*  
+        '''
+        #check if child is valid
+        if not Node.isValid(child):
+            Node.inValidError(child)
+        #check key on  __children dict, if it exists, pop it out of dict
+        if self.__children.has_key(child.name):
+            self.__children.pop(child.name) #remove it from __children dict
+            self.pop(child.name) #remove it from self
+    
+    def setParent(self, parent):
+        '''
+        Sets the parent for self. Parent node must be node.Node
+        
+        @example:
+            >>> a = node.Node('A')
+            >>> b = node.Node('A') 
+            >>> b.setParent(a)
+            >>> a.children
+            ['B']
+        
+        @param parent: Node you want to be parent of self
+        @type parent: *node.Node* 
+        '''
+        #validate
+        if not Node.isValid(parent):
+            Node.inValidError(parent)
+        #check if parent
+        if self.__parent and self.__parent != parent:
+            self.__parent.removeChild(self) #remove child from parent
+        elif self.__parent == parent:
+            return #return if there is a parent
+        #add self to parent
+        self.__parent = parent
+        parent.addChild(self)
+
+    def moveChild(self, child, index):
+        #check if child is a valid node
+        if not Node.isValid(child):
+            Node.inValidError(child)
+        #reorder the __children dict
+        self.__children.move(child.name, index)
+        #change index for self dict
+        if index == 0:
+            index = 1
+        self.move(child.name, index)
+
     def getParent(self):
         return True
-    
+
+    def isChild(self, node):
+        if not Node.isValid(node):
+            node = node.name
+        if not isinstance(node, basestring):
+            raise TypeError("%s must be a *str* or *node.Node*" % node)
+            
+        if self.__children.has_key(node):
+            return True
+        
+        return False

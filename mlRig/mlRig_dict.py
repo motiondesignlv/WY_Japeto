@@ -4,14 +4,14 @@ class MlRigDict(ordereddict.OrderedDict):
     def __init__(self, *args, **kwargs):
         super(MlRigDict,self).__init__(*args, **kwargs)
         
-    def __repr__(self):
+    def __str__(self):
         '''
         This returns the dictionary as a string so people can see what's
         stored in the MlRigDict object.
         
         @example: 
             >>> mlDict = mlRig_dict.MlRigDict('one' = 1, 'two' = 2)
-            >>> mlDict
+            >>> print mlDict
             {'one':1, 'two':2}
         '''
         #get current keys and values
@@ -19,21 +19,23 @@ class MlRigDict(ordereddict.OrderedDict):
         values = self.values()
         
         #build you string to store keys:values
-        reprStr = "{"
+        _str = "{"
         if not keys or not values:
-            return  '%s}' % reprStr
+            return  '%s}' % _str
         
         for k,v in zip(keys, values):
             if k == keys[-1]:
-                reprStr = "%s'%s' : %s}" % (reprStr,k, v)    
+                _str = "%s'%s' : %s}" % (_str,k, v)    
                 break
             #end if
             
-            reprStr = "%s'%s' : %s, " % (reprStr,k, v)
+            _str = "%s'%s' : %s, " % (_str,k, v)
         #end loop
         
-        return reprStr
+        return _str
     
+    def __repr__(self):             
+        return "< %s >" % (self.__class__.__name__)
     
     def add(self, key, value, index = None):
         '''
@@ -68,26 +70,58 @@ class MlRigDict(ordereddict.OrderedDict):
             #get keys and values
             keys = self.keys()
             values = self.values()
-            
-            if index > len(self.keys()):
-                if not self.has_key(key):
-                    self.clear()
+             #if no key in self append key and value to end of lists
+            if not self.has_key(key):
+                #check length of keys against index
+                if index > len(self.keys()):
                     keys.append(key)
                     values.append(value)
-                    for k,v in zip(keys, values):
-                        self[k] = v
-                    #end loop
                 #end if
             #end if
-            if not self.has_key(key):
-                keys.insert(index,key)
-                values.insert(index,value)
-                self.clear()
-                for k,v in zip(keys, values):
-                    self[k] = v
-                #end loop
+                else: 
+                    keys.insert(index,key)
+                    values.insert(index,value)
             #end if
+            elif self.has_key(key):
+                self.move(key, index)
+                if value != self[key]:
+                    self[key] = value
+                return
+            #clear self and rebuild in new order
+            self.clear()
+            for k,v in zip(keys, values):
+                self[k] = v
+            #end loops
         #end if
         else:
             self[key] = value
         #end else
+        
+    def move(self, key, index):
+        '''
+        This will move the key based on the input index argument
+        
+        @param key: Key value you want to reorder
+        @type key: *str*
+        
+        @param index: Index in the self.keys() list where you would like you
+                      key placed
+        @type index: *int* 
+        '''
+        if not self.has_key(key):
+            raise KeyError('%s is not a valid key in %s' % (key, self))
+        
+        if self.keys():
+            #get keys and values
+            keys = self.keys()
+            values = self.values()
+        
+        #get key and value from index
+        originalIndex = keys.index(key)
+        key = keys.pop(originalIndex)
+        value = values.pop(originalIndex)
+        keys.insert(index, key)
+        values.insert(index, value)
+        self.clear()
+        for k,v in zip(keys, values):
+            self[k] = v
