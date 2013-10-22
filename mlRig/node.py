@@ -21,6 +21,8 @@ class Node(mlRig_dict.MlRigDict):
         self.__block    = block
         self.__parent   = parent
         self.__children = mlRig_dict.MlRigDict()
+        #add the build dictionary for calling build functions and classes
+        #self.add("build", mlRig_dict.MlRigDict(), index = 0)
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -52,7 +54,6 @@ class Node(mlRig_dict.MlRigDict):
         if not self.__block:
             self.__block = block
     
-    
     def setData(self, name, value, **kwargs):
         '''
         sets the data on the node based on key :value pairs and takes 
@@ -70,23 +71,50 @@ class Node(mlRig_dict.MlRigDict):
         @type value: *method* or *function* or *class*
         '''
         #need to figure out how to store the data
-        """
-        if not len(self.keys()) < 1 and self.values():
-            raise RuntimeError('%s already has data on it. Must be setting %s. Try addArgument(key, value)' % (self.name, self.keys()[0]))
-        """
-        self.add(name, (value,kwargs), index = 0)
+        if not self.has_key("build"):
+            self.add("build", mlRig_dict.MlRigDict(), index = 0)
+        #set the build data on the build key
+        if not self["build"].keys():
+            self["build"].add(name, (value,kwargs), index = 0)
+            return
+        
+        #if it already exists, clear it and add the new one
+        self["build"].clear()
+        self["build"].add(name, (value,kwargs), index = 0)
+        
+    def setParent(self, parent):
+        '''
+        Sets the parent for self. Parent node must be node.Node
+        
+        @example:
+            >>> a = node.Node('A')
+            >>> b = node.Node('A') 
+            >>> b.setParent(a)
+            >>> a.children
+            ['B']
+        
+        @param parent: Node you want to be parent of self
+        @type parent: *node.Node* 
+        '''
+        #validate
+        if not Node.isValid(parent):
+            Node.inValidError(parent)
+        #check if parent
+        if self.__parent and self.__parent != parent:
+            self.__parent.removeChild(self) #remove child from parent
+        elif self.__parent == parent:
+            return #return if there is a parent
+        #add self to parent
+        self.__parent = parent
+        parent.addChild(self)
+        
     
-    '''
-    def setParent(self, parent = None):
-        if self.__block:
-            if self.__block.has_key(parent):
-                if self.__block[parent].has_key("children"):
-    '''             
-    
-    def addChild(self, child, index = -1):
+    def addChild(self, child, index = None):
         #check the index, make sure it's never 0
-        if index == 0:
-            index = 1
+        if index == 0 and index != None:
+            if self.has_key("build"):
+                index = 1
+        
         #check to see if there is a parent
         if not isinstance(child, Node):
             raise TypeError("%s must be of type jepeto.mlRig.node.Node" % child)
@@ -96,25 +124,37 @@ class Node(mlRig_dict.MlRigDict):
         
         #child.setParent(self)
         self.__children[child.name] = child
+        
+        #change index if it's none
+        if index == None:
+            index = len(self.keys())
+
         self.add(child.name, child, index)
     
     def addArgument(self, key, value):
-        if self.values():
-            self.values()[1][key] = value
+        if self["build"].values():
+            self["build"].values()[1][key] = value
         
     def getData(self):
         '''
-        Returns the key of the node. Normally this will be a 
+        Returns the value of the node. Normally this will be a 
         class or function.
-        '''  
-        return self.values()[0]
+        '''
+        if len(self["build"].values()) >= 1:
+            return self["build"].values()[0]
+        
+        return None
     
     def getArguments(self):
         '''
         Returns Keyword arguments passed into the second index
         of value list on the node
         '''
-        return self.values()[0][0]
+        if len(self["build"].values()) >= 1:
+            return self["build"].values()[1]
+        
+        return None
+    
     
     def hasChild(self, name = str()):
         '''
@@ -132,6 +172,7 @@ class Node(mlRig_dict.MlRigDict):
             return True
         
         return False
+    
     
     def getChild(self, name = str()):
         '''
@@ -169,32 +210,6 @@ class Node(mlRig_dict.MlRigDict):
         if self.__children.has_key(child.name):
             self.__children.pop(child.name) #remove it from __children dict
             self.pop(child.name) #remove it from self
-    
-    def setParent(self, parent):
-        '''
-        Sets the parent for self. Parent node must be node.Node
-        
-        @example:
-            >>> a = node.Node('A')
-            >>> b = node.Node('A') 
-            >>> b.setParent(a)
-            >>> a.children
-            ['B']
-        
-        @param parent: Node you want to be parent of self
-        @type parent: *node.Node* 
-        '''
-        #validate
-        if not Node.isValid(parent):
-            Node.inValidError(parent)
-        #check if parent
-        if self.__parent and self.__parent != parent:
-            self.__parent.removeChild(self) #remove child from parent
-        elif self.__parent == parent:
-            return #return if there is a parent
-        #add self to parent
-        self.__parent = parent
-        parent.addChild(self)
 
     def moveChild(self, child, index):
         #check if child is a valid node
@@ -204,11 +219,10 @@ class Node(mlRig_dict.MlRigDict):
         self.__children.move(child.name, index)
         #change index for self dict
         if index == 0:
-            index = 1
+            if self.has_key("build"):
+                index = 1
+        #move child to new index
         self.move(child.name, index)
-
-    def getParent(self):
-        return True
 
     def isChild(self, node):
         if not Node.isValid(node):
@@ -220,3 +234,7 @@ class Node(mlRig_dict.MlRigDict):
             return True
         
         return False
+    
+    def execute(self):
+        #if self.getData()
+        pass
