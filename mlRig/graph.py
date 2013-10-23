@@ -1,6 +1,7 @@
 from japeto.mlRig import mlRig_dict
 from japeto.mlRig import block
 from japeto.mlRig import node
+from japeto.libs import common
 import inspect
 
 
@@ -38,12 +39,12 @@ class Graph(mlRig_dict.MlRigDict):
     
     def addNode(self, name, parent = None):
         #Construct and instance of the node object
-        node = Node(name)
+        node = node.Node(name)
         if not self.has_key(name):
             if parent:
                 if self.has_key(parent):
                     #index = self.keys().index(parent)
-                    node = Node(name)
+                    node = node.Node(name)
                     self[parent].update(node)
                     return node
             #end if

@@ -70,7 +70,7 @@ class MlRigDict(ordereddict.OrderedDict):
             #get keys and values
             keys = self.keys()
             values = self.values()
-             #if no key in self append key and value to end of lists
+            #if no key in self append key and value to end of lists
             if not self.has_key(key):
                 #check length of keys against index
                 if index > len(self.keys()):
@@ -118,10 +118,12 @@ class MlRigDict(ordereddict.OrderedDict):
         
         #get key and value from index
         originalIndex = keys.index(key)
+        #pop key and value out of lists
         key = keys.pop(originalIndex)
         value = values.pop(originalIndex)
+        #insert key and value into list
         keys.insert(index, key)
         values.insert(index, value)
-        self.clear()
+        self.clear() #clear dict
         for k,v in zip(keys, values):
             self[k] = v

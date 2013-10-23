@@ -1,9 +1,26 @@
+'''
+Node will track and manage all data with-in a node
+'''
 from japeto.mlRig import mlRig_dict
 reload(mlRig_dict)
+from japeto.libs import ordereddict
 
 import inspect
 
 class Node(mlRig_dict.MlRigDict):
+    '''
+    Base node to manage all data for nodes
+    
+    @todo: 
+        - Change validation to check for both node and node name
+        - Make sure self.__children and self.__parent return the 
+          same type of data. (i.e. Node or Node.name)
+      
+    @warning: 
+        Some data may not match (i.e. Node.children returns 
+        childNode.name and Node.parent return instance of parentNode)
+    
+    '''
     @classmethod
     def isValid(cls, node):
         if not isinstance(node, Node):
@@ -54,14 +71,14 @@ class Node(mlRig_dict.MlRigDict):
         if not self.__block:
             self.__block = block
     
-    def setData(self, name, value, **kwargs):
+    def setData(self, name, value):
         '''
         sets the data on the node based on key :value pairs and takes 
         additional keyword arguments to hand overloading of arguments 
         on the functions or classes.
         
         @example:
-            >>> setData("Left Arm", limb.arm(), position = [20,10,10])
+            >>> setData(limb.arm(), position = [20,10,10])
             {"Left Arm" : []}
             
         @param name: Nice name for user interface
@@ -71,16 +88,10 @@ class Node(mlRig_dict.MlRigDict):
         @type value: *method* or *function* or *class*
         '''
         #need to figure out how to store the data
-        if not self.has_key("build"):
-            self.add("build", mlRig_dict.MlRigDict(), index = 0)
-        #set the build data on the build key
-        if not self["build"].keys():
-            self["build"].add(name, (value,kwargs), index = 0)
-            return
+        if isinstance(value, Node):
+            raise TypeError("Cannot add nodes here. Please read the following: \n\n %s" % help(self.addChild))
         
-        #if it already exists, clear it and add the new one
-        self["build"].clear()
-        self["build"].add(name, (value,kwargs), index = 0)
+        self.add(name, value, index = 0)
         
     def setParent(self, parent):
         '''
@@ -88,7 +99,7 @@ class Node(mlRig_dict.MlRigDict):
         
         @example:
             >>> a = node.Node('A')
-            >>> b = node.Node('A') 
+            >>> b = node.Node('B') 
             >>> b.setParent(a)
             >>> a.children
             ['B']
@@ -110,14 +121,30 @@ class Node(mlRig_dict.MlRigDict):
         
     
     def addChild(self, child, index = None):
+        '''
+        Adds an existing node as a child.
+        
+        @example:
+            >>> a = node.Node('A')
+            >>> b = node.Node('B') 
+            >>> a.addChild(a)
+            >>> a.children
+            ['B']
+            
+        @param child: child node you wish to add 
+        @type child: *node.Node*  
+        '''
+        #validate child
+        if not Node.isValid(child):
+            Node.inValidError(child)
+        
         #check the index, make sure it's never 0
         if index == 0 and index != None:
-            if self.has_key("build"):
-                index = 1
-        
-        #check to see if there is a parent
-        if not isinstance(child, Node):
-            raise TypeError("%s must be of type jepeto.mlRig.node.Node" % child)
+            if self.keys():
+                if self.__children:
+                    index = self.keys().index(self.__children[0])
+                else:
+                    index = len(self.keys())
 
         #add self as parent of child node
         child.setParent(self)
@@ -129,32 +156,20 @@ class Node(mlRig_dict.MlRigDict):
         if index == None:
             index = len(self.keys())
 
+        #add child
         self.add(child.name, child, index)
-    
-    def addArgument(self, key, value):
-        if self["build"].values():
-            self["build"].values()[1][key] = value
         
     def getData(self):
         '''
         Returns the value of the node. Normally this will be a 
         class or function.
         '''
-        if len(self["build"].values()) >= 1:
-            return self["build"].values()[0]
+        data = ordereddict.OrderedDict()
+        for k in self.keys():
+            if k not in self.__children: 
+                data[k] = self[k] 
         
-        return None
-    
-    def getArguments(self):
-        '''
-        Returns Keyword arguments passed into the second index
-        of value list on the node
-        '''
-        if len(self["build"].values()) >= 1:
-            return self["build"].values()[1]
-        
-        return None
-    
+        return data    
     
     def hasChild(self, name = str()):
         '''
@@ -212,6 +227,21 @@ class Node(mlRig_dict.MlRigDict):
             self.pop(child.name) #remove it from self
 
     def moveChild(self, child, index):
+        '''
+        moves child node from one position in dict to another
+        
+        @example:
+            >>> a.children
+            ['B', 'C']
+            >>> b.parent.name
+            A
+            >>> a.moveChild(b,1)
+            >>> a.children
+            ['C','B']
+        
+        @param child: Node you want to move
+        @type child: *node.Node*  or *str*
+        '''
         #check if child is a valid node
         if not Node.isValid(child):
             Node.inValidError(child)
@@ -219,8 +249,7 @@ class Node(mlRig_dict.MlRigDict):
         self.__children.move(child.name, index)
         #change index for self dict
         if index == 0:
-            if self.has_key("build"):
-                index = 1
+            index = len(self.keys()) - len(self.__children)
         #move child to new index
         self.move(child.name, index)
 
@@ -235,6 +264,6 @@ class Node(mlRig_dict.MlRigDict):
         
         return False
     
-    def execute(self):
-        #if self.getData()
-        pass
+    def execute(self, **kwargs):
+        if self.has_key("execute"):
+            self["execute"](**kwargs)

@@ -131,7 +131,6 @@ def save( data, filepath=None ):
     f.write(newData)
     f.close()
 
-    logger.info( '"%s" was written out SUCCESSFULLY' % filepath  )
     return filepath
 
 def load( filepath ): 
