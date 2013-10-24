@@ -147,8 +147,7 @@ class Rig(object):
                                      '%s_%s' % (common.RIGHT, description),
                                      '%s_%s' % (common.LEFT, description))
 
-
-    def register(self,name, obj, **kwargs):
+    def register(self,name, obj, parent = None, **kwargs):
         '''
         Register build components to the user interface
         @example:

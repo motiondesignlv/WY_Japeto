@@ -9,6 +9,7 @@ This is the EXAMPLE class
 #import python modules
 
 #import maya modules
+from maya import cmds
 
 #import package modules
 import japeto.components.component as component
@@ -19,7 +20,7 @@ class EXAMPLE(component.Component):
     
 	
     def _setLocation(self, value):
-	self.__location = value
+	   self.__location = value
 
     #Initialize
     @component.overloadArguments

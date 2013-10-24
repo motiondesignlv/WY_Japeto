@@ -5,18 +5,16 @@ from japeto.mlRig import mlRig_dict
 reload(mlRig_dict)
 from japeto.libs import ordereddict
 
-import inspect
-
 class Node(mlRig_dict.MlRigDict):
     '''
     Base node to manage all data for nodes
     
-    @todo: 
+    @todo:
         - Change validation to check for both node and node name
-        - Make sure self.__children and self.__parent return the 
+        - Make sure self.__children and self.__parent return the
           same type of data. (i.e. Node or Node.name)
       
-    @warning: 
+    @warning:
         Some data may not match (i.e. Node.children returns 
         childNode.name and Node.parent return instance of parentNode)
     
@@ -38,8 +36,6 @@ class Node(mlRig_dict.MlRigDict):
         self.__block    = block
         self.__parent   = parent
         self.__children = mlRig_dict.MlRigDict()
-        #add the build dictionary for calling build functions and classes
-        #self.add("build", mlRig_dict.MlRigDict(), index = 0)
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -183,7 +179,7 @@ class Node(mlRig_dict.MlRigDict):
         @rtype: *bool*  
         '''
         #check to see if the node has a child
-        if self.__children.has_key(name):
+        if self.isChild(name):
             return True
         
         return False
@@ -216,7 +212,7 @@ class Node(mlRig_dict.MlRigDict):
             ['C']
         
         @param child: Node you want to remove from self
-        @type child: *node.Node*  
+        @type child: *node.Node*
         '''
         #check if child is valid
         if not Node.isValid(child):
@@ -264,6 +260,8 @@ class Node(mlRig_dict.MlRigDict):
         
         return False
     
-    def execute(self, **kwargs):
+    def execute(self, *args, **kwargs):
         if self.has_key("execute"):
-            self["execute"](**kwargs)
+            return self["execute"](*args,**kwargs)
+            
+            

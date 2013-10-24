@@ -6,12 +6,11 @@ pyon data library
 #Import python modules
 import os
 import tempfile
-import ast
-
+import inspect
+import japeto.mlRig.node as node
 # ------------------------------------------------------------------------------
 # Create custom encoder
 #
-
 class Encoder( object ):
 
     def __init__( self, indent=4, precision = 3 ):
@@ -64,10 +63,36 @@ class Encoder( object ):
         
         return '\n%s{\n%s\n%s}' % (' '*self.indent*self.__depth__, ',\n'.join(items), ' '*self.indent*self.__depth__ )
     
+    def encode_method( self, obj ):
+        '''
+        @todo: Figure out how we really want to write this out
+        @warning: Still a WIP. Would not use this yet.
+        '''
+        return '%s.%s.%s' % (str(obj.__self__.__module__), str(obj.__self__.__class__.__name__), str(obj.__func__.__name__))
+    
+    
+    def encode_node( self, obj ):
+
+        items = range( len( obj ) )
+        for i,k in enumerate(obj.keys()):
+            if isinstance(obj[k],node.Node):
+                items[i] = '%snode %s: %s' % ( ' '*self.indent*self.__depth__, self.encode( k ), self.encode( obj[k] ) )
+            else:
+                items[i] = '%s%s: %s' % ( ' '*self.indent*self.__depth__, self.encode( k ), self.encode( obj[k] ) )
+        self.__depth__ -= 1
+        
+        return '\n%s{\n%s\n%s}' % (' '*self.indent*self.__depth__, ',\n'.join(items), ' '*self.indent*self.__depth__ )
     # --------------------------------------------------------------------------
 
     def encode( self, obj ):
-
+        '''
+        Checks the type of python object it is and calls the 
+        encode method that matches.
+        
+        @param obj: Python object to check
+        @type obj: *str* *int* *float* *bool* *list* *tuple*
+                   *dict* *method* 
+        '''
         if isinstance( obj, bool ):
             return self.encode_bool( obj )
 
@@ -92,15 +117,23 @@ class Encoder( object ):
         elif isinstance( obj, list ):
             return self.encode_list( obj )
 
+        #Parse node
+        elif isinstance(obj,node.Node):
+            self.__depth__ += 1
+            return self.encode_node(obj)            
+        
         # Parse dict
         elif isinstance( obj, dict ):
             self.__depth__ += 1
             return self.encode_dict( obj )
-
+        
+        #Parse method
+        elif inspect.ismethod(obj):
+            return self.encode_method(obj)
 # ------------------------------------------------------------------------------
 
 def dump( data ):
-    '''Converts the data to string using pyson parser
+    '''Converts the data to string using pyon parser
     '''
     return Encoder().encode( data ) 
 
