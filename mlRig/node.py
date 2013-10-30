@@ -5,7 +5,7 @@ from japeto.mlRig import mlRig_dict
 reload(mlRig_dict)
 from japeto.libs import ordereddict
 
-class Node(mlRig_dict.MlRigDict):
+class Node(object):
     '''
     Base node to manage all data for nodes
     
@@ -33,9 +33,9 @@ class Node(mlRig_dict.MlRigDict):
     def __init__(self, name, block = None, parent = None, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
         self.__name     = name
-        self.__block    = block
         self.__parent   = parent
         self.__children = mlRig_dict.MlRigDict()
+        self.__data     = mlRig_dict.MlRigDict()
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -43,10 +43,6 @@ class Node(mlRig_dict.MlRigDict):
     @property
     def name(self):
         return self.__name
-    
-    @property
-    def block(self):
-        return self.__block
     
     @property
     def parent(self):
@@ -58,7 +54,12 @@ class Node(mlRig_dict.MlRigDict):
     
     @property
     def children(self):
-        return self.__children.keys()
+        return self.__children
+    
+    @property
+    def data(self):
+        return self.__data
+
             
     def setBlock(self, block):
         '''
@@ -69,9 +70,7 @@ class Node(mlRig_dict.MlRigDict):
     
     def setData(self, name, value):
         '''
-        sets the data on the node based on key :value pairs and takes 
-        additional keyword arguments to hand overloading of arguments 
-        on the functions or classes.
+        sets the data on the node based on key :value pairs
         
         @example:
             >>> setData(limb.arm(), position = [20,10,10])
@@ -81,13 +80,9 @@ class Node(mlRig_dict.MlRigDict):
         @type name: *str*
 
         @param value: python object to be called when run() is called
-        @type value: *method* or *function* or *class*
-        '''
-        #need to figure out how to store the data
-        if isinstance(value, Node):
-            raise TypeError("Cannot add nodes here. Please read the following: \n\n %s" % help(self.addChild))
-        
-        self.add(name, value, index = 0)
+        @type value: *str*
+        '''        
+        self.__data.add(name, value, index = 0)
         
     def setParent(self, parent):
         '''
@@ -98,7 +93,7 @@ class Node(mlRig_dict.MlRigDict):
             >>> b = node.Node('B') 
             >>> b.setParent(a)
             >>> a.children
-            ['B']
+            ['B' : b]
         
         @param parent: Node you want to be parent of self
         @type parent: *node.Node* 
@@ -160,12 +155,7 @@ class Node(mlRig_dict.MlRigDict):
         Returns the value of the node. Normally this will be a 
         class or function.
         '''
-        data = ordereddict.OrderedDict()
-        for k in self.keys():
-            if k not in self.__children: 
-                data[k] = self[k] 
-        
-        return data    
+        return self.__data   
     
     def hasChild(self, name = str()):
         '''

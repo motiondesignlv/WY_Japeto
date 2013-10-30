@@ -400,7 +400,7 @@ class skDecomposeRotationNode (apiMpx.MPxNode):
 def initializePlugin (mobject):
     ''' Initialize the decompose rotation plugin '''
     # Get plugin
-    mayaPlugin = apiMpx.MFnPlugin (mobject, "Disney Animation", "1.0", "2008")
+    mayaPlugin = apiMpx.MFnPlugin (mobject, "Magic Leap", "1.1", "2013")
 
     # Register plugin elements
     mayaPlugin.registerNode (skNodeName, skNodeID, skCreateDecomposeRotationNode, skInitializeDecomposeRotationNode)
