@@ -3,9 +3,8 @@ Node will track and manage all data with-in a node
 '''
 from japeto.mlRig import mlRig_dict
 reload(mlRig_dict)
-from japeto.libs import ordereddict
 
-class Node(mlRig_dict.MlRigDict):
+class Node(object):
     '''
     Base node to manage all data for nodes
     
@@ -36,6 +35,7 @@ class Node(mlRig_dict.MlRigDict):
         self.__block    = block
         self.__parent   = parent
         self.__children = mlRig_dict.MlRigDict()
+        self.__data     = mlRig_dict.MlRigDict()
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -58,7 +58,7 @@ class Node(mlRig_dict.MlRigDict):
     
     @property
     def children(self):
-        return self.__children.keys()
+        return self.__children
             
     def setBlock(self, block):
         '''
@@ -87,7 +87,7 @@ class Node(mlRig_dict.MlRigDict):
         if isinstance(value, Node):
             raise TypeError("Cannot add nodes here. Please read the following: \n\n %s" % help(self.addChild))
         
-        self.add(name, value, index = 0)
+        self__data.add(name, value, index = 0)
         
     def setParent(self, parent):
         '''

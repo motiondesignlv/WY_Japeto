@@ -87,6 +87,7 @@ class Rig(object):
         self.modelGroup  = 'model'
         self.__trsCtrl   = 'world_trs_%s' % common.CONTROL
         self.__shotCtrl  = 'shot_trs_%s' % common.CONTROL
+        self.nodes       = node.Node("components")
         self.components  = ordereddict.OrderedDict() 
         self.functions   = ordereddict.OrderedDict() 
         self.controls    = list()
@@ -159,6 +160,7 @@ class Rig(object):
         @param object: python object to be called when run() is called
         @type object: *method* or *function*
         '''
+        newNode = node.Node(name)
         if not inspect.ismethod (obj) and not inspect.isfunction (obj):
             # Check if object is a component
             if isinstance (obj, component.Component):

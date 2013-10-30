@@ -1,7 +1,7 @@
 # Import Maya modules
 import maya.cmds        as cmds
 import maya.mel         as mel
-import maya.OpenMaya    as api
+import maya.OpenMaya    as OpenMaya
 
 # Import japeto modules
 import japeto
@@ -194,7 +194,8 @@ def averagePosition(objects):
 
 def averagePositionFromSelected():    
     #get selected items
-    mSelList = api.MGlobal.getActiveSelectionList()
+    mSelList = OpenMaya.MSelectionList()
+    OpenMaya.MGlobal.getActiveSelectionList()
     if mSelList.length() == 0:
         sys.stderr.write('nothing is selected!')
     pntListX = list()
@@ -203,11 +204,13 @@ def averagePositionFromSelected():
     
    #loop through selected
     for i in range(mSelList.length()):
-        dagPath = mSelList.getDagPath(i)
-        object = mSelList.getDependNode(i)
+        mObject = OpenMaya.MObject()
+        dagPath = OpenMaya.MDagPath()
+        mSelList.getDagPath(i, dagPath)
+        mSelList.getDependNode(i, mObject)
         type = object.apiType()
         
-        if (type == api.MFn.kTransform or type == api.MFn.kJoint):
+        if (type == OpenMaya.MFn.kTransform or type == OpenMaya.MFn.kJoint):
             mFnTransform = api.MFnTransform(dagPath)
             wsVector = mFnTransform.translation(api.MSpace.kTransform)
             pntListX.append(wsVector.x)
@@ -222,7 +225,7 @@ def averagePositionFromSelected():
     pntY = getAverage(pntListY)
     pntZ = getAverage(pntListZ)
     
-    return api.MVector(pntX,pntY,pntZ)
+    return OpenMaya.MVector(pntX,pntY,pntZ)
 
         
 def getAverage(values):

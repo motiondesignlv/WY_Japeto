@@ -17,10 +17,6 @@ import japeto.components.component as component
 class EXAMPLE(component.Component):
     def __init__(self, name):
         super(EXAMPLE, self).__init__(name)
-    
-	
-    def _setLocation(self, value):
-	   self.__location = value
 
     #Initialize
     @component.overloadArguments
