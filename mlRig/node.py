@@ -2,6 +2,8 @@
 Node will track and manage all data with-in a node
 '''
 from japeto.mlRig import mlRig_dict
+from japeto.mlRig import attribute
+reload(attribute)
 reload(mlRig_dict)
 
 class Node(object):
@@ -31,11 +33,11 @@ class Node(object):
     
     def __init__(self, name, block = None, parent = None, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
-        self.__name     = name
-        self.__block    = block
-        self.__parent   = parent
-        self.__children = mlRig_dict.MlRigDict()
-        self.__data     = mlRig_dict.MlRigDict()
+        self.__name       = name
+        self.__parent     = parent
+        self.__children   = mlRig_dict.MlRigDict()
+        self.__attributes = mlRig_dict.MlRigDict()
+        self.__enabled    = True
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -43,10 +45,6 @@ class Node(object):
     @property
     def name(self):
         return self.__name
-    
-    @property
-    def block(self):
-        return self.__block
     
     @property
     def parent(self):
@@ -59,19 +57,10 @@ class Node(object):
     @property
     def children(self):
         return self.__children
-            
-    def setBlock(self, block):
-        '''
-        Sets the block for the node
-        '''
-        if not self.__block:
-            self.__block = block
     
-    def setData(self, name, value):
+    def addAttribute(self, attr):
         '''
-        sets the data on the node based on key :value pairs and takes 
-        additional keyword arguments to hand overloading of arguments 
-        on the functions or classes.
+        sets the data on the node based on key :value pairs
         
         @example:
             >>> setData(limb.arm(), position = [20,10,10])
@@ -81,13 +70,14 @@ class Node(object):
         @type name: *str*
 
         @param value: python object to be called when run() is called
-        @type value: *method* or *function* or *class*
+        @type value: *str*
         '''
-        #need to figure out how to store the data
-        if isinstance(value, Node):
-            raise TypeError("Cannot add nodes here. Please read the following: \n\n %s" % help(self.addChild))
+        #check to make sure an attribute was passed in
+        if not isinstance(attr, attribute.Attribute):
+            raise TypeError('%s must be %s' % (attr, attribute.Attribute))
         
-        self__data.add(name, value, index = 0)
+        #add attributes to the attributes dictionary
+        self.__attributes.add(attr.name, attr, index = len(self.__attributes.keys()))
         
     def setParent(self, parent):
         '''
@@ -98,13 +88,13 @@ class Node(object):
             >>> b = node.Node('B') 
             >>> b.setParent(a)
             >>> a.children
-            ['B']
+            ['B' : b]
         
         @param parent: Node you want to be parent of self
         @type parent: *node.Node* 
         '''
         #validate
-        if not Node.isValid(parent):
+        if not Node.isValid(parent) and parent != None:
             Node.inValidError(parent)
         #check if parent
         if self.__parent and self.__parent != parent:
@@ -113,6 +103,8 @@ class Node(object):
             return #return if there is a parent
         #add self to parent
         self.__parent = parent
+        if parent == None:
+            return
         parent.addChild(self)
         
     
@@ -135,37 +127,17 @@ class Node(object):
             Node.inValidError(child)
         
         #check the index, make sure it's never 0
-        if index == 0 and index != None:
-            if self.keys():
-                if self.__children:
-                    index = self.keys().index(self.__children[0])
-                else:
-                    index = len(self.keys())
-
+        
         #add self as parent of child node
         child.setParent(self)
         
-        #child.setParent(self)
-        self.__children[child.name] = child
-        
         #change index if it's none
         if index == None:
-            index = len(self.keys())
+            index = len(self.__children.keys())
 
         #add child
-        self.add(child.name, child, index)
-        
-    def getData(self):
-        '''
-        Returns the value of the node. Normally this will be a 
-        class or function.
-        '''
-        data = ordereddict.OrderedDict()
-        for k in self.keys():
-            if k not in self.__children: 
-                data[k] = self[k] 
-        
-        return data    
+        self.__children.add(child.name, child, index)
+     
     
     def hasChild(self, name = str()):
         '''
@@ -184,6 +156,12 @@ class Node(object):
         
         return False
     
+    def getAttributes(self):
+        '''
+        Returns the value of the node. Normally this will be a 
+        class or function.
+        '''
+        return self.__attributes  
     
     def getChild(self, name = str()):
         '''
@@ -220,7 +198,7 @@ class Node(object):
         #check key on  __children dict, if it exists, pop it out of dict
         if self.__children.has_key(child.name):
             self.__children.pop(child.name) #remove it from __children dict
-            self.pop(child.name) #remove it from self
+            child.setParent(None) #remove self from parent
 
     def moveChild(self, child, index):
         '''
@@ -243,25 +221,26 @@ class Node(object):
             Node.inValidError(child)
         #reorder the __children dict
         self.__children.move(child.name, index)
-        #change index for self dict
-        if index == 0:
-            index = len(self.keys()) - len(self.__children)
-        #move child to new index
-        self.move(child.name, index)
 
     def isChild(self, node):
         if not Node.isValid(node):
-            node = node.name
-        if not isinstance(node, basestring):
-            raise TypeError("%s must be a *str* or *node.Node*" % node)
-            
-        if self.__children.has_key(node):
+            Node.inValidError(node)
+        
+        if self.__children.has_key(node.name):
             return True
         
         return False
     
+    def enable(self):
+        self.__enabled = True
+    
+    def disable(self):
+        self.__enabled = False
+    
     def execute(self, *args, **kwargs):
-        if self.has_key("execute"):
-            return self["execute"](*args,**kwargs)
+        '''
+        @todo: add execution code here
+        '''
+        return
             
             

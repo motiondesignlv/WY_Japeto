@@ -4,7 +4,7 @@ class MlRigDict(ordereddict.OrderedDict):
     def __init__(self, *args, **kwargs):
         super(MlRigDict,self).__init__(*args, **kwargs)
         
-    def __str__(self):
+    def __repr__(self):
         '''
         This returns the dictionary as a string so people can see what's
         stored in the MlRigDict object.
@@ -33,9 +33,10 @@ class MlRigDict(ordereddict.OrderedDict):
         #end loop
         
         return _str
-    
+    '''
     def __repr__(self):             
         return "< %s >" % (self.__class__.__name__)
+    '''
     
     def add(self, key, value, index = None):
         '''

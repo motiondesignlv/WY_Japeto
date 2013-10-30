@@ -1,3 +1,5 @@
+import sys
+
 # Import Maya modules
 import maya.cmds        as cmds
 import maya.mel         as mel
@@ -25,7 +27,7 @@ BACK    = Z_NEG = [0.0, 0.0, -1.0]
 
 AXES        = {"x" : X, "-x" : X_NEG, "y" : Y, "-y" : Y_NEG, "z" : Z, "-z" : Z_NEG}
 AXES_INDEX  = {"x" : 0, "-x" : 0, "y" : 1, "-y" : 1, "z" : 2, "-z" : 2}
-MSPACE      = {"world": api.MSpace.kWorld, "object" : api.MSpace.kObject, "local" : api.MSpace.kTransform}
+MSPACE      = {"world": OpenMaya.MSpace.kWorld, "object" : OpenMaya.MSpace.kObject, "local" : OpenMaya.MSpace.kTransform}
 
 
 def matchXform(target, original, type = 'pose'):
@@ -76,10 +78,10 @@ def getAxis( transform, vector=(0,1,0) ):
     m = dpath.inclusiveMatrix()
 
     # get vectors
-    x      = api.MVector( m(0,0), m(0,1), m(0,2) )
-    y      = api.MVector( m(1,0), m(1,1), m(1,2) )
-    z      = api.MVector( m(2,0), m(2,1), m(2,2) )
-    v      = api.MVector( vector[0], vector[1], vector[2] )
+    x      = OpenMaya.MVector( m(0,0), m(0,1), m(0,2) )
+    y      = OpenMaya.MVector( m(1,0), m(1,1), m(1,2) )
+    z      = OpenMaya.MVector( m(2,0), m(2,1), m(2,2) )
+    v      = OpenMaya.MVector( vector[0], vector[1], vector[2] )
     axis   = None
     factor = -1
 
@@ -195,7 +197,8 @@ def averagePosition(objects):
 def averagePositionFromSelected():    
     #get selected items
     mSelList = OpenMaya.MSelectionList()
-    OpenMaya.MGlobal.getActiveSelectionList()
+    OpenMaya.MGlobal.getActiveSelectionList(mSelList)
+
     if mSelList.length() == 0:
         sys.stderr.write('nothing is selected!')
     pntListX = list()
@@ -211,8 +214,8 @@ def averagePositionFromSelected():
         type = object.apiType()
         
         if (type == OpenMaya.MFn.kTransform or type == OpenMaya.MFn.kJoint):
-            mFnTransform = api.MFnTransform(dagPath)
-            wsVector = mFnTransform.translation(api.MSpace.kTransform)
+            mFnTransform = OpenMaya.MFnTransform(dagPath)
+            wsVector = mFnTransform.translation(OpenMaya.MSpace.kTransform)
             pntListX.append(wsVector.x)
             pntListY.append(wsVector.y)
             pntListZ.append(wsVector.z)
