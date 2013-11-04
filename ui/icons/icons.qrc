@@ -1,0 +1,7 @@
+<RCC>
+    <qresource>
+        <file>node.png</file>
+        <file>hand.png</file>
+        <file>leg.png</file>
+    </qresource>
+</RCC>
