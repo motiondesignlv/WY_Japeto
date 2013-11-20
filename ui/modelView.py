@@ -1,90 +1,12 @@
 #!/usr/bin/env python
 from PyQt4 import QtGui, QtCore, uic
 import sys
+        
+class LayerGraph(QtCore.QAbstractItemModel):
+    def __init__(self, graph, parent = None):
+        super(LayerGraph, self).__init__(parent)
 
-
-class Node(object):
-    def __init__(self, name, parent = None):
-        self._name = name
-        self._children = list()
-        self._parent = parent
-        
-        if parent !=None:
-            parent.addChild(self)
-            
-    def __repr__(self):
-        return self.log()
-            
-    def addChild(self,child):
-        #validate child is a Node
-        if not isinstance(child, Node):
-            raise TypeError("%s must be a %s" % (child, Node))
-        
-        self._children.append(child)
-        
-    def insertChild(self, position, child):
-        if position < 0  or position > len(self._children):
-            return False
-        
-        self._children.insert(position, child)
-        child._parent = self
-        
-        return True
-    
-    def removeChild(self, position):
-        if position < 0  or position > len(self._children):
-            return False
-        
-        child = self._children.pop(position)
-        child._parent = None
-        
-        return True
-
-    def name(self):
-        return self._name
-    
-    def setName(self, name):
-        self._name = name
-    
-    def child(self, row):
-        return self._children[row]
-    
-    def childCount(self):
-        return len(self._children)
-    
-    
-    def parent(self):
-        return self._parent
-    
-    def row(self):
-        if self._parent:
-            return self._parent._children.index(self)
-    
-    def typeInfo(self):
-        return "Node"
-    
-    def log(self, tabLevel = -1):
-        output = ""
-        tabLevel += 1
-        
-        for i in range(tabLevel):
-            output += "\t"
-            
-        output += '|------%s\n' % self._name
-        
-        for child in self._children:
-            output += child.log(tabLevel)
-        
-        tabLevel -= 1
-        output += '\n'
-        return output
-        
-        
-class SceneGraph(QtCore.QAbstractItemModel):
-    def __init__(self, root, parent = None):
-        super(SceneGraph, self).__init__(parent)
-        
-        self._rootNode = root
+        self.__graph = 
         
     def rowCount(self, parent):
         if not parent.isValid():
@@ -218,7 +140,7 @@ class WindowTutorial(base, form):
         
         #hook proxy model to scenegraph model
         self._proxyModel.setSourceModel(self._model)
-        self._proxyModel.setDynamicSortFilter(True)
+        self._proxyModel.setDynamicSortFilter(True) 
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         
         self.uiTree.setModel(self._proxyModel)

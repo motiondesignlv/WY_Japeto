@@ -1,8 +1,8 @@
 from japeto.libs import ordereddict
 
-class MlRigDict(ordereddict.OrderedDict):
+class MlDict(ordereddict.OrderedDict):
     def __init__(self, *args, **kwargs):
-        super(MlRigDict,self).__init__(*args, **kwargs)
+        super(MlDict,self).__init__(*args, **kwargs)
         
     def __repr__(self):
         '''
@@ -37,6 +37,7 @@ class MlRigDict(ordereddict.OrderedDict):
     def __repr__(self):             
         return "< %s >" % (self.__class__.__name__)
     '''
+    
     
     def add(self, key, value, index = None):
         '''

@@ -27,8 +27,6 @@ import japeto
 #  Example:
 #    side_location(optional)_description_###(optional)_class(optional)_type
 
-
-
 NAMETEMPLATE = 'side.location.description.number.type.function'
 DELIMITER    = '_'
 

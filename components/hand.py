@@ -15,6 +15,7 @@ from japeto.libs import attribute
 from japeto.libs import control
 from japeto.libs import ordereddict
 from japeto.libs import joint
+from japeto.libs import transform
 
 #import components
 from japeto.components import component

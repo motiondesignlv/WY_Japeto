@@ -1,12 +1,12 @@
 '''
 Node will track and manage all data with-in a node
 '''
-from japeto.mlRig import mlRig_dict
-from japeto.mlRig import attribute
-reload(attribute)
-reload(mlRig_dict)
+from japeto.mlRig import ml_dict
+from japeto.mlRig import ml_attribute
+reload(ml_attribute)
+reload(ml_dict)
 
-class Node(object):
+class MlNode(object):
     '''
     Base node to manage all data for nodes
     
@@ -22,22 +22,31 @@ class Node(object):
     '''
     @classmethod
     def isValid(cls, node):
-        if not isinstance(node, Node):
+        if not isinstance(node, MlNode):
             return False
         
         return True
     
     @classmethod
     def inValidError(cls, node):
-        raise TypeError("%s is not of type japeto.mlRig.node.Node" % node)
+        raise TypeError("%s is not of type japeto.mlRig.ml_node.MlNode" % node)
     
-    def __init__(self, name, block = None, parent = None, *args, **kwargs):
-        super(Node, self).__init__(*args, **kwargs)
+    def __init__(self, name, parent = None, *args, **kwargs):
+        super(MlNode, self).__init__(*args, **kwargs)
+        
+        #declare class variable
         self.__name       = name
         self.__parent     = parent
-        self.__children   = mlRig_dict.MlRigDict()
-        self.__attributes = mlRig_dict.MlRigDict()
+        self.__children   = ml_dict.MlDict()
+        self.__attributes = ml_dict.MlDict()
         self.__enabled    = True
+        
+        if parent:
+            if not MlNode.isValid(parent):
+                MlNode.inValidError(parent)
+            parent.addChild(self)
+
+
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.name)
@@ -56,11 +65,18 @@ class Node(object):
     
     @property
     def children(self):
-        return self.__children
+        return self.__children.values()
+    
+    def enable(self):
+        self.__enabled = True
+    
+    def disable(self):
+        self.__enabled = False
+    
     
     def addAttribute(self, attr):
         '''
-        sets the data on the node based on key :value pairs
+        sets the data on the node based on key : value pairs
         
         @example:
             >>> setData(limb.arm(), position = [20,10,10])
@@ -94,8 +110,8 @@ class Node(object):
         @type parent: *node.Node* 
         '''
         #validate
-        if not Node.isValid(parent) and parent != None:
-            Node.inValidError(parent)
+        if not MlNode.isValid(parent) and parent != None:
+            MlNode.inValidError(parent)
         #check if parent
         if self.__parent and self.__parent != parent:
             self.__parent.removeChild(self) #remove child from parent
@@ -123,8 +139,8 @@ class Node(object):
         @type child: *node.Node*  
         '''
         #validate child
-        if not Node.isValid(child):
-            Node.inValidError(child)
+        if not MlNode.isValid(child):
+            MlNode.inValidError(child)
         
         #check the index, make sure it's never 0
         
@@ -193,8 +209,8 @@ class Node(object):
         @type child: *node.Node*
         '''
         #check if child is valid
-        if not Node.isValid(child):
-            Node.inValidError(child)
+        if not MlNode.isValid(child):
+            MlNode.inValidError(child)
         #check key on  __children dict, if it exists, pop it out of dict
         if self.__children.has_key(child.name):
             self.__children.pop(child.name) #remove it from __children dict
@@ -217,25 +233,56 @@ class Node(object):
         @type child: *node.Node*  or *str*
         '''
         #check if child is a valid node
-        if not Node.isValid(child):
-            Node.inValidError(child)
+        if not MlNode.isValid(child):
+            MlNode.inValidError(child)
         #reorder the __children dict
         self.__children.move(child.name, index)
 
     def isChild(self, node):
-        if not Node.isValid(node):
-            Node.inValidError(node)
+        if not MlNode.isValid(node):
+            MlNode.inValidError(node)
         
         if self.__children.has_key(node.name):
             return True
         
         return False
     
-    def enable(self):
-        self.__enabled = True
+    def childCount(self):
+        '''
+        Returns the length of the children
+        '''
+        return len(self.children)
     
-    def disable(self):
-        self.__enabled = False
+    def descendantCount(self):
+        count = self.childCount()
+        
+        for child in self.children:
+            count += child.childCount()
+            
+        return count
+    
+    def index(self):
+        '''
+        returns what index the current node is at on the parents list of children
+        '''
+        return self.__parent.children.index(self)
+    
+    
+    def log(self, tabLevel = -1):
+        output = ""
+        tabLevel += 1
+        
+        for i in range(tabLevel):
+            output += "\t"
+            
+        output += '|____%s\n' % self.__name
+        
+        for child in self.children:
+            output += child.log(tabLevel)
+        
+        tabLevel -= 1
+        output += '\n'
+        return output
     
     def execute(self, *args, **kwargs):
         '''
