@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import fields 
+reload(fields)
+
 from PyQt4 import QtGui, QtCore, uic
 import sys
         
@@ -6,7 +9,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
     def __init__(self, graph, parent = None):
         super(LayerGraph, self).__init__(parent)
 
-        self.__graph = 
+        self.__graph = graph
         
     def rowCount(self, parent):
         if not parent.isValid():
@@ -126,12 +129,6 @@ class WindowTutorial(base, form):
     def __init__(self, parent = None):
         super(base, self).__init__(parent)
         self.setupUi(self)
-
-        rootNode      = Node("Hips")
-        leftLegNode   = Node("LeftLeg", rootNode)
-        leftFootNode   = Node("LeftFoot", leftLegNode)
-        rightLegNode  = Node("RightLeg", rootNode)
-        rightFootNode  = Node("RightFoot", rightLegNode)
         
         #setup proxy model
         self._proxyModel = QtGui.QSortFilterProxyModel()
@@ -149,11 +146,26 @@ class WindowTutorial(base, form):
         
         self.uiTree.setSortingEnabled(True)
         
+
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     app.setStyle("cleanlooks")
 
+    '''
     wnd = WindowTutorial()
     wnd.show()
+    '''
+    checkNumLabel = fields.LineEditField('Checks',value = 'Walter')
+    amountField = fields.IntField('Amount',value = 20, description = 'Amount of money to deposit.', min = 0)
+    
+    tabWidget = QtGui.QTabWidget()
+    cashWidget = QtGui.QWidget()
+    cashLayout = QtGui.QHBoxLayout()
+    cashLayout.addWidget(checkNumLabel)
+    cashLayout.addWidget(amountField)
+    cashWidget.setLayout(cashLayout)
+    tabWidget.addTab(cashWidget, 'Check')
+    
+    tabWidget.show()
     
     sys.exit(app.exec_())

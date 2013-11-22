@@ -31,8 +31,8 @@ class MlNode(object):
     def inValidError(cls, node):
         raise TypeError("%s is not of type japeto.mlRig.ml_node.MlNode" % node)
     
-    def __init__(self, name, parent = None, *args, **kwargs):
-        super(MlNode, self).__init__(*args, **kwargs)
+    def __init__(self, name, parent = None):
+        super(MlNode, self).__init__()
         
         #declare class variable
         self.__name       = name

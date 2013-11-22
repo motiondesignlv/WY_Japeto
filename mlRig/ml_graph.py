@@ -5,17 +5,14 @@ from japeto.libs import common
 import inspect
 
 class MlGraph(object):
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name):
         '''
         This constructor for the class sets up the base graph attributes.
         
         @param name: Name of the graph
         @type name: *str*
-        
-        @param blocks: Blocks that will be arranged on the graph
-        @type blocks: *str* or *list* or *tuple* or *mlRig.block.Block*    
         '''
-        super(MlGraph,self).__init__(*args, **kwargs)
+        super(MlGraph,self).__init__()
         
         self.__name = name
         self.__rootNodes = list()
