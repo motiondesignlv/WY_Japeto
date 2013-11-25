@@ -1,7 +1,5 @@
-from japeto.mlRig import mlRig_dict
-from japeto.mlRig import block
+from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_node
-from japeto.libs import common
 import inspect
 
 class MlGraph(object):
@@ -14,6 +12,7 @@ class MlGraph(object):
         '''
         super(MlGraph,self).__init__()
         
+        self.__root = self.addNode('root')
         self.__name = name
         self.__rootNodes = list()
             
@@ -24,6 +23,10 @@ class MlGraph(object):
     @property
     def rootNodes(self):
         return self.__rootNodes
+    
+    @property
+    def root(self):
+        return self.__root
 
     def addNode(self, name, parent = None, index = None):
         #Construct and instance of the node object

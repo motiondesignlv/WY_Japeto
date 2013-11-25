@@ -7,7 +7,7 @@ pyon data library
 import os
 import tempfile
 import inspect
-import japeto.mlRig.node as node
+import japeto.mlRig.ml_node as node
 # ------------------------------------------------------------------------------
 # Create custom encoder
 #

@@ -11,9 +11,6 @@ import os
 import sys
 import platform
 
-#maya modules
-from maya import cmds
-
 __VERSION__ = "0.1.0"
 PACKAGE     = os.path.dirname(__file__)
 RELEASEDIR  = str() #os.path.join(os.environ['HOME'], 'release/rig/')

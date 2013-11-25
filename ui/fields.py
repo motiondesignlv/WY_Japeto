@@ -49,7 +49,9 @@ class LineEditField(BaseField):
         self._lineEdit = QtGui.QLineEdit()
         #set text if any value
         if self.value():
-            self._lineEdit.setText(self.value())
+            self.setText(self.value())
+        
+        self._lineEdit.textChanged.connect(self.setText)
         
         self._layout.addWidget(self.label())
         self._layout.addWidget(self._lineEdit)
@@ -60,8 +62,18 @@ class LineEditField(BaseField):
         '''
         Sets the text for the QLineEdit
         '''
+        if not isinstance(value, basestring) and not isinstance(value, QtCore.QString):
+            raise TypeError('%s must be an string' % value)
+        #get the souce of the call for setText function
+        source = self.sender()
+        print value
+        
+        #set the value on field
         self.setValue(value)
-        self._lineEdit.setText(value)
+        #set lineEdit text
+        if not source == self._lineEdit:
+            self._lineEdit.setText(value)
+        
 
         
 class IntField(BaseField):
@@ -75,6 +87,7 @@ class IntField(BaseField):
         if value:
             self._intBox.setValue(value)
         
+        self._intBox.valueChanged.connect(self.setValue)
         self._layout.addWidget(self._intBox)
         self._layout.addStretch()
         self.setLayout(self._layout)
@@ -87,10 +100,14 @@ class IntField(BaseField):
         if not isinstance(value, int):
             raise TypeError('%s must be an integer' % value)
         
+        #get the source of where the function is being called
+        source = self.sender()
+        
         #set field value
         super(IntField, self).setValue(value)
-        #set spinbox value
-        self._intBox.setValue(value)
+        #set spinBox value
+        if not source == self._intBox:
+            self._intBox.setValue(value)
         
     def value(self):
         value = self._intBox.value()
@@ -98,4 +115,3 @@ class IntField(BaseField):
         
         return super(IntField,self).value()
                         
-    
