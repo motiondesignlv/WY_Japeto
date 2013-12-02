@@ -1,6 +1,7 @@
 from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_node
 import inspect
+reload(ml_node)
 
 class MlGraph(object):
     def __init__(self, name):
@@ -12,25 +13,23 @@ class MlGraph(object):
         '''
         super(MlGraph,self).__init__()
         
-        self.__root = self.addNode('root')
         self.__name = name
         self.__rootNodes = list()
-            
-    @property
+        self.__rootNode__ = ml_node.MlNode('root')
+    
     def name(self):
         return self.__name
-    
-    @property
+
     def rootNodes(self):
         return self.__rootNodes
-    
-    @property
-    def root(self):
-        return self.__root
-
-    def addNode(self, name, parent = None, index = None):
-        #Construct and instance of the node object
-        node = ml_node.MlNode(name, parent)
+        
+    def addNode(self, node, parent = None, index = None):
+        #if name passed in instead of node
+        if isinstance(node, basestring):
+            node = ml_node.MlNode(node, parent)
+        
+        if not ml_node.MlNode.isValid(node):
+            ml_node.MlNode.inValidError(node)    
         
         if parent and index != None:
             parent.moveChild(node, index)
@@ -42,7 +41,7 @@ class MlGraph(object):
         return node
     
     def nodeCount(self):
-        count = len(self.rootNodes)
+        count = len(self.__rootNodes)
         
         for node in self.__rootNodes:
             count += node.descendantCount()

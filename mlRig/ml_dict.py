@@ -33,11 +33,6 @@ class MlDict(ordereddict.OrderedDict):
         #end loop
         
         return _str
-    '''
-    def __repr__(self):             
-        return "< %s >" % (self.__class__.__name__)
-    '''
-    
     
     def add(self, key, value, index = None):
         '''

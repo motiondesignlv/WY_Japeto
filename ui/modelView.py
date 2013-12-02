@@ -4,9 +4,11 @@ reload(fields)
 
 from PyQt4 import QtGui, QtCore, uic
 import sys
+import os
 sys.path.append('/Users/walt/Library/preferences/Autodesk/maya/2013-x64/scripts')
 from japeto.mlRig import ml_graph, ml_node
-reload(ml_graph)
+from japeto import components
+reload(ml_graph) 
 reload(ml_node)
 
 try:
@@ -14,6 +16,7 @@ try:
     from maya import OpenMayaAnim
 except:
     print'Not in Maya!'
+
 
 
 class BaseDeformer(object):
@@ -91,22 +94,63 @@ class ListModel(QtCore.QAbstractListModel):
         pass
         self.endRemoveRows()
     '''
+    
+class FileListModel(QtCore.QAbstractListModel):
+    __dirPath__ = components.__path__[0]
+    
+    def __init__(self, parent = None):
+        super(FileListModel, self).__init__(parent)
+        
+        self._data = self._getFiles()
+        
+    def headerData(self):
+        return 'Components'
+    
+    def rowCount(self, parent):
+        return len(self._data)
+    
+    def data(self,index, role):
+        if index.isValid() and role == QtCore.Qt.DisplayRole:
+            return self._data[index.row()] 
+            
+        return QtCore.QVariant()
+        
+    def flags(self, index):
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+    
+    def _getFiles(self):
+        '''
+        List all the files in the given directory for this model. (__dirPath__)
+        '''
+        files = os.listdir(FileListModel.__dirPath__)
+        fileList = list()
+        for file in files:
+            if not '__init__' in file and not 'pyc' in file:
+                if '.py' in file and file not in fileList:
+                    fileList.append(file.split('.')[0])
+                #end if
+            #end if
+        #end loop
+        return fileList
 
         
 class LayerGraph(QtCore.QAbstractItemModel):
     def __init__(self, graph, parent = None):
         super(LayerGraph, self).__init__(parent)
 
-        self.__rootNode = graph.root
+        self._rootNode = ml_node.MlNode('root')
+        children = graph.rootNodes()
+        #children.reverse()
+        print children
+        self._rootNode.addChildren(children)
         
     def rowCount(self, parent):
         if not parent.isValid():
             parentNode = self._rootNode
         else:
             parentNode = parent.internalPointer()
-        
+
         return parentNode.childCount()
-        
     
     def columnCount(self, parent):
         return 1
@@ -116,7 +160,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
             return None
         
         node = index.internalPointer()
-        
+
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return node.name()
     
@@ -124,7 +168,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
         return "Outliner"
         
     def flags(self, index):
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
     
     def parent(self, index):
         """
@@ -169,13 +213,13 @@ class LayerGraph(QtCore.QAbstractItemModel):
             parentNode = self._rootNode
         else:
             parentNode = parent.internalPointer()
-            
-        childItem = parentNode.child(row)
-        
+
+        childItem = parentNode.childAtIndex(index = row)
+
         if childItem:
             return self.createIndex(row, column, childItem)
-        else:
-            return QtCore.QModelIndex()
+        
+        return QtCore.QModelIndex()
         
     def getNode(self, index):
         if index.isValid():
@@ -184,7 +228,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
                 return node
             
         return self._rootNode
-        
+
     def insertRows(self,position, rows, parent = QtCore.QModelIndex()):
         self.beginInsertRows(parent, position, position + rows + 1)
         
@@ -192,8 +236,8 @@ class LayerGraph(QtCore.QAbstractItemModel):
         
         for row in range(rows):
             childCount = parentNode.childCount()
-            childNode = Node("untitled%s" % childCount)
-            success = parentNode.insertChild(position,childNode)
+            childNode = ml_node.MlNode("untitled%s" % childCount)
+            success = parentNode.addChild(childNode,position)
             
         self.endInsertRows()
         
@@ -209,30 +253,116 @@ class LayerGraph(QtCore.QAbstractItemModel):
         self.endRemoveRows()
         
         return success
-    
-#load the ui file    
-base , form = uic.loadUiType("mainWindow.ui")
 
-class WindowTutorial(base, form):
+class FileView(QtGui.QListView):
     def __init__(self, parent = None):
-        super(base, self).__init__(parent)
-        self.setupUi(self)
+        super(FileView, self).__init__(parent)
         
+        self.setAlternatingRowColors(True)
+        self._model = FileListModel()
+        self.setModel(self._model)
+        self.setDragDropMode(QtGui.QAbstractItemView.DragOnly)
+        self.setDragEnabled(True)
+        
+
+class TreeWindow(QtGui.QTabWidget):
+    def __init__(self, graph, parent = None):
+        super(TreeWindow, self).__init__(parent)
+        #-------------------------------------------------
+        #BUILD WIDGET
+        #-------------------------------------------------
+        buildWidget = QtGui.QWidget()
+        buildWidgetLayout = QtGui.QGridLayout()
+        self._treeFilter = QtGui.QLineEdit()
+        self._treeView = QtGui.QTreeView()
+        self._treeView.setAlternatingRowColors(True)
+        
+        #fields
+        verticleLayout = QtGui.QVBoxLayout()
+        self._intField = fields.IntField('Test1')
+        self._intField2 = fields.IntField('Test2')
+        verticleLayout.addWidget(self._intField)
+        verticleLayout.addWidget(self._intField2)
+        
+        #bring it all together
+        buildWidgetLayout.addWidget(self._treeFilter, 0,0)
+        buildWidgetLayout.addWidget(self._treeView, 1,0)
+        buildWidgetLayout.addLayout(verticleLayout, 1,1)
+        buildWidget.setLayout(buildWidgetLayout)
+        
+        
+        #-------------------------------------------------
+        #SETUP TAB
+        #-------------------------------------------------
+        setupWidget = QtGui.QWidget()
+        setupWidgetLayout = QtGui.QGridLayout()
+        self._setupTreeFilter = QtGui.QLineEdit()
+        self._setupTreeView = QtGui.QTreeView()
+        self._setupTreeView.setAlternatingRowColors(True)
+        self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        
+        #file view
+        self._fileView = FileView()
+        
+        #fields
+        setupVerticleLayout = QtGui.QVBoxLayout()
+        self._intField0 = fields.IntField('Test0')
+        self._intField3 = fields.IntField('Test3')
+        setupVerticleLayout.addWidget(self._intField0)
+        setupVerticleLayout.addWidget(self._intField3)
+        
+        #buttons
+        self._buttonLayout = QtGui.QHBoxLayout()
+        self._setupButton  = QtGui.QPushButton('Run Setup') 
+        
+        #bring it all together
+        setupWidgetLayout.addWidget(self._fileView, 1,0)
+        setupWidgetLayout.addWidget(self._setupTreeFilter, 0,1)
+        setupWidgetLayout.addWidget(self._setupTreeView, 1,1)
+        setupWidgetLayout.addLayout(setupVerticleLayout, 1,2)
+        setupWidget.setLayout(setupWidgetLayout)
+        
+        #-------------------------------------------------
+        #MODEL AND PROXY MODEL
+        #-------------------------------------------------
         #setup proxy model
         self._proxyModel = QtGui.QSortFilterProxyModel()
         #model for scenegraph
-        self._model = SceneGraph(rootNode)
+        self._model = LayerGraph(graph)
         
         #hook proxy model to scenegraph model
         self._proxyModel.setSourceModel(self._model)
-        self._proxyModel.setDynamicSortFilter(True) 
+        self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         
-        self.uiTree.setModel(self._proxyModel)
+        QtCore.QObject.connect(self._treeFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
+        QtCore.QObject.connect(self._setupTreeFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
         
-        QtCore.QObject.connect(self.uiFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
+        self._treeView.setModel(self._proxyModel)
+        self._setupTreeView.setModel(self._proxyModel)
         
-        self.uiTree.setSortingEnabled(True)
+        self.addTab(setupWidget, 'Setup')
+        self.addTab(buildWidget, 'Build')
+        
+    def _runSetupButton(self):
+        print 'Running Setup on all'
+                
+
+
+if __name__ == '__main__':
+    app = QtGui.QApplication(sys.argv)
+    app.setStyle("cleanlooks")
+
+    graph = ml_graph.MlGraph('Test')
+    a = graph.addNode('A')
+    b = graph.addNode('B', parent = a)
+    c = graph.addNode('C')
+    d = graph.addNode('D', parent = c)
+    wnd = TreeWindow(graph)
+    wnd.show()
+ 
+    sys.exit(app.exec_())
+
 
 
 #################################################################### 
@@ -321,7 +451,8 @@ class MainWindow(QtGui.QWidget):
         print 'paste map'        
 
 
-#################################################################### 
+####################################################################
+''' 
 def main(): 
     app = QtGui.QApplication(sys.argv)
     deformers = [BaseDeformer('Anna'), SkinCluster('Kristoff')]
@@ -333,27 +464,4 @@ def main():
 if __name__ == "__main__": 
     main()        
         
-'''
-if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
-    app.setStyle("cleanlooks")
-
-
-    wnd = WindowTutorial()
-    wnd.show()
-
-    checkNumLabel = fields.LineEditField('Checks',value = 'Walter')
-    amountField = fields.IntField('Amount',value = 20, description = 'Amount of money to deposit.', min = 0)
-    
-    tabWidget = QtGui.QTabWidget()
-    cashWidget = QtGui.QWidget()
-    cashLayout = QtGui.QHBoxLayout()
-    cashLayout.addWidget(checkNumLabel)
-    cashLayout.addWidget(amountField)
-    cashWidget.setLayout(cashLayout)
-    tabWidget.addTab(cashWidget, 'Check')
-    
-    tabWidget.show()
-    
-    sys.exit(app.exec_())
 '''

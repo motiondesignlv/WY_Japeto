@@ -27,23 +27,27 @@ class MlAttribute(object):
         self.__storable    = True
         self.__connectable = True
         self.__type        = type(self.__value).__name__
-        
-    @property
-    def type(self):
+    
+    def attrType(self):
         return self.__type
-    
-    @type.setter
-    def type(self, value):
-        if value in Attribute.__attrTypes__:
-            self.__type = value
-    
     
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.__type)
         
-    @property
     def name(self):
-        return self.__name    
+        '''
+        Long Name of attribute
+        '''
+        return self.__name
+    
+    def shortName(self):
+        return self.__shortName
+    
+    def delete(self):
+        '''
+        Deletes attribute
+        '''
+        del self
     
     def create(self, longName, shortName, type, value):
         if not type in Attribute.__attrTypes__:
@@ -52,17 +56,6 @@ class MlAttribute(object):
         self.__name      = longName
         self.__shortName = shortName
         self.__type      = type
-                
-    
-    def setStorable(self, value):
-        if not isinstance(value, bool):
-            raise TypeError("%s must be <type 'bool'>" % value)
-        
-        if value:
-            self.__setStorable = True
-            return
-        
-        self.__storable = False 
         
     def setStorable(self, value):
         self.__storable = _setBool(value)

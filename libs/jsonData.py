@@ -31,7 +31,6 @@ def save(data, filepath = None):
 
 def load(filepath):
     """
-
     @param filepath:
     @return:
     """

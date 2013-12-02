@@ -23,6 +23,8 @@ class MlNode(object):
     @classmethod
     def isValid(cls, node):
         if not isinstance(node, MlNode):
+            print type(node)
+            print type(MlNode)
             return False
         
         return True
@@ -32,8 +34,6 @@ class MlNode(object):
         raise TypeError("%s is not of type japeto.mlRig.ml_node.MlNode" % node)
     
     def __init__(self, name, parent = None):
-        super(MlNode, self).__init__()
-        
         #declare class variable
         self.__name       = name
         self.__parent     = parent
@@ -46,24 +46,15 @@ class MlNode(object):
                 MlNode.inValidError(parent)
             parent.addChild(self)
 
-
-    
     def __repr__(self):
-        return "< %s %s >" % (self.__class__.__name__, self.name)
-        
-    @property
-    def name(self):
-        return self.__name
+        return "< %s %s >" % (self.__class__.__name__, self.__name)
     
-    @property
+    def name(self):
+        return self.__name    
+
     def parent(self):
         return self.__parent
     
-    @parent.setter
-    def parent(self, value):
-        self.setParent(value)
-    
-    @property
     def children(self):
         return self.__children.values()
     
@@ -72,7 +63,16 @@ class MlNode(object):
     
     def disable(self):
         self.__enabled = False
+        
+    def attributes(self):
+        return self.__attributes
     
+    def attributeAtIndex(self, index = None):
+        if index != None and not index > len(self.__attributes.keys()):
+            return self.__attributes.values()[index]
+    
+    def setName(self, value):
+        self.__name  = value
     
     def addAttribute(self, attr):
         '''
@@ -153,6 +153,26 @@ class MlNode(object):
 
         #add child
         self.__children.add(child.name, child, index)
+        
+    def addChildren(self, children, index = None):
+        '''
+        Adds an existing node as a child.
+        
+        @example:
+            >>> a = node.Node('A')
+            >>> b = node.Node('B') 
+            >>> a.addChild(a)
+            >>> a.children
+            ['B']
+            
+        @param child: child node you wish to add 
+        @type child: *node.Node*  
+        '''
+        if index == None:
+            index = 0
+        for child in children:
+            self.addChild(child, index)
+            index +=1
      
     
     def hasChild(self, name = str()):
@@ -179,7 +199,7 @@ class MlNode(object):
         '''
         return self.__attributes  
     
-    def getChild(self, name = str()):
+    def getChild(self, name = str(), index = None):
         '''
         Gets child by name
         
@@ -191,6 +211,25 @@ class MlNode(object):
         '''
         if self.__children.has_key(name):
             return self.__children[name]
+        
+        return None
+    
+    def childAtIndex(self, index = None):
+        '''
+        Gets child by name
+        
+        @param name: Name of the child to query
+        @type name: *str*
+        
+        @return: Child node
+        @rtype: *node.Node*  
+        '''
+        if index != None:
+            return self.children()[index]
+        
+        return None
+    
+    
     
     def removeChild(self, child):
         '''
@@ -251,12 +290,12 @@ class MlNode(object):
         '''
         Returns the length of the children
         '''
-        return len(self.children)
+        return len(self.children())
     
     def descendantCount(self):
         count = self.childCount()
         
-        for child in self.children:
+        for child in self.children():
             count += child.childCount()
             
         return count
@@ -277,7 +316,7 @@ class MlNode(object):
             
         output += '|____%s\n' % self.__name
         
-        for child in self.children:
+        for child in self.children():
             output += child.log(tabLevel)
         
         tabLevel -= 1
