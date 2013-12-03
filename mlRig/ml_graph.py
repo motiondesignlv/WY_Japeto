@@ -47,3 +47,11 @@ class MlGraph(object):
             count += node.descendantCount()
             
         return count
+    
+    def nodes(self):
+        nodes = list()
+        for node in self.__rootNodes:
+            nodes.append(node)
+            nodes.extend(node.descendants())
+            
+        return nodes

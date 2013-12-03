@@ -225,7 +225,8 @@ class MlNode(object):
         @rtype: *node.Node*  
         '''
         if index != None:
-            return self.children()[index]
+            if self.children():
+                return self.children()[index]
         
         return None
     
@@ -292,19 +293,32 @@ class MlNode(object):
         '''
         return len(self.children())
     
-    def descendantCount(self):
-        count = self.childCount()
+    def descendantCount(self, count = 0):
+        childCount = 0
+        if self.children():
+            childCount += self.childCount()
+            for child in self.children():
+                return child.descendantCount(childCount) 
+        else:
+            return count
         
-        for child in self.children():
-            count += child.childCount()
-            
-        return count
-    
+    def descendants(self, nodes = list()):
+        nodeList = list()
+        if self.children():
+            for child in self.children():
+                nodeList.append(child)
+                return child.descendants(nodeList) 
+        else:
+            return nodes
+
     def index(self):
         '''
         returns what index the current node is at on the parents list of children
         '''
-        return self.__parent.children.index(self)
+        if self.__parent.children():
+            return self.__parent.children().index(self)
+        
+        return 0
     
     
     def log(self, tabLevel = -1):

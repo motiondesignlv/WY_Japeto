@@ -184,7 +184,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
         
         #if parent isn't root node, we wrap it up in a QModel index by 
         #using internal method.
-        return self.createIndex(parentNode.row(), 0, parentNode)
+        return self.createIndex(parentNode.index(), 0, parentNode)
     
     def setData(self, index, value, role = QtCore.Qt.EditRole):
         if index.isValid():
@@ -229,20 +229,22 @@ class LayerGraph(QtCore.QAbstractItemModel):
             
         return self._rootNode
 
+    
     def insertRows(self,position, rows, parent = QtCore.QModelIndex()):
-        self.beginInsertRows(parent, position, position + rows + 1)
+        self.beginInsertRows(parent, position, position + rows - 1)
         
         parentNode = self.getNode(parent)
-        
+        #print position + rows - 1
         for row in range(rows):
-            childCount = parentNode.childCount()
-            childNode = ml_node.MlNode("untitled%s" % childCount)
+            break
+            #childCount = parentNode.childCount()
+            #childNode = ml_node.MlNode("untitled%s" % childCount)
             success = parentNode.addChild(childNode,position)
             
         self.endInsertRows()
         
         return success
-        
+    
     def removeRows(self,position, rows, parent = QtCore.QModelIndex()):
         self.beginRemoveRows(parent, position, position + rows - 1)
         
@@ -253,6 +255,81 @@ class LayerGraph(QtCore.QAbstractItemModel):
         self.endRemoveRows()
         
         return success
+    
+    '''
+    #---------------------------------------------------------------------------
+    def mimeTypes(self):
+        """
+        Only accept the internal custom drop type which is plain text
+        """
+        types = QtCore.QStringList() 
+        types.append('text/plain') 
+        return types 
+
+
+    #---------------------------------------------------------------------------
+    def mimeData(self, index): 
+        """
+        Wrap the index up as a list of rows and columns of each 
+        parent/grandparent/etc
+        """
+        rc = ""
+        theIndex = index[0] #<- for testing purposes we only deal with 1st item
+        while theIndex.isValid():
+            rc = rc + str(theIndex.row()) + ";" + str(theIndex.column())
+            theIndex = self.parent(theIndex)
+            if theIndex.isValid():
+                rc = rc + ","
+        mimeData = QtCore.QMimeData()
+        mimeData.setText(rc)
+        return mimeData
+
+
+    #---------------------------------------------------------------------------
+    def dropMimeData(self, data, action, row, column, parentIndex):
+        """
+        Extract the whole ancestor list of rows and columns and rebuild the 
+        index item that was originally dragged
+        """
+        if action == QtCore.Qt.IgnoreAction: 
+            return True 
+
+        if data.hasText():
+            ancestorL = str(data.text()).split(",")
+            ancestorL.reverse() #<- stored from the child up, we read from ancestor down
+            pIndex = QtCore.QModelIndex()
+            for ancestor in ancestorL:
+                srcRow = int(ancestor.split(";")[0])
+                srcCol = int(ancestor.split(";")[1])
+                itemIndex = self.index(srcRow, srcCol, pIndex)
+                if ancestor == ancestorL[-1]:
+                    break
+                pIndex = itemIndex
+
+        item = itemIndex.internalPointer()
+        parent = parentIndex.internalPointer()
+
+        #modify the row if it is -1 (we want to append to the end of the list)
+        if row == -1:
+            row = parent.childCount()
+        print 'row : %s' % row
+        self.beginInsertRows(parentIndex, row, row)
+        item.setName(item.name())
+        item.addChild(item, row)
+        item.parent().removeChild(item)
+        item.setParent(parent)
+        #parent.addChild(item, row)
+        #parent.addChild(ml_node.MlNode(item.name(), parent), row)
+        self.endInsertRows()
+        print 'sourceRow : %s' % srcRow
+        self.beginRemoveRows(pIndex, srcRow, srcRow)
+        self.endInsertRows()
+        
+        self.emit(QtCore.SIGNAL("dataChanged(QModelIndex,QModelIndex)"), 
+                                self.index(row, 0, parentIndex), 
+                                self.index(row, 0, parentIndex)) 
+        return True 
+    '''
 
 class FileView(QtGui.QListView):
     def __init__(self, parent = None):
@@ -268,6 +345,7 @@ class FileView(QtGui.QListView):
 class TreeWindow(QtGui.QTabWidget):
     def __init__(self, graph, parent = None):
         super(TreeWindow, self).__init__(parent)
+        self._graph = graph
         #-------------------------------------------------
         #BUILD WIDGET
         #-------------------------------------------------
@@ -312,14 +390,23 @@ class TreeWindow(QtGui.QTabWidget):
         setupVerticleLayout.addWidget(self._intField3)
         
         #buttons
-        self._buttonLayout = QtGui.QHBoxLayout()
-        self._setupButton  = QtGui.QPushButton('Run Setup') 
+        setupButtonLayout = QtGui.QHBoxLayout()
+        self._addFileButton = QtGui.QPushButton('->') 
+        self._setupSelectedButton  = QtGui.QPushButton('Run Selected')
+        self._setupButton  = QtGui.QPushButton('Run All')
+        setupButtonLayout.addWidget(self._setupSelectedButton)
+        setupButtonLayout.addWidget(self._setupButton)
+        
+        self._setupButton.clicked.connect(self._runSetupButton)
+        self._setupSelectedButton.clicked.connect(self._runSelectedSetupButton)
         
         #bring it all together
         setupWidgetLayout.addWidget(self._fileView, 1,0)
-        setupWidgetLayout.addWidget(self._setupTreeFilter, 0,1)
-        setupWidgetLayout.addWidget(self._setupTreeView, 1,1)
-        setupWidgetLayout.addLayout(setupVerticleLayout, 1,2)
+        setupWidgetLayout.addWidget(self._setupTreeFilter, 0,2)
+        setupWidgetLayout.addWidget(self._addFileButton, 1,1)
+        setupWidgetLayout.addWidget(self._setupTreeView, 1,2)
+        setupWidgetLayout.addLayout(setupButtonLayout, 2,2)
+        setupWidgetLayout.addLayout(setupVerticleLayout, 1,3)
         setupWidget.setLayout(setupWidgetLayout)
         
         #-------------------------------------------------
@@ -328,7 +415,7 @@ class TreeWindow(QtGui.QTabWidget):
         #setup proxy model
         self._proxyModel = QtGui.QSortFilterProxyModel()
         #model for scenegraph
-        self._model = LayerGraph(graph)
+        self._model = LayerGraph(self._graph)
         
         #hook proxy model to scenegraph model
         self._proxyModel.setSourceModel(self._model)
@@ -345,7 +432,21 @@ class TreeWindow(QtGui.QTabWidget):
         self.addTab(buildWidget, 'Build')
         
     def _runSetupButton(self):
-        print 'Running Setup on all'
+        for rootNode in self._graph.rootNodes():
+            print 'root : %s' % rootNode.name()
+            print '%s children : %s' % (rootNode.name(), rootNode.children() )
+            for node in rootNode.descendants():
+                print node.name()
+                
+    def _runSelectedSetupButton(self):
+        index = self._setupTreeView.currentIndex()
+        if not index.isValid():
+            return None
+        
+        node = self._graph.nodes()[index.row() + index.column()]
+        
+        if node:
+            print node.name()
                 
 
 
