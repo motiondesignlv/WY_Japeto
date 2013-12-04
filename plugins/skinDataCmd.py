@@ -11,14 +11,16 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
     kWeightsLongFlag = '-weights'
     
     def __init__(self):
-        super(SkinData, self).__init__()
+        super(SkinDataCmd, self).__init__()
         self.__mesh     = str()
         self.__mObject  = OpenMaya.MObject()
         self.__mDagPath = OpenMaya.MDagPath()
         self.__mSelList = OpenMaya.MSelectionList()
         self.__influenceNames  = list()
+        self.__weights = OpenMaya.MDoubleArray()
         self.__returnWeights   = False
         self.__returnInfluence = False
+        self.__undoable = False
 
     
     def doIt(self, args):
@@ -38,11 +40,25 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         try:
             self.__mesh = argData.commandArgumentString( 0 )
         except:
-            self.displayError('Must pass in Mesh Argument')
-        if argData.isQuery() and argData.isFlagSet( SkinData.kInfluenceFlag ):
+            self.displayError('Must pass in Mesh as first Argument')
+        '''
+        if argData.isEdit() and argData.isFlagSet( SkinData.kWeightsFlag ):
+            print 'test'
+            positionUtil = OpenMaya.MScriptUtil(1)
+            positionPtr = positionUtil.asUintPtr()
+            print 'working'
+            print 'working'
+            print args.length()
+            #print positionUtil.getUint(positionPtr)
+            #self.__weights = args.asDoubleArray(positionPtr)
+            self.__undoable = True
+        '''
+        if argData.isQuery() and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ):
             self.__returnInfluence = True
-        elif argData.isQuery() and argData.isFlagSet( SkinData.kWeightsFlag ):
+            self.__undoable = False
+        elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kWeightsFlag ):
             self.__returnWeights = True
+            self.__undoable = False
         else:
             self.displayError('No arguments passed')
             
@@ -50,27 +66,19 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         '''
         Get weights on mesh from skinCluster deformer passed in and return dictionary
         with all data stored.
-        
-        @param mesh: Name of geometry that is deforming
-        @type mesh: *str*
-        
-        @return: Dictionary returned from getWeights function
-        @rtype: *dict*
         '''
         mSkinClsObject = self.__getSkinClusterObject(self.__mesh)
 
         self.__mFnScls = OpenMayaAnim.MFnSkinCluster(mSkinClsObject)
-        fnSet = OpenMaya.MFnSet(self.__mFnScls.deformerSet())
-        members = OpenMaya.MSelectionList()
-        fnSet.getMembers(members, False)
-        dagPath = OpenMaya.MDagPath()
-        components = OpenMaya.MObject()
-        members.getDagPath(0, dagPath, components)
-
+        
         if self.__returnWeights:
+            dagPath, components = self.__getComponents()
             self.__getWeights(dagPath, components)
         elif self.__returnInfluence:
             self.__getInfluenceObjects()
+        elif self.__weights:
+            dagPath, components = self.__getComponents()
+            self.__setWeights(dagPath, components)
 
     def undoIt(self):
         pass
@@ -82,7 +90,8 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         undo queue. '''
         
         # We must return True to specify that this command is undoable.
-        return True
+        print self.__undoable
+        return self.__undoable
 
     def __getSkinClusterObject(self, mesh):
         '''
@@ -99,14 +108,12 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         self.__mSelList.add(self.__mesh)
         self.__mSelList.getDependNode(0, self.__mObject)
         
-        #checks if it is a skinCluster already and returns if it is
         if self.__mObject.hasFn(OpenMaya.MFn.kSkinClusterFilter):
             return self.__mObject
         
-        #get dagPath
         self.__mSelList.getDagPath(0, self.__mDagPath)
         
-        #check the object, if it finds kMesh type, we re-assign mObject to the mesh
+        #check the object
         if not self.__mObject.hasFn(OpenMaya.MFn.kMesh) and self.__mObject.hasFn(OpenMaya.MFn.kTransform):
             dagFn = OpenMaya.MFnDagNode(self.__mDagPath)
             childCount = dagFn.childCount()
@@ -115,7 +122,7 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
                 if child.hasFn(OpenMaya.MFn.kMesh):
                     self.__mObject = OpenMaya.MObject(child)
                     break
-        #iterate througe the graph to get the skinCluster
+                
         graphIter = OpenMaya.MItDependencyGraph(self.__mObject, OpenMaya.MItDependencyGraph.kDownstream, OpenMaya.MItDependencyGraph.kPlugLevel)
         
         while not graphIter.isDone():
@@ -127,17 +134,17 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         
         return None 
     
+    def __getComponents(self):
+        fnSet = OpenMaya.MFnSet(self.__mFnScls.deformerSet())
+        members = OpenMaya.MSelectionList()
+        fnSet.getMembers(members, False)
+        dagPath = OpenMaya.MDagPath()
+        components = OpenMaya.MObject()
+        members.getDagPath(0, dagPath, components)
+        
+        return dagPath, components
+    
     def __getWeights(self, dagPath, components):
-        '''
-        Gets the weights for mesh or skinCluster passed in to command
-        
-        @param dagPath: MDagPath to the kMesh which the skinCluster is connected to
-        @type dagPath: *OpenMaya.MDagPath*
-        
-        @param components: MObject containing the vertices of the kMesh that is part of the
-                           skinCluster deformer set
-        @type components: *OpenMaya.MObject*
-        '''
         weights = OpenMaya.MDoubleArray()
         util = OpenMaya.MScriptUtil()
         util.createFromInt(0)
@@ -147,9 +154,9 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         self.setResult(weights)
         self.getCurrentResult(OpenMaya.MDoubleArray())
         
-    def __getBlendWeights(self):
+    def __getBlendWeights(self, dagPath, components):
         pass
-        
+    
     def __getInfluenceObjects(self):
         # Influences & Influence count
         influences= OpenMaya.MDagPathArray()
@@ -160,31 +167,35 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         self.setResult(influenceNames)
         self.getCurrentResult(list())
         
-#####################################################################
-
-def cmdCreator():
-    return OpenMayaMPx.asMPxPtr(SkinData())
+    def __setWeights(self, dagPath, components, weights):
+        print weights
 
 
-def cmdSyntaxCreator():
-    ''' Defines the argument and flag syntax for this command. '''
-    syntax = OpenMaya.MSyntax()
+    @classmethod
+    def cmdCreator(cls):
+        return OpenMayaMPx.asMPxPtr(cls())
 
-    syntax.addArg( OpenMaya.MSyntax.kString )
-    syntax.addFlag( SkinData.kInfluenceFlag, SkinData.kInfluenceLongFlag, OpenMaya.MSyntax.kBoolean )
-    syntax.addFlag( SkinData.kWeightsFlag, SkinData.kWeightsLongFlag, OpenMaya.MSyntax.kBoolean )
-    syntax.enableQuery(True)
-        
-    return syntax
+    @classmethod
+    def cmdSyntaxCreator(cls):
+        ''' Defines the argument and flag syntax for this command. '''
+        syntax = OpenMaya.MSyntax()
+    
+        syntax.addArg( OpenMaya.MSyntax.kString )
+        syntax.addFlag( cls.kInfluenceFlag, cls.kInfluenceLongFlag )
+        syntax.addFlag( cls.kWeightsFlag, cls.kWeightsLongFlag, syntax.kBoolean )
+        syntax.enableQuery(True)
+        #syntax.enableEdit(True)
+            
+        return syntax
 
 
 # initialize the script plug-in
 def initializePlugin(mobject):
-    mplugin = OpenMayaMPx.MFnPlugin(mobject, "Magic Leap - Walter Yoder", "1.0", "Any")
+    mplugin = OpenMayaMPx.MFnPlugin(mobject, "MagicLeap - Walt Yoder", "1.0", "Any")
     try:
-        mplugin.registerCommand(SkinData.kCmdName, cmdCreator, cmdSyntaxCreator)
+        mplugin.registerCommand(SkinDataCmd.kCmdName, SkinDataCmd.cmdCreator, SkinDataCmd.cmdSyntaxCreator)
     except:
-        sys.stderr.write("Failed to register command: %s" % SkinData.kCmdName)
+        sys.stderr.write("Failed to register command: %s" % SkinDataCmd.kCmdName)
         raise
 
 
@@ -192,7 +203,7 @@ def initializePlugin(mobject):
 def uninitializePlugin(mobject):
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
     try:
-        mplugin.deregisterCommand(SkinData.kCmdName)
+        mplugin.deregisterCommand(SkinDataCmd.kCmdName)
     except:
-        sys.stderr.write("Failed to deregister command: %s" % SkinData.kCmdName)
+        sys.stderr.write("Failed to deregister command: %s" % SkinDataCmd.kCmdName)
         raise
