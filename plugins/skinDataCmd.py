@@ -9,6 +9,8 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
     kInfluenceLongFlag = '-influence'
     kWeightsFlag = '-w'
     kWeightsLongFlag = '-weights'
+    kVertIdFlag = '-v'
+    kVertIdLongFlag = '-vertId'
     
     def __init__(self):
         super(SkinDataCmd, self).__init__()
@@ -19,8 +21,10 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         self.__influenceNames  = list()
         self.__weights = OpenMaya.MDoubleArray()
         self.__returnWeights   = False
+        self.__returnInfluenceWeights = False
         self.__returnInfluence = False
         self.__undoable = False
+        self.__setVertWeights = False
 
     
     def doIt(self, args):
@@ -32,35 +36,37 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         ''' 
         The presence of this function is not enforced,
         but helps separate argument parsing code from other
-        command code. 
+        command code.
         '''
-        
         # Getting the argData from MArgParser
         argData = OpenMaya.MArgParser( self.syntax(), args )
         try:
             self.__mesh = argData.commandArgumentString( 0 )
         except:
-            self.displayError('Must pass in Mesh as first Argument')
-        '''
-        if argData.isEdit() and argData.isFlagSet( SkinData.kWeightsFlag ):
-            print 'test'
-            positionUtil = OpenMaya.MScriptUtil(1)
-            positionPtr = positionUtil.asUintPtr()
-            print 'working'
-            print 'working'
-            print args.length()
-            #print positionUtil.getUint(positionPtr)
-            #self.__weights = args.asDoubleArray(positionPtr)
-            self.__undoable = True
-        '''
-        if argData.isQuery() and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ):
+            self.displayError('Must pass in Mesh as first Argument')         
+        if argData.isQuery() and argData.isFlagSet( SkinDataCmd.kWeightsFlag ) and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ):
+            try:
+                self._influnceNode = argData.commandArgumentString( 1 )
+            except:
+                pass
+            self.__returnWeights = True
+            self.__returnInfluenceWeights = True
+            self.__undoable = False
+        elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ):
             self.__returnInfluence = True
             self.__undoable = False
         elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kWeightsFlag ):
             self.__returnWeights = True
             self.__undoable = False
+        elif argData.isFlagSet( SkinDataCmd.kWeightsFlag ) and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ) and argData.isFlagSet( SkinDataCmd.kVertIdFlag ):
+            self._weightValue = argData.flagArgumentDouble(SkinDataCmd.kWeightsFlag, 0)
+            self._vertId = argData.flagArgumentInt(SkinDataCmd.kVertIdFlag, 0)
+            self._influence = argData.flagArgumentString(SkinDataCmd.kInfluenceFlag, 0)
+            self.__setVertWeights = True
+            self.__undoable = True
         else:
             self.displayError('No arguments passed')
+
             
     def redoIt(self):
         '''
@@ -68,17 +74,25 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         with all data stored.
         '''
         mSkinClsObject = self.__getSkinClusterObject(self.__mesh)
-
+        
+        #get the skincluster object
         self.__mFnScls = OpenMayaAnim.MFnSkinCluster(mSkinClsObject)
         
+        #check which operation we want to return to the user
         if self.__returnWeights:
+            influence = None
+            if self.__returnInfluenceWeights:
+                influence = self._influnceNode
             dagPath, components = self.__getComponents()
-            self.__getWeights(dagPath, components)
+            weights = self.__getWeights(dagPath, components, influence)
+            self.setResult(weights)
+            self.getCurrentResult(OpenMaya.MDoubleArray())
         elif self.__returnInfluence:
-            self.__getInfluenceObjects()
-        elif self.__weights:
-            dagPath, components = self.__getComponents()
-            self.__setWeights(dagPath, components)
+            influenceNames = self.__getInfluences()
+            self.setResult(influenceNames)
+            self.getCurrentResult(list())
+        elif self.__setVertWeights:
+            self.__setWeights()
 
     def undoIt(self):
         pass
@@ -90,8 +104,12 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         undo queue. '''
         
         # We must return True to specify that this command is undoable.
-        print self.__undoable
         return self.__undoable
+    
+    
+    #--------------------------------------------------------------------
+    #GATHER DATA METHODS
+    #--------------------------------------------------------------------
 
     def __getSkinClusterObject(self, mesh):
         '''
@@ -135,6 +153,9 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         return None 
     
     def __getComponents(self):
+        '''
+        Gets and returns the DagPath to the mesh and the components of the mesh
+        '''
         fnSet = OpenMaya.MFnSet(self.__mFnScls.deformerSet())
         members = OpenMaya.MSelectionList()
         fnSet.getMembers(members, False)
@@ -144,33 +165,75 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         
         return dagPath, components
     
-    def __getWeights(self, dagPath, components):
+    def __getWeights(self, dagPath, components, influence = None):
+        '''
+        Gets the weights from on the mesh
+        
+        @param dagPath: DagPath to the mesh
+        @type dagPaht: *OpenMaya.MDagPath*
+        
+        @param components: Object pointing to the Components (i.e. Vertices)
+        @type components: *OpenMaya.MObject*    
+        
+        @param influence: Name of the influence being queried
+        @type influence: *str* or *unicode* 
+        '''
         weights = OpenMaya.MDoubleArray()
         util = OpenMaya.MScriptUtil()
         util.createFromInt(0)
         pUInt = util.asUintPtr()
-        self.__mFnScls.getWeights(dagPath, components, weights, pUInt)
+        if influence:
+            influenceNames = self.__getInfluences()
+            index = influenceNames.index(influence)
+            self.__mFnScls.getWeights(dagPath,components, index, weights)
+        else:
+            self.__mFnScls.getWeights(dagPath, components, weights, pUInt)
         
-        self.setResult(weights)
-        self.getCurrentResult(OpenMaya.MDoubleArray())
+        return weights
         
     def __getBlendWeights(self, dagPath, components):
         pass
     
-    def __getInfluenceObjects(self):
+    def __getInfluences(self):
+        '''
+        Gets and returns all the influence objects on the skinCluster
+        '''
         # Influences & Influence count
         influences= OpenMaya.MDagPathArray()
         infCount = self.__mFnScls.influenceObjects(influences)
         # Get node names for influences
         influenceNames = [influences[i].partialPathName() for i in range(infCount)]
         
-        self.setResult(influenceNames)
-        self.getCurrentResult(list())
+        return influenceNames
+
+
+    #--------------------------------------------------------------------
+    #SET DATA METHODS
+    #--------------------------------------------------------------------
+    def __setWeights(self):
+        #get the object and dagPath of the mesh
+        self.__mObject
+            
+        #skincluster function
+        mSkinClsObject = self.__getSkinClusterObject(self.__mesh)
+        mFnScls = OpenMayaAnim.MFnSkinCluster(mSkinClsObject)
+
+        # Get node names for influences
+        influenceNames = self.__getInfluences()
+
         
-    def __setWeights(self, dagPath, components, weights):
-        print weights
+        vertIter = OpenMaya.MItMeshVertex(self.__mObject)
+        
+        while not vertIter.isDone():
+            vertCurrentIndexUtil = OpenMaya.MScriptUtil(vertIter.index())
+            vertCurrentIndexPtr = vertCurrentIndexUtil.asIntPtr()
+            vertIter.setIndex(self._vertId,vertCurrentIndexPtr)
+            self.__mFnScls.setWeights(self.__mDagPath, vertIter.currentItem(), influenceNames.index(self._influence), self._weightValue)    
+            break
 
-
+    #--------------------------------------------------------------------
+    #CREATOR METHODS
+    #--------------------------------------------------------------------
     @classmethod
     def cmdCreator(cls):
         return OpenMayaMPx.asMPxPtr(cls())
@@ -179,19 +242,20 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
     def cmdSyntaxCreator(cls):
         ''' Defines the argument and flag syntax for this command. '''
         syntax = OpenMaya.MSyntax()
-    
         syntax.addArg( OpenMaya.MSyntax.kString )
-        syntax.addFlag( cls.kInfluenceFlag, cls.kInfluenceLongFlag )
-        syntax.addFlag( cls.kWeightsFlag, cls.kWeightsLongFlag, syntax.kBoolean )
+        syntax.addArg( OpenMaya.MSyntax.kString )
+        syntax.addFlag( cls.kInfluenceFlag, cls.kInfluenceLongFlag, OpenMaya.MSyntax.kString)
+        syntax.addFlag( cls.kWeightsFlag, cls.kWeightsLongFlag, OpenMaya.MSyntax.kDouble )
+        syntax.addFlag( cls.kVertIdFlag, cls.kVertIdLongFlag, OpenMaya.MSyntax.kUnsigned  )
         syntax.enableQuery(True)
-        #syntax.enableEdit(True)
+        syntax.enableEdit(True)
             
         return syntax
 
 
 # initialize the script plug-in
 def initializePlugin(mobject):
-    mplugin = OpenMayaMPx.MFnPlugin(mobject, "MagicLeap - Walt Yoder", "1.0", "Any")
+    mplugin = OpenMayaMPx.MFnPlugin(mobject, "Magic Leap - Walt Yoder", "1.0", "Any")
     try:
         mplugin.registerCommand(SkinDataCmd.kCmdName, SkinDataCmd.cmdCreator, SkinDataCmd.cmdSyntaxCreator)
     except:
