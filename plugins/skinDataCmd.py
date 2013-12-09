@@ -273,7 +273,6 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         
         return influenceNames
 
-
     #--------------------------------------------------------------------
     #SET DATA METHODS
     #--------------------------------------------------------------------

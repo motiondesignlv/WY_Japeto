@@ -3,6 +3,7 @@ import fields
 reload(fields)
 
 from PyQt4 import QtGui, QtCore, uic
+import cPickle
 import sys
 import os
 sys.path.append('/Users/walt/Library/preferences/Autodesk/maya/2013-x64/scripts')
@@ -135,21 +136,25 @@ class FileListModel(QtCore.QAbstractListModel):
 
         
 class LayerGraph(QtCore.QAbstractItemModel):
+    NodeRole = QtCore.Qt.UserRole
     def __init__(self, graph, parent = None):
         super(LayerGraph, self).__init__(parent)
 
         self._rootNode = ml_node.MlNode('root')
         children = graph.rootNodes()
         #children.reverse()
-        print children
         self._rootNode.addChildren(children)
-        
+    
+    def itemFromIndex( self, index ):
+        return index.data(self.NodeRole).toPyObject() if index.isValid() else self._rootNode
+    
     def rowCount(self, parent):
         if not parent.isValid():
             parentNode = self._rootNode
         else:
             parentNode = parent.internalPointer()
 
+        print parentNode
         return parentNode.childCount()
     
     def columnCount(self, parent):
@@ -163,6 +168,8 @@ class LayerGraph(QtCore.QAbstractItemModel):
 
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return node.name()
+        elif role == self.NodeRole:
+            return node
     
     def headerData(self, section, orientation, role):
         return "Outliner"
@@ -214,12 +221,13 @@ class LayerGraph(QtCore.QAbstractItemModel):
         else:
             parentNode = parent.internalPointer()
 
-        childItem = parentNode.childAtIndex(index = row)
-
-        if childItem:
-            return self.createIndex(row, column, childItem)
-        
-        return QtCore.QModelIndex()
+        try:
+            childItem = parentNode.childAtIndex(index = row)
+    
+            if childItem:
+                return self.createIndex(row, column, childItem)
+        except:
+            return QtCore.QModelIndex()
         
     def getNode(self, index):
         if index.isValid():
@@ -229,108 +237,68 @@ class LayerGraph(QtCore.QAbstractItemModel):
             
         return self._rootNode
 
-    
-    def insertRows(self,position, rows, parent = QtCore.QModelIndex()):
-        self.beginInsertRows(parent, position, position + rows - 1)
-        
-        parentNode = self.getNode(parent)
-        #print position + rows - 1
-        for row in range(rows):
-            break
-            #childCount = parentNode.childCount()
-            #childNode = ml_node.MlNode("untitled%s" % childCount)
-            success = parentNode.addChild(childNode,position)
-            
+    def supportedDropActions( self ):
+        '''Items can be moved and copied (but we only provide an interface for moving items in this example.'''
+        return QtCore.Qt.MoveAction | QtCore.Qt.CopyAction
+
+    def insertRows(self, row, count, parent = QtCore.QModelIndex()):
+        self.beginInsertRows(parent, row, row + count - 1)
         self.endInsertRows()
         
-        return success
-    
-    def removeRows(self,position, rows, parent = QtCore.QModelIndex()):
-        self.beginRemoveRows(parent, position, position + rows - 1)
-        
-        parentNode = self.getNode(parent)
-        for row in range(rows):
-            success = parentNode.removeChild(position)
-            
+        return True
+     
+    def removeRows( self, row, count, parentIndex ):
+        '''Remove a number of rows from the model at the given row and parent.'''
+        self.beginRemoveRows( parentIndex, row, row+count-1 )
+        parent = self.getNode( parentIndex )
+        for x in range( count ):
+            parent.removeChild( parent.childAtIndex(row) )
         self.endRemoveRows()
-        
-        return success
+        return True
     
-    '''
-    #---------------------------------------------------------------------------
-    def mimeTypes(self):
-        """
-        Only accept the internal custom drop type which is plain text
-        """
-        types = QtCore.QStringList() 
-        types.append('text/plain') 
-        return types 
-
-
-    #---------------------------------------------------------------------------
-    def mimeData(self, index): 
-        """
-        Wrap the index up as a list of rows and columns of each 
-        parent/grandparent/etc
-        """
-        rc = ""
-        theIndex = index[0] #<- for testing purposes we only deal with 1st item
-        while theIndex.isValid():
-            rc = rc + str(theIndex.row()) + ";" + str(theIndex.column())
-            theIndex = self.parent(theIndex)
-            if theIndex.isValid():
-                rc = rc + ","
-        mimeData = QtCore.QMimeData()
-        mimeData.setText(rc)
-        return mimeData
-
-
-    #---------------------------------------------------------------------------
-    def dropMimeData(self, data, action, row, column, parentIndex):
-        """
-        Extract the whole ancestor list of rows and columns and rebuild the 
-        index item that was originally dragged
-        """
-        if action == QtCore.Qt.IgnoreAction: 
-            return True 
-
-        if data.hasText():
-            ancestorL = str(data.text()).split(",")
-            ancestorL.reverse() #<- stored from the child up, we read from ancestor down
-            pIndex = QtCore.QModelIndex()
-            for ancestor in ancestorL:
-                srcRow = int(ancestor.split(";")[0])
-                srcCol = int(ancestor.split(";")[1])
-                itemIndex = self.index(srcRow, srcCol, pIndex)
-                if ancestor == ancestorL[-1]:
-                    break
-                pIndex = itemIndex
-
-        item = itemIndex.internalPointer()
-        parent = parentIndex.internalPointer()
-
-        #modify the row if it is -1 (we want to append to the end of the list)
-        if row == -1:
-            row = parent.childCount()
-        print 'row : %s' % row
-        self.beginInsertRows(parentIndex, row, row)
-        item.setName(item.name())
-        item.addChild(item, row)
-        item.parent().removeChild(item)
-        item.setParent(parent)
-        #parent.addChild(item, row)
-        #parent.addChild(ml_node.MlNode(item.name(), parent), row)
-        self.endInsertRows()
-        print 'sourceRow : %s' % srcRow
-        self.beginRemoveRows(pIndex, srcRow, srcRow)
-        self.endInsertRows()
+    def mimeTypes( self ):
+        '''The MimeType for the encoded data.'''
+        types = QtCore.QStringList( 'application/x-pynode-item-instance' )
+        return types
+     
+    def mimeData( self, indices ):
+        '''Encode serialized data from the item at the given index into a QMimeData object.'''
+        data = ''
+        item = self.itemFromIndex( indices[0] )
         
-        self.emit(QtCore.SIGNAL("dataChanged(QModelIndex,QModelIndex)"), 
-                                self.index(row, 0, parentIndex), 
-                                self.index(row, 0, parentIndex)) 
-        return True 
-    '''
-
+        try:
+            #print item.name()
+            data += cPickle.dumps( item.name() )
+        except:
+            
+            pass
+        
+        mimedata = QtCore.QMimeData()
+        mimedata.setData( 'application/x-pynode-item-instance', data )
+        return mimedata
+     
+    def dropMimeData( self, mimedata, action, row, column, parentIndex ):
+        '''Handles the dropping of an item onto the model.
+         
+        De-serializes the data into a TreeItem instance and inserts it into the model.
+        '''
+        if not mimedata.hasFormat( 'application/x-pynode-item-instance' ):
+            return False
+        item = cPickle.loads( str( mimedata.data( 'application/x-pynode-item-instance' )))
+        dropParent = self.itemFromIndex( parentIndex )
+        for node in graph.nodes():
+            if item == node.name():
+                item = node
+        dropParent.addChild( item )
+        print dropParent.childCount()
+        if dropParent.childCount() == 1:
+            self.insertRows( dropParent.childCount()-1, 1, parentIndex )
+        else:
+            self.insertRows( dropParent.childCount()-2, 1, parentIndex )
+        
+        self.dataChanged.emit( parentIndex, parentIndex )
+        return True
+    
 class FileView(QtGui.QListView):
     def __init__(self, parent = None):
         super(FileView, self).__init__(parent)
@@ -377,7 +345,11 @@ class TreeWindow(QtGui.QTabWidget):
         self._setupTreeFilter = QtGui.QLineEdit()
         self._setupTreeView = QtGui.QTreeView()
         self._setupTreeView.setAlternatingRowColors(True)
-        self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove) 
+        self._setupTreeView.setDragEnabled( True )
+        self._setupTreeView.setAcceptDrops( True )
+        self._setupTreeView.expandAll()
         
         #file view
         self._fileView = FileView()
@@ -443,7 +415,7 @@ class TreeWindow(QtGui.QTabWidget):
         if not index.isValid():
             return None
         
-        node = self._graph.nodes()[index.row() + index.column()]
+        node = self._model.itemFromIndex(index)
         
         if node:
             print node.name()
@@ -465,7 +437,28 @@ if __name__ == '__main__':
     sys.exit(app.exec_())
 
 
-
+class SkeletonOutliner( QtGui.QMainWindow ):
+    '''A window containing a tree view set up for drag and drop.'''
+     
+    def __init__( self, parent=None ):
+        '''Instantiates the window as a child of the Maya main window, sets up the
+        QTreeView with an OutlinerModel, and enables the drag and drop operations.
+        '''
+        super( SkeletonOutliner, self ).__init__( parent )
+         
+        self.tree = QtGui.QTreeView()
+        self.outlinerModel = OutlinerModel( gatherItems() )
+        self.tree.setModel( self.outlinerModel )
+        self.tree.setDragEnabled( True )
+        self.tree.setAcceptDrops( True )
+        self.tree.setDragDropMode( QtGui.QAbstractItemView.InternalMove )
+         
+        self.tree.expandAll()
+         
+        self.setCentralWidget( self.tree )
+         
+        self.show()
+        
 #################################################################### 
 class MainWindow(QtGui.QWidget): 
     def __init__(self, deformers, *args): 
