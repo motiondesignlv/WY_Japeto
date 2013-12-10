@@ -21,7 +21,7 @@
     Set weights:
     Will set the weights on a skinCluster for a particular mesh or skinCluster.
 
-@scripting
+@scripting:
     If you want to use this command in a script please note the flag options below.
 
     -vertex or -vtx
@@ -34,6 +34,10 @@
 
     -weights or -wts
     Specifies the weight values you would like to apply.
+    @attention: Only working in command and Query modes
+    
+    -blendWeight or -bwt
+    Specifies the blend weight values you would like to query or apply.
     @attention: Only working in command and Query modes
 
 @example:
@@ -63,22 +67,30 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
     kWeightsLongFlag = '-weights'
     kVertIdFlag = '-vtx'
     kVertIdLongFlag = '-vertex'
+    kBlendWeightsFlag = '-bwt'
+    kBlendWeightsLongFlag = '-blendWeight'
     
     def __init__(self):
         super(SkinDataCmd, self).__init__()
-        self.__mesh     = str()
-        self.__mObject  = OpenMaya.MObject()
-        self.__mDagPath = OpenMaya.MDagPath()
-        self.__mSelList = OpenMaya.MSelectionList()
-        self.__mVertSelList = OpenMaya.MSelectionList()
+        self.__mesh            = str()
+        self.__mObject         = OpenMaya.MObject()
+        self.__mDagPath        = OpenMaya.MDagPath()
+        self.__mSelList        = OpenMaya.MSelectionList()
+        self.__mVertSelList    = OpenMaya.MSelectionList()
         self.__influenceNames  = list()
-        self.__weights = OpenMaya.MDoubleArray()
-        self.__oldWeights = OpenMaya.MDoubleArray()
-        self.__returnWeights   = False
+        self.__weights         = OpenMaya.MDoubleArray()
+        self.__blendWeights    = OpenMaya.MDoubleArray()
+        self.__oldWeights      = OpenMaya.MDoubleArray()
+        self.__oldBlendWeights = OpenMaya.MDoubleArray()
+        
+        #set/return variables
+        self.__returnWeights          = False
+        self.__returnBlendWeights     = False
         self.__returnInfluenceWeights = False
-        self.__returnInfluence = False
-        self.__undoable = False
-        self.__setVertWeights = False
+        self.__returnInfluence        = False
+        self.__undoable               = False
+        self.__setVertWeights         = False
+        self.__setVertBlendWeights    = False
 
     
     def doIt(self, args):
@@ -112,6 +124,9 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kWeightsFlag ):
             self.__returnWeights = True
             self.__undoable = False
+        elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kBlendWeightsFlag ):
+            self.__returnBlendWeights = True
+            self.__undoable = False
         elif argData.isFlagSet( SkinDataCmd.kWeightsFlag ) and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ) and argData.isFlagSet( SkinDataCmd.kVertIdFlag ):
             #add to doubleArray for weights
             self.__weights.setLength(argData.numberOfFlagUses(SkinDataCmd.kWeightsFlag))
@@ -131,6 +146,16 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
                 self.__influenceNames.append(argList.asString(0))
             self.__setVertWeights = True
             self.__undoable = True
+        elif argData.isFlagSet( SkinDataCmd.kBlendWeightsFlag ):
+            #add to doubleArray for weights
+            self.__blendWeights.setLength(argData.numberOfFlagUses(SkinDataCmd.kBlendWeightsFlag))
+            for i in range(self.__blendWeights.length()):
+                argList = OpenMaya.MArgList()
+                argData.getFlagArgumentList(SkinDataCmd.kBlendWeightsFlag,i, argList)
+                self.__blendWeights.set(argList.asDouble(0),i)
+            
+            self.__setVertBlendWeights = True
+            self.__undoable = True
         else:
             self.displayError('No arguments passed')
 
@@ -146,12 +171,18 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         self.__mFnScls = OpenMayaAnim.MFnSkinCluster(mSkinClsObject)
         
         #check which operation we want to return to the user
+        if self.__returnWeights or self.__returnBlendWeights or self.__setBlendWeights:
+            dagPath, components = self.__getComponents()
+        
         if self.__returnWeights:
             influence = None
             if self.__returnInfluenceWeights:
                 influence = self._influnceNode
-            dagPath, components = self.__getComponents()
             weights = self.__getWeights(dagPath, components, influence)
+            self.setResult(weights)
+            self.getCurrentResult(OpenMaya.MDoubleArray())
+        elif self.__returnBlendWeights:
+            weights = self.__getBlendWeights(dagPath, components)
             self.setResult(weights)
             self.getCurrentResult(OpenMaya.MDoubleArray())
         elif self.__returnInfluence:
@@ -160,11 +191,17 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
             self.getCurrentResult(list())
         elif self.__setVertWeights:
             self.__setWeights(self.__weights, self.__influenceNames, True)
+        elif self.__setVertBlendWeights:
+            self.__setBlendWeights(dagPath, components, self.__blendWeights)
 
 
     def undoIt(self):
-        self.__setWeights(self.__oldWeights, self.__getInfluences(), False)
-        
+        if self.__setVertWeights:
+            self.__setWeights(self.__oldWeights, self.__getInfluences(), False)
+        elif self.__setVertBlendWeights:
+            dagPath, components = self.__getComponents()
+            self.__setBlendWeights(dagPath, components, self.__oldBlendWeights)
+            
     def isUndoable(self):
         ''' This function indicates whether or not the command is undoable. If the
         command is undoable, each executed instance of that command is added to the
@@ -240,7 +277,7 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         @type dagPaht: *OpenMaya.MDagPath*
         
         @param components: Object pointing to the Components (i.e. Vertices)
-        @type components: *OpenMaya.MObject*    
+        @type components: *OpenMaya.MObject*
         
         @param influence: Name of the influence being queried
         @type influence: *str* or *unicode* 
@@ -259,7 +296,10 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         return weights
         
     def __getBlendWeights(self, dagPath, components):
-        pass
+        weights = OpenMaya.MDoubleArray()
+        self.__mFnScls.getBlendWeights(dagPath, components, weights)
+        
+        return weights
     
     def __getInfluences(self):
         '''
@@ -272,6 +312,7 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         influenceNames = [influences[i].partialPathName() for i in range(infCount)]
         
         return influenceNames
+
 
     #--------------------------------------------------------------------
     #SET DATA METHODS
@@ -301,10 +342,16 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
 
         if getOldWeights:
             #get the old weights so we can reapply them when we undo.
-            self.__oldWeights = self.__getWeights(self.__mDagPath, mComponentsObject)
-            self.__mFnScls.setWeights(self.__mDagPath, mComponentsObject, influenceIndices, weights, True)
+            #self.__oldWeights = self.__getWeights(self.__mDagPath, mComponentsObject)
+            self.__mFnScls.setWeights(self.__mDagPath, mComponentsObject, influenceIndices, weights, True,self.__oldWeights)
         else:
             self.__mFnScls.setWeights(self.__mDagPath, mComponentsObject, influenceIndices, weights, True)
+            
+            
+    def __setBlendWeights(self, dagPath, components, weights):
+        self.__oldBlendWeights = self.__getBlendWeights(dagPath, components)
+        self.__mFnScls.setBlendWeights(dagPath, components, weights)
+
 
 
     #--------------------------------------------------------------------
@@ -323,9 +370,11 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         syntax.addFlag( cls.kInfluenceFlag, cls.kInfluenceLongFlag, OpenMaya.MSyntax.kString)
         syntax.addFlag( cls.kWeightsFlag, cls.kWeightsLongFlag, OpenMaya.MSyntax.kDouble )
         syntax.addFlag( cls.kVertIdFlag, cls.kVertIdLongFlag, OpenMaya.MSyntax.kString  )
+        syntax.addFlag( cls.kBlendWeightsFlag, cls.kBlendWeightsLongFlag, OpenMaya.MSyntax.kDouble)
         syntax.makeFlagMultiUse(cls.kWeightsFlag)
         syntax.makeFlagMultiUse(cls.kVertIdFlag)
         syntax.makeFlagMultiUse(cls.kInfluenceFlag)
+        syntax.makeFlagMultiUse(cls.kBlendWeightsFlag)
         syntax.enableQuery(True)
         syntax.enableEdit(True)
             
