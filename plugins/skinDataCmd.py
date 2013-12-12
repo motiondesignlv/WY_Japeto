@@ -343,9 +343,9 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         if getOldWeights:
             #get the old weights so we can reapply them when we undo.
             #self.__oldWeights = self.__getWeights(self.__mDagPath, mComponentsObject)
-            self.__mFnScls.setWeights(self.__mDagPath, mComponentsObject, influenceIndices, weights, True,self.__oldWeights)
+            self.__mFnScls.setWeights(mComponentsDagPath, mComponentsObject, influenceIndices, weights, True,self.__oldWeights)
         else:
-            self.__mFnScls.setWeights(self.__mDagPath, mComponentsObject, influenceIndices, weights, True)
+            self.__mFnScls.setWeights(mComponentsDagPath, mComponentsObject, influenceIndices, weights, True)
             
             
     def __setBlendWeights(self, dagPath, components, weights):
