@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import fields 
 reload(fields)
-
+from copy import deepcopy
 from PyQt4 import QtGui, QtCore, uic
 import cPickle
 import sys
@@ -153,8 +153,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
             parentNode = self._rootNode
         else:
             parentNode = parent.internalPointer()
-
-        print parentNode
+            
         return parentNode.childCount()
     
     def columnCount(self, parent):
@@ -239,64 +238,102 @@ class LayerGraph(QtCore.QAbstractItemModel):
 
     def supportedDropActions( self ):
         '''Items can be moved and copied (but we only provide an interface for moving items in this example.'''
-        return QtCore.Qt.MoveAction | QtCore.Qt.CopyAction
+        return QtCore.Qt.MoveAction #| QtCore.Qt.CopyAction
 
-    def insertRows(self, row, count, parent = QtCore.QModelIndex()):
+    def insertRows(self, row, count, parent = QtCore.QModelIndex(), node = None):
         self.beginInsertRows(parent, row, row + count - 1)
+        if node:
+            if parent.isValid():
+                parentNode = parent.internalPointer()
+                parentNode.addChild(node, row)
         self.endInsertRows()
         
         return True
-     
+
     def removeRows( self, row, count, parentIndex ):
         '''Remove a number of rows from the model at the given row and parent.'''
         self.beginRemoveRows( parentIndex, row, row+count-1 )
-        parent = self.getNode( parentIndex )
-        for x in range( count ):
-            parent.removeChild( parent.childAtIndex(row) )
         self.endRemoveRows()
         return True
+
+    def mimeTypes(self):
+        return [ "application/x-MlNodes" ]
+
+    def mimeData(self, indices):
+        mimeData = QtCore.QMimeData()
+        encodedData = QtCore.QByteArray()
+        stream = QtCore.QDataStream(encodedData, QtCore.QIODevice.WriteOnly)
+
+        for index in indices:
+            if not index.isValid():
+                continue
+            node = index.internalPointer()
+        
+            variant = QtCore.QVariant(node.name())
+        
+            # add all the items into the stream
+            stream << variant
+        
+        print "Encoding drag with: ", "application/x-MlNodes"
+        mimeData.setData("application/x-MlNodes", encodedData)
+        return mimeData
+
+    def dropMimeData(self, data, action, row, column, parent):
     
-    def mimeTypes( self ):
-        '''The MimeType for the encoded data.'''
-        types = QtCore.QStringList( 'application/x-pynode-item-instance' )
-        return types
-     
-    def mimeData( self, indices ):
-        '''Encode serialized data from the item at the given index into a QMimeData object.'''
-        data = ''
-        item = self.itemFromIndex( indices[0] )
+        if action == QtCore.Qt.CopyAction:
+            print "Copying"
+        elif action == QtCore.Qt.MoveAction:
+            print "Moving"
+            print "Param data:", data
+            print "Param row:", row
+            print "Param column:", column
+            print "Param parent:", parent
         
-        try:
-            #print item.name()
-            data += cPickle.dumps( item.name() )
-        except:
-            
-            pass
-        
-        mimedata = QtCore.QMimeData()
-        mimedata.setData( 'application/x-pynode-item-instance', data )
-        return mimedata
-     
-    def dropMimeData( self, mimedata, action, row, column, parentIndex ):
-        '''Handles the dropping of an item onto the model.
-         
-        De-serializes the data into a TreeItem instance and inserts it into the model.
-        '''
-        if not mimedata.hasFormat( 'application/x-pynode-item-instance' ):
-            return False
-        item = cPickle.loads( str( mimedata.data( 'application/x-pynode-item-instance' )))
-        dropParent = self.itemFromIndex( parentIndex )
-        for node in graph.nodes():
-            if item == node.name():
-                item = node
-        dropParent.addChild( item )
-        print dropParent.childCount()
-        if dropParent.childCount() == 1:
-            self.insertRows( dropParent.childCount()-1, 1, parentIndex )
+        # Where are we inserting?
+        beginRow = 0
+        if row != -1:
+            print "ROW IS NOT -1, meaning inserting inbetween, above or below an existing node"
+            beginRow = row
+        elif parent.isValid():
+            print "PARENT IS VALID, inserting ONTO something since row was not -1, beginRow becomes 0 because we want to insert it at the begining of this parents children"
+            beginRow = 0
         else:
-            self.insertRows( dropParent.childCount()-2, 1, parentIndex )
+            print "PARENT IS INVALID, inserting to root, can change to 0 if you want it to appear at the top"
+            beginRow = self.rowCount(QtCore.QModelIndex())
         
-        self.dataChanged.emit( parentIndex, parentIndex )
+        # create a read only stream to read back packed data from our QMimeData
+        encodedData = data.data("application/x-MlNodes")
+        
+        stream = QtCore.QDataStream(encodedData, QtCore.QIODevice.ReadOnly)
+        
+        
+        # decode all our data back into dropList
+        dropList = []
+        numDrop = 0
+        
+        while not stream.atEnd():
+            variant = QtCore.QVariant()
+            stream >> variant # extract
+            name = variant
+            node = None
+            
+            for node in self._rootNode.descendants():
+                if name == node.name():
+                    node = node 
+                    break
+                
+            if not node:
+                break
+            
+            # add the python object that was wrapped up by a QVariant back in our mimeData method
+            dropList.append( node ) 
+        
+            # number of items to insert later
+            numDrop += 1
+        
+            # This will insert new items, so you have to either update the values after the insertion or write your own method to receive our decoded dropList objects.
+            self.insertRows(beginRow, numDrop, parent, node) 
+
         return True
     
 class FileView(QtGui.QListView):
@@ -346,7 +383,7 @@ class TreeWindow(QtGui.QTabWidget):
         self._setupTreeView = QtGui.QTreeView()
         self._setupTreeView.setAlternatingRowColors(True)
         #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
-        self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove) 
+        #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove) 
         self._setupTreeView.setDragEnabled( True )
         self._setupTreeView.setAcceptDrops( True )
         self._setupTreeView.expandAll()
@@ -435,8 +472,146 @@ if __name__ == '__main__':
     wnd.show()
  
     sys.exit(app.exec_())
+"""
 
+import sys
+from PyQt4 import QtGui, QtCore
 
+class TreeModel(QtCore.QAbstractItemModel):
+    def __init__(self):
+        QtCore.QAbstractItemModel.__init__(self)
+        self.nodes = ['node0', 'node1', 'node2']
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column, self.nodes[row])
+
+    def parent(self, index):
+        return QtCore.QModelIndex()
+
+    def rowCount(self, index):
+        if index.internalPointer() in self.nodes:
+            return 0
+        return len(self.nodes)
+
+    def columnCount(self, index):
+        return 1
+
+    def data(self, index, role):
+        if role == 0: 
+            return index.internalPointer()
+        else:
+            return None
+
+    def supportedDropActions(self): 
+        return QtCore.Qt.CopyAction | QtCore.Qt.MoveAction         
+
+    def flags(self, index):
+        if not index.isValid():
+            return QtCore.Qt.ItemIsEnabled
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | \
+               QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled        
+
+    def mimeTypes(self):
+        return [ "application/x-tech.artists.org" ]
+
+    def mimeData(self, indices):
+        mimeData = QtCore.QMimeData()
+        encodedData = QtCore.QByteArray()
+        stream = QtCore.QDataStream(encodedData, QtCore.QIODevice.WriteOnly)
+
+        for index in indices:
+            if not index.isValid():
+                continue
+            node = index.internalPointer()
+        
+            variant = QtCore.QVariant(node)
+        
+            # add all the items into the stream
+            stream << variant
+        
+        print "Encoding drag with: ", "application/x-tech.artists.org"
+        mimeData.setData("application/x-tech.artists.org", encodedData)
+        return mimeData
+
+    def dropMimeData(self, data, action, row, column, parent):
+    
+        if action == QtCore.Qt.CopyAction:
+            print "Copying"
+        elif action == QtCore.Qt.MoveAction:
+            print "Moving"
+            print "Param data:", data
+            print "Param row:", row
+            print "Param column:", column
+            print "Param parent:", parent
+        
+        # Where are we inserting?
+        beginRow = 0
+        if row != -1:
+            print "ROW IS NOT -1, meaning inserting inbetween, above or below an existing node"
+            beginRow = row
+        elif parent.isValid():
+            print "PARENT IS VALID, inserting ONTO something since row was not -1, beginRow becomes 0 because we want to insert it at the begining of this parents children"
+            beginRow = 0
+        else:
+            print "PARENT IS INVALID, inserting to root, can change to 0 if you want it to appear at the top"
+            beginRow = self.rowCount(QtCore.QModelIndex())
+        
+        # create a read only stream to read back packed data from our QMimeData
+        encodedData = data.data("application/x-tech.artists.org")
+        
+        stream = QtCore.QDataStream(encodedData, QtCore.QIODevice.ReadOnly)
+        
+        
+        # decode all our data back into dropList
+        dropList = []
+        numDrop = 0
+        
+        while not stream.atEnd():
+            variant = QtCore.QVariant()
+            stream >> variant # extract
+            node = variant.toPyObject()
+            print node
+        
+            # add the python object that was wrapped up by a QVariant back in our mimeData method
+            dropList.append( node ) 
+        
+            # number of items to insert later
+            numDrop += 1
+        
+        
+            print "INSERTING AT", beginRow, "WITH", numDrop, "AMOUNT OF ITEMS ON PARENT:", parent.internalPointer()
+        
+            # This will insert new items, so you have to either update the values after the insertion or write your own method to receive our decoded dropList objects.
+            self.insertRows(beginRow, numDrop, parent) 
+        
+        for drop in dropList:
+            # If you don't have your own insertion method and stick with the insertRows above, this is where you would update the values using our dropList.
+            pass
+
+        return True
+
+class MainForm(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        super(MainForm, self).__init__(parent)
+
+        self.treeModel = TreeModel()
+
+        self.view = QtGui.QTreeView()
+        self.view.setModel(self.treeModel)
+        self.view.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+
+        self.setCentralWidget(self.view)
+
+def main():
+    app = QtGui.QApplication(sys.argv)
+    form = MainForm()
+    form.show()
+    app.exec_()
+
+if __name__ == '__main__':
+    main()
+
+"""
 class SkeletonOutliner( QtGui.QMainWindow ):
     '''A window containing a tree view set up for drag and drop.'''
      

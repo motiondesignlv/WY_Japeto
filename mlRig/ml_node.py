@@ -89,8 +89,8 @@ class MlNode(object):
         @type value: *str*
         '''
         #check to make sure an attribute was passed in
-        if not isinstance(attr, attribute.Attribute):
-            raise TypeError('%s must be %s' % (attr, attribute.Attribute))
+        if not isinstance(attr, ml_attribute.MlAttribute):
+            raise TypeError('%s must be %s' % (attr, ml_attribute.MlAttribute))
         
         #add attributes to the attributes dictionary
         self.__attributes.add(attr.name, attr, index = len(self.__attributes.keys()))
@@ -293,23 +293,33 @@ class MlNode(object):
         '''
         return len(self.children())
     
-    def descendantCount(self, count = 0):
-        childCount = 0
-        if self.children():
-            childCount += self.childCount()
-            for child in self.children():
-                return child.descendantCount(childCount) 
+    def descendantCount(self):
+        children = self.children()
+        count = 0
+        if children:
+            for child in children: 
+                count += 1
+                count += child.descendantCount()
+            return count
         else:
             return count
         
-    def descendants(self, nodes = list()):
-        nodeList = list()
-        if self.children():
-            for child in self.children():
-                nodeList.append(child)
-                return child.descendants(nodeList) 
+    def descendants(self):
+        children = self.children()
+        nodes = list()
+        if children:
+            for child in children:
+                nodes.append(child)
+                newNodes = child.descendants()
+                if newNodes:
+                    if newNodes not in nodes:
+                        nodes.extend(newNodes)
+            return nodes
         else:
             return nodes
+
+        
+            
 
     def index(self):
         '''
