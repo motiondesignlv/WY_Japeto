@@ -20,13 +20,13 @@ from japeto.libs import attribute
 from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import ordereddict
-reload(control)
 
 #import components
 from japeto.components import component
+from japeto.mlRig import ml_graph
+reload(ml_graph)
 
-
-class Rig(object):
+class Rig(ml_graph.MlGraph):
     @classmethod
     def getControls(cls, asset):
         '''
@@ -77,7 +77,7 @@ class Rig(object):
     
     
     def __init__(self, name):
-        self.__name = name
+        super(Rig, self).__init__(name)
 
         #declare group names of variables
         self.rigGrp      = name
@@ -91,16 +91,10 @@ class Rig(object):
         self.functions   = ordereddict.OrderedDict() 
         self.controls    = list()
         self.filePath    = os.path.join(os.path.dirname(__file__), 
-                                        '%s.%s' % (self.name, common.CONTROL))
+                                        '%s.%s' % (self.name(), common.CONTROL))
         
         self.__registeredItems = list()
         self.skinClusterJoints = list()
-
-
-    #GETTERS
-    @property
-    def name(self):
-        return self.__name
 
     @property
     def _shotCtrl(self):
@@ -147,7 +141,7 @@ class Rig(object):
                                      '%s_%s' % (common.RIGHT, description),
                                      '%s_%s' % (common.LEFT, description))
 
-    def register(self,name, obj, parent = None, **kwargs):
+    def register(self, name, obj, parent = str(), **kwargs):
         '''
         Register build components to the user interface
         @example:
@@ -162,23 +156,33 @@ class Rig(object):
         if not inspect.ismethod (obj) and not inspect.isfunction (obj):
             # Check if object is a component
             if isinstance (obj, component.Component):
+                parent = self.getNodeByName(parent)
+                node = self.addNode(obj, parent)
+                node.initialize(**kwargs)
+                '''
                 self.components[name] = obj
                 self.components[name].initialize(**kwargs)
                 self.__registeredItems.append(name)
+        
         elif inspect.isfunction(obj) or inspect.ismethod (obj):
             self.functions[name] = (obj,kwargs)
             self.__registeredItems.append(name)
+        '''
 
     def setup(self):
         '''
         Runs the setup rig for each component registered to the system
+        '''
+        if self.nodes():
+            pass
+                
         '''
         if self.components:
             for component in self.components:
                 self.components[component].runSetupRig()
             #end loop
         #end if
-
+        '''
     def run(self):
         '''
         build each individual component, or function in the order it was
@@ -186,9 +190,12 @@ class Rig(object):
         '''
 
         #loops through components and runs their runRig function
+        if self.nodes():
+            print self.nodes()
+        '''
         if self.__registeredItems:
             print self.__registeredItems
-            for item in self.__registeredItems:
+            for item in self.nodes():
                 if self.components.has_key(item):
                     self.components[item].runRig()
                     if self.components[item].controls:
@@ -212,6 +219,7 @@ class Rig(object):
                 #end elif
             #end loop
         #end if
+        '''
 
     def newScene(self):
         '''
@@ -258,11 +266,11 @@ class Rig(object):
             cmds.parent(self.components[component].controlsGrp, self._trsCtrl)
             cmds.parent(self.components[component].jointsGrp, self.jointsGrp)
             for attr in ['displayJnts', 'jointVis']:
-                fullAttrPath  = '%s.%s' % (self.name, attr)
+                fullAttrPath  = '%s.%s' % (self.name(), attr)
                 componentAttr = '%s.%s' % (self.components[component].rigGrp, attr)
                 if cmds.objExists(componentAttr):
                     if not cmds.objExists(fullAttrPath):
-                        attribute.copy(attr, self.components[component].rigGrp, self.name, reverseConnect=False)
+                        attribute.copy(attr, self.components[component].rigGrp, self.name(), reverseConnect=False)
                     #end if
                     
                     connectedAttrs = attribute.getConnections(attr, self.components[component].rigGrp, incoming = False)
@@ -306,7 +314,7 @@ class Rig(object):
 
         #lock and hide attributes
         attribute.lockAndHide(['s', 'v'], [self._shotCtrl, self._trsCtrl])
-        attribute.lockAndHide(['t', 'r', 's', 'v'], self.name)
+        attribute.lockAndHide(['t', 'r', 's', 'v'], self.name())
         
         #clear selection
         cmds.select(cl = True)
@@ -347,4 +355,4 @@ class Rig(object):
         @todo: Find out where the controls will be saved.
         @todo: Figure out how we will store the file path for an asset
         '''
-        Rig.saveControls(Rig.getControls(self.name), filePath = os.path.join(os.path.dirname(__file__), '%s.%s' % (self.name, common.CONTROL)))
+        Rig.saveControls(Rig.getControls(self.name()), filePath = os.path.join(os.path.dirname(__file__), '%s.%s' % (self.name(), common.CONTROL)))

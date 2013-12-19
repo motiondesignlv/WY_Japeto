@@ -7,12 +7,7 @@ This is the base component for all the rig components
 '''
 
 #import python modules
-from functools import partial
 from functools import wraps
-import inspect
-import copy
-import sys
-import os
 
 #import maya modules
 import maya.cmds as cmds
@@ -24,8 +19,13 @@ from japeto.libs import attribute
 from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import fileIO
+from japeto.mlRig import ml_node
+reload(ml_node)
+reload(common)
+
 #components
 import japeto.components.puppet as puppet
+reload(puppet)
 
 #import decompose matrix plugin
 fileIO.loadPlugin('matrixNodes.bundle')
@@ -56,28 +56,21 @@ def overloadArguments (func):
                 if vars(self).has_key(key):
                     # Overload argument value
                     vars (self) [key] = kwargs [key]
-                    self._buildArguments [key] = kwargs [key]
+                    for attr in self.attributes():
+                        if key == attr.name():
+                            attr.setValue(kwargs[key])
+                            break
 
         # Return function output
         return result
     return wrapper
 
 
-class Component(object):
+class Component(ml_node.MlNode):
     def __init__(self, name):
-        self.name = name
+        super(Component, self).__init__(name)
+        self.setName(name)
         
-        #declare group names of variables
-        self.setupRigGrp = '%s_setup_%s' % (name, common.GROUP)
-        self.skeletonGrp = '%s_skeleton_%s' %(name,common.GROUP)
-        self.guidesGrp   = '%s_guides_%s' % (name, common.GROUP)
-        
-        self.rigGrp   = '%s_rig_%s' % (name, common.GROUP)
-        self.jointsGrp   = '%s_joints_%s' % (name, common.GROUP)
-        self.controlsGrp   = '%s_controls_%s' % (name, common.GROUP)
-        self.setupConstraints = list()
-        self.__side = common.getSide(name) #checks if there is a side based off name template
-        self.__location = common.getLocation(name) #checks if there is a location based off name template
         self.skinClusterJnts = list()
         self.joints = dict()
         self.controls = dict()
@@ -98,28 +91,31 @@ class Component(object):
         return self._puppetNode
     
     def _getSide(self):
-    	'''
-    	Returns side from naming template
-    	'''
-    	return self.__side
+        '''
+        Returns side from naming template
+        '''
+        self.__side = common.getSide(self.name())
+        return self.__side
     
     def _getLocation(self):
-    	'''
-    	Returns location from naming template
-    	'''
-    	return self.__location
+        '''
+        Returns location from naming template
+        '''
+        return self.__location
     
     def _getPrefix(self):
-    	'''
-    	Returns the prefix based off of both side and location
-    	'''
-    	location = self._getLocation()
-    	side = self._getSide()
-    	if location:
-    	    return ('%s_%s' % (side, location))
-    	
-    	return side
+        '''
+        Returns the prefix based off of both side and location
+        '''
+        location = self._getLocation()
+        side = self._getSide()
+        if location:
+            return ('%s_%s' % (side, location))
+        
+        return side
     
+    def getParent(self):
+        return super(Component, self).parent()
     
     #----------------------------------
     #SETTERS
@@ -127,13 +123,13 @@ class Component(object):
     @puppetNode.setter
     def puppetNode(self, value):
         self._puppetNode = value
-	
+        
     def _setSide(self, value):
         self.__side = value
-	
+        
     def _setLocation(self, value):
         self.__location = value
-	
+        
     def _addSetupConstraints(self, constraint):
         self.setupConstraints.append(constraint)
 
@@ -141,19 +137,31 @@ class Component(object):
     #Initialize
     @overloadArguments
     def initialize(self, **kwargs):
+        #declare group names of variables
+        self.setupRigGrp = '%s_setup_%s' % (self.name(), common.GROUP)
+        self.skeletonGrp = '%s_skeleton_%s' %(self.name(),common.GROUP)
+        self.guidesGrp   = '%s_guides_%s' % (self.name(), common.GROUP)
+        
+        self.rigGrp   = '%s_rig_%s' % (self.name(), common.GROUP)
+        self.jointsGrp   = '%s_joints_%s' % (self.name(), common.GROUP)
+        self.controlsGrp   = '%s_controls_%s' % (self.name(), common.GROUP)
+        self.setupConstraints = list()
+        self.__side = common.getSide(self.name()) #checks if there is a side based off name template
+        self.__location = common.getLocation(self.name()) #checks if there is a location based off name template
+        
         self.addArgument('position', [0,0,0])
         self.addArgument('controlScale', 1)
-        self.addArgument('parent', str())
+        self.addArgument('parentHook', str())
 
     #----------------------------------
     #SETUP FUNCTIONS
     #----------------------------------    
     def setupRig(self):
         #makes component a puppet node
-        self.puppetNode = puppet.create(self.name)
+        self.puppetNode = puppet.create(self.name())
         
         #Create master guide control and 
-        self.masterGuide = control.createSetup('%s_master' % self.name, type = 'square')
+        self.masterGuide = control.createSetup('%s_master' % self.name(), type = 'square')
         common.setColor(self.masterGuide, 'darkred')
         
         #create hierarchy
@@ -205,14 +213,14 @@ class Component(object):
         cmds.addAttr(self.setupRigGrp, ln = 'kwargs', dt = "string")
         cmds.setAttr('%s.kwargs' % self.setupRigGrp, str(self._buildAttrs), type = "string")
         '''
-        attribute.copy('displayAxis', self.masterGuide, self.name, reverseConnect = True)
+        attribute.copy('displayAxis', self.masterGuide, self.name(), reverseConnect = True)
         
         #parent setup under puppet node
         self._puppetNode.addChild(self.setupRigGrp)
         
-        if self.parent:
-            if cmds.objExists(self.parent):
-                displayLine = control.displayLine(self.masterGuide, self.parent, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
+        if self.parentHook:
+            if cmds.objExists(self.parentHook):
+                displayLine = control.displayLine(self.masterGuide, self.parentHook, name = self.masterGuide.replace('_%s' % common.GUIDES, '_%s' % common.CURVE))
                 cmds.parent(displayLine, self.guidesGrp)
 
         #set build args on puppet node
@@ -302,83 +310,83 @@ class Component(object):
     #utility functions
     #-------------------------------
     def setupCtrl(self, name, obj, color = None):
-    	'''
-    	@param name: The name of control created
-    	@type name: *str*	
-    	
-    	@param obj: object to be controled
-    	@type obj: *str*
-    	
-    	@param color: object to be controled
-    	@type color: *str*
-    	
-    	@return: Guide control
-    	@rtype: *str*	
-    	'''
-    	#create hierarchy
-    	guideZero = cmds.createNode('transform', n = '%s_%s' % (name, common.ZERO))
-    	guideShape = cmds.createNode('implicitSphere',n = '%s_%sShape' % (name,common.GUIDES))
-    	guide = common.getParent(guideShape)
-    	guide = cmds.rename(guide, name + '_' + common.GUIDES)
-    	
-    	#set color
-    	if color:
-    	    common.setColor(guideShape, color)
-    	else:
-    	    common.setColor(guideShape, common.SIDE_COLOR[self._getSide()])
-    	
-    	#parent guide to zero group
-    	cmds.parent(guide, guideZero)
-    	
-    	cmds.delete(cmds.parentConstraint(obj, guideZero, mo = False))
-    	
-    	constraint = cmds.pointConstraint(guide, obj)
-    	
-    	cmds.parent([guideZero, constraint[0]],self.masterGuide)
-    	
-    	#lock and hide attributes
-    	attribute.lockAndHide(['r','s', 'v'], guide)
-    	
-    	#tag the guide control with a tag_guides attribute
-    	tagAttr = attribute.addAttr(guide, 'tag_guides', attrType = 'message')
-    	
-    	#connect attribute to the setupRigGrp
-    	attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
-    	
-    	return guide
+        '''
+        @param name: The name of control created
+        @type name: *str*	
+        
+        @param obj: object to be controled
+        @type obj: *str*
+        
+        @param color: object to be controled
+        @type color: *str*
+        
+        @return: Guide control
+        @rtype: *str*	
+        '''
+        #create hierarchy
+        guideZero = cmds.createNode('transform', n = '%s_%s' % (name, common.ZERO))
+        guideShape = cmds.createNode('implicitSphere',n = '%s_%sShape' % (name,common.GUIDES))
+        guide = common.getParent(guideShape)
+        guide = cmds.rename(guide, name + '_' + common.GUIDES)
+        
+        #set color
+        if color:
+            common.setColor(guideShape, color)
+        else:
+            common.setColor(guideShape, common.SIDE_COLOR[self._getSide()])
+        
+        #parent guide to zero group
+        cmds.parent(guide, guideZero)
+        
+        cmds.delete(cmds.parentConstraint(obj, guideZero, mo = False))
+        
+        constraint = cmds.pointConstraint(guide, obj)
+        
+        cmds.parent([guideZero, constraint[0]],self.masterGuide)
+        
+        #lock and hide attributes
+        attribute.lockAndHide(['r','s', 'v'], guide)
+        
+        #tag the guide control with a tag_guides attribute
+        tagAttr = attribute.addAttr(guide, 'tag_guides', attrType = 'message')
+        
+        #connect attribute to the setupRigGrp
+        attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
+        
+        return guide
 
 
     def getGuides(self):
-    	guides = list()
-    	guideAttrs = attribute.getConnections('tag_guides', self.setupRigGrp)
+        guides = list()
+        guideAttrs = attribute.getConnections('tag_guides', self.setupRigGrp)
         if guideAttrs:
             for attr in guideAttrs:
                 guides.append(attr.split('.')[0])
-    	    
-    	return guides
+            
+        return guides
 
-	    
+
     def getSkeletonJnts(self):
-    	skeletonJnts = list()
-    	skeletonRels = cmds.listRelatives(self.skeletonGrp, ad = True, type = 'joint')
-    	
-    	if skeletonRels:
+        skeletonJnts = list()
+        skeletonRels = cmds.listRelatives(self.skeletonGrp, ad = True, type = 'joint')
+        
+        if skeletonRels:
             for jnt in skeletonRels:
                 if cmds.objExists(jnt):
                     if cmds.nodeType(jnt) == 'joint':
                         skeletonJnts.append(jnt)
-    					
-    	return skeletonJnts
+                        
+        return skeletonJnts
         
 
     def addArgument(self, name, value):
-    	'''
-    	this is how it's done
-    	'''
-    	#adds key and value to __dict__ attribute, which is a dictionary.
-    	vars(self) [name] = value
-    	self._buildArguments[name] = value
-    	
-    	
+        '''
+        this is how it's done
+        '''
+        #adds key and value to __dict__ attribute, which is a dictionary.
+        vars(self) [name] = value
+        self.addAttribute(name, value)
+
+
     def _getBuildAttrs(self):
-    	pass
+        pass

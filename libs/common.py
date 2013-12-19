@@ -229,15 +229,13 @@ def padNumber(number, pad):
     pad = pad - len(padNumberStr)
 
     for i in range(pad):
-         padNumberStr = '0%s' % padNumberStr 
+        padNumberStr = '0%s' % padNumberStr 
 
     return padNumberStr 
 
 
 def toList(input):
     """
-
-
     @param input:
     @type input: object
     """
@@ -429,9 +427,11 @@ def getSide(name):
     '''
     if isinstance(name, unicode):
         name = str(name)
-
-    if not isinstance(name, str):
-        raise RuntimeError, '*name* can only be passed as a string argument!'
+    
+    print name
+    
+    if not isinstance(name, basestring):
+        raise RuntimeError('%s can only be passed as a string argument!' % name)
 
     nameList = name.split(DELIMITER)
 

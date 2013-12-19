@@ -25,7 +25,7 @@ class Puppet(object):
             self.__mobject = mobject
             self.__mFnNode = om.MFnDependencyNode(self.__mobject)
         except:
-            raise RunTimeError('%s must be an *OpenMaya.MObject* or *str*. Puppet object not constructed' % mobject)
+            raise RuntimeError('%s must be an *OpenMaya.MObject* or *str*. Puppet object not constructed' % mobject)
   
     #-----------------------------
     #GETTERS

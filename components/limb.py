@@ -95,6 +95,13 @@ class Limb(component.Component):
             [self.position[0] - 8, self.position[1], self.position[2]],
             [self.position[0] - 9, self.position[1], self.position[2]]
             )
+        else:
+            positions = (
+            [self.position[0] - 2, self.position[1], self.position[2]],
+            [self.position[0] - 5, self.position[1], self.position[2] - 1],
+            [self.position[0] - 8, self.position[1], self.position[2]],
+            [self.position[0] - 9, self.position[1], self.position[2]]
+            )
 
         for i,jnt in enumerate(self.skinClusterJnts):
             cmds.joint(n = jnt,position = positions[i])
@@ -277,7 +284,7 @@ class Limb(component.Component):
 
         #create ik fk switch
         ikfkDict = ikfk.create(jointChain = [self.startJoint, self.midJoint, self.tipJoint], stretch = self.stretch)
-        ikfkDict['group'] = cmds.rename(ikfkDict['group'], '%s_%s' % (self.name,ikfkDict['group']))
+        ikfkDict['group'] = cmds.rename(ikfkDict['group'], '%s_%s' % (self.name(),ikfkDict['group']))
 
         #set the visibility on the ik/fk/blend joints to off
         cmds.setAttr('%s.v' % ikfkDict['fkJoints'][0], 0)

@@ -90,52 +90,61 @@ class Biped(rig.Rig):
         
         self.register('Neck',
                       neck.Neck('c_neck'),
+                      parent = 'c_spine',
                       position = [0,27,0],
                       numJoints = 4, 
                       numControls = 2,
-                      parent = 'c_endspine_sc_jnt')
+                      parentHook = 'c_endspine_sc_jnt')
 
         #left side
         self.register('Left Leg',
                       leg.Leg('l_leg'),
+                      parent = 'c_spine',
                       position = [1, 0 ,0 ],
-                      parent = 'c_startspine_sc_jnt')
+                      parentHook = 'c_startspine_sc_jnt')
 
         self.register('Left Foot',
                       foot.Foot('l_foot'),
+                      parent = 'l_leg',
                       position = [1,0,0],
-                      parent = 'l_tipLeg_sc_jnt')
+                      parentHook = 'l_tipLeg_sc_jnt')
 
         self.register('Left Arm',
                       arm.Arm('l_arm'),
+                      parent = 'c_spine',
                       position = [0,25,0],
-                      parent = 'c_endspine_sc_jnt')
+                      parentHook = 'c_endspine_sc_jnt')
 
         self.register('Left Hand',
                       hand.Hand('l_hand'),
+                      parent = 'l_arm',
                       position = [0,25,0],
-                      parent = 'l_tipArm_sc_jnt')
+                      parentHook = 'l_tipArm_sc_jnt')
 
         #right side
         self.register('Right Leg',
                       leg.Leg('r_leg'),
+                      parent = 'c_spine',
                       position = [-1, 0, 0],
-                      parent = 'c_startspine_sc_jnt')
+                      parentHook = 'c_startspine_sc_jnt')
 
         self.register('Right Foot',
                       foot.Foot('r_foot'),
+                      parent = 'r_leg',
                       position = [-1,0,0],
-                      parent = 'r_tipLeg_sc_jnt')
+                      parentHook = 'r_tipLeg_sc_jnt')
 
         self.register('Right Arm',
                       arm.Arm('r_arm'),
+                      parent = 'c_spine',
                       position = [0,25,0],
-                      parent = 'c_endspine_sc_jnt')
+                      parentHook = 'c_endspine_sc_jnt')
 
         self.register('Right Hand',
                       hand.Hand('r_hand'),
+                      parent = 'r_arm',
                       position = [0,25,0],
-                      parent = 'r_tipArm_sc_jnt')
+                      parentHook = 'r_tipArm_sc_jnt')
 
     def mirror(self, side = common.LEFT):
         '''
@@ -158,7 +167,7 @@ class Biped(rig.Rig):
         '''
         super(Biped,self).build()
 
-        displayAttr = '%s.displayJnts' % self.name
+        displayAttr = '%s.displayJnts' % self.name()
         #get the control size of the spine
         spineCtrlSize = self.components['Spine'].controlScale
 
@@ -392,7 +401,7 @@ class Biped(rig.Rig):
         #SPINE SPACE
         #-----------------------------
         spineEndIkGrp = cmds.createNode('transform',
-                                       n = self.components['Spine'].name + '_end_space_grp',
+                                       n = self.components['Spine'].name() + '_end_space_grp',
                                        parent = common.getParent(spineEndIk))
         transform.matchXform(spineEndIkGrp, spineEndIk, 'pose')
         cmds.parent(spineEndIk, spineEndIkGrp)
@@ -417,7 +426,7 @@ class Biped(rig.Rig):
         #NECK SPACE
         #-----------------------------
         neckIkGrp = cmds.createNode('transform',
-                                       n = self.components['Neck'].name + '_space_grp',
+                                       n = self.components['Neck'].name() + '_space_grp',
                                        parent = common.getParent(neckIk))
         transform.matchXform(neckIkGrp, neckIk, 'pose')
         cmds.parent(neckIk, neckIkGrp)

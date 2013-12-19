@@ -7,10 +7,10 @@ class MlAttribute(object):
     Base Attribute to manage all data for nodes
     
     '''
-    __attrTypes__ = (bool, basestring, int, float, list, tuple)
+    __attrTypes__ = (bool, basestring, str, int, float, list, tuple)
     @classmethod
     def isValid(cls, attr):
-        if not isinstance(attr, MlAttribute):
+        if not isinstance(attr, cls):
             return False
         
         return True
@@ -43,6 +43,24 @@ class MlAttribute(object):
     def shortName(self):
         return self.__shortName
     
+    def setValue(self, value):
+        if not type(value).__name__ not in self.__attrTypes__:
+            raise TypeError('%s needs to be one of the following types: %s' % (value, self.__attrTypes__))
+        
+        #set the type
+        self.__type = type(value).__name__
+        
+        if isinstance(value, basestring):
+            cmd = 'self.__value = self._set%s("%s")' % (self.__type.title(), value)
+        else:
+            cmd = 'self.__value = self._set%s(%s)' % (self.__type.title(), value)
+        
+        #execute the command
+        exec(cmd)
+        
+    def value(self):
+        return self.__value
+    
     def delete(self):
         '''
         Deletes attribute
@@ -55,7 +73,7 @@ class MlAttribute(object):
         
         self.__name      = longName
         self.__shortName = shortName
-        self.__type      = type
+        self.__type      = attrType
         
     def setStorable(self, value):
         self.__storable = self._setBool(value)
@@ -63,6 +81,9 @@ class MlAttribute(object):
     def setConnectable(self, value):
         self.__connectable = self._setBool(value)
         
+    #---------------------------------------------
+    #Set attribute type values
+    #---------------------------------------------
     def _setBool(self, value):
         if not isinstance(value, bool):
             raise TypeError("%s must be <type 'bool'>" % value)
@@ -71,4 +92,35 @@ class MlAttribute(object):
             return True
         
         return False 
+    
+    def _setStr(self, value):
+        if not isinstance(value, basestring):
+            raise TypeError("%s must be <type 'str'>" % value)
+
+        return str(value)
+    
+    def _setFloat(self, value):
+        if not isinstance(value, float):
+            raise TypeError("%s must be <type 'float'>" % value)
+        
+        return float(value)
+    
+    def _setInt(self, value):
+        if not isinstance(value, int):
+            raise TypeError("%s must be <type 'int'>" % value)
+        
+        return int(value)
+    
+    def _setList(self, value):
+        if not isinstance(value, list):
+            raise TypeError("%s must be <type 'list'>" % value)
+
+        return list(value)
+    
+    def _setTuple(self, value):
+        if not isinstance(value, tuple):
+            raise TypeError("%s must be <type 'tuple'>" % value)
+
+        return tuple(value)
+
         

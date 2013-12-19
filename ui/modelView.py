@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 import fields 
 reload(fields)
-from copy import deepcopy
-from PyQt4 import QtGui, QtCore, uic
-import cPickle
+from PyQt4 import QtGui, QtCore
 import sys
 import os
-sys.path.append('/Users/walt/Library/preferences/Autodesk/maya/2013-x64/scripts')
 from japeto.mlRig import ml_graph, ml_node
 from japeto import components
 reload(ml_graph) 

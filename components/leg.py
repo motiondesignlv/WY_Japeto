@@ -47,6 +47,7 @@ class Leg(limb.Limb):
     def setupRig(self):
         if super(Leg,self).setupRig():
             return True
+        
         self.skinClusterJnts.remove(self.endJoint)
         self.skinClusterJnts.insert(0,self.pelvisJoint)
 

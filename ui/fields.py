@@ -66,7 +66,6 @@ class LineEditField(BaseField):
             raise TypeError('%s must be an string' % value)
         #get the souce of the call for setText function
         source = self.sender()
-        print value
         
         #set the value on field
         self.setValue(value)
@@ -115,3 +114,58 @@ class IntField(BaseField):
         
         return super(IntField,self).value()
                         
+class VectorField(BaseField):
+    def __init__(self, *args, **kwargs):
+        super(VectorField, self).__init__(*args,**kwargs)
+        
+        self._layout = QtGui.QHBoxLayout()
+        self._valueLayout = QtGui.QVBoxLayout()
+        self._xField = LineEditField(label = 'X', value = str(0.0))
+        self._yField = LineEditField(label = 'Y', value = str(0.0))
+        self._zField = LineEditField(label = 'Z', value = str(0.0))
+        self._valueLayout.addStretch()
+        self._valueLayout.addWidget(self._xField)
+        self._valueLayout.addWidget(self._yField)
+        self._valueLayout.addWidget(self._zField)
+        self._valueLayout.addStretch()
+        self._layout.addWidget(self.label())
+        self._layout.addLayout(self._valueLayout)
+
+        #set text if any value
+        if self.value():
+            if isinstance(self.value(), list) or isinstance(self.value(), tuple):
+                if len(self.value()) < 3 or len(self.value()) > 3:
+                    raise TypeError('%s must be a list of 3 values' % self.value())
+            #set the values on the individual fields
+            self._xField.setText(str(self.value()[0]))
+            self._yField.setText(str(self.value()[1]))    
+            self._zField.setText(str(self.value()[2]))
+        
+        self.setLayout(self._layout)
+    
+    def value(self):
+        value = (float(self._xField.value()), float(self._yField.value()), float(self._zField.value()))
+        super(VectorField, self).setValue(value)
+        
+        return super(VectorField,self).value()
+    
+class BooleanField(BaseField):
+    def __init__(self, *args, **kwargs):
+        super(BooleanField, self).__init__(*args, **kwargs)
+        self._layout = QtGui.QHBoxLayout()
+        self._checkBox = QtGui.QCheckBox()
+        self._checkBox.toggled.connect(self.setValue)
+        self._layout.addWidget(self.label())
+        self._layout.addWidget(self._checkBox)
+
+    def setValue(self, value):
+        self._checkBox.blockSignals(True)
+        if value:
+            self._checkBox.setCheckState(QtCore.Qt.Checked)
+        else:
+            self._checkBox.setCheckState(QtCore.Qt.Unchecked)
+        self._checkBox.blockSignals(False)
+
+    def value(self):
+        return self._checkBox.checkState()
+

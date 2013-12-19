@@ -22,10 +22,8 @@ class MlNode(object):
     '''
     @classmethod
     def isValid(cls, node):
-        if not isinstance(node, MlNode):
-            print type(node)
-            print type(MlNode)
-            return False
+        #if not isinstance(node, cls):
+        #    return False
         
         return True
     
@@ -33,7 +31,7 @@ class MlNode(object):
     def inValidError(cls, node):
         raise TypeError("%s is not of type japeto.mlRig.ml_node.MlNode" % node)
     
-    def __init__(self, name, parent = None):
+    def __init__(self, name, parent = str()):
         #declare class variable
         self.__name       = name
         self.__parent     = parent
@@ -65,7 +63,7 @@ class MlNode(object):
         self.__enabled = False
         
     def attributes(self):
-        return self.__attributes
+        return self.__attributes.values()
     
     def attributeAtIndex(self, index = None):
         if index != None and not index > len(self.__attributes.keys()):
@@ -74,7 +72,7 @@ class MlNode(object):
     def setName(self, value):
         self.__name  = value
     
-    def addAttribute(self, attr):
+    def addAttribute(self, attr, value):
         '''
         sets the data on the node based on key : value pairs
         
@@ -82,12 +80,15 @@ class MlNode(object):
             >>> setData(limb.arm(), position = [20,10,10])
             {"Left Arm" : []}
             
-        @param name: Nice name for user interface
-        @type name: *str*
+        @param attr: Nice name for user interface
+        @type attr: *str*
 
         @param value: python object to be called when run() is called
         @type value: *str*
         '''
+        if isinstance(attr, basestring):
+            attr = ml_attribute.MlAttribute(attr, value = value)
+        
         #check to make sure an attribute was passed in
         if not isinstance(attr, ml_attribute.MlAttribute):
             raise TypeError('%s must be %s' % (attr, ml_attribute.MlAttribute))
@@ -318,8 +319,6 @@ class MlNode(object):
         else:
             return nodes
 
-        
-            
 
     def index(self):
         '''

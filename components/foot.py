@@ -218,7 +218,7 @@ class Foot(component.Component):
         self.__footIkFk = \
                 ikfk.IkFkFoot(self.ankleJoint,
                         self.toeJoint,
-                        name = self.name)
+                        name = self.name())
 
         #list the groups for the foot ik setup
         self.__footRollGroups.insert(0, 'anklePivot')
@@ -281,7 +281,7 @@ class Foot(component.Component):
 
         #create controls
         self.__footCtrl      = \
-            control.create(name= self.name,
+            control.create(name= self.name(),
                     type = 'implicitSphere',
                     parent = self.controlsGrp,
                     color = common.SIDE_COLOR[self._getSide()])
@@ -537,7 +537,7 @@ class Foot(component.Component):
 
         #connecting visibility of control shapes to the controls
         ikfkReverse = \
-            cmds.createNode('reverse', n = '%s_%s' % (self.name,common.REVERSE))
+            cmds.createNode('reverse', n = '%s_%s' % (self.name(),common.REVERSE))
 
         attribute.connect(ikfkAttr, '%s.inputX' % ikfkReverse)
 
