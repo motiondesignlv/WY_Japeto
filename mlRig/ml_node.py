@@ -94,7 +94,7 @@ class MlNode(object):
             raise TypeError('%s must be %s' % (attr, ml_attribute.MlAttribute))
         
         #add attributes to the attributes dictionary
-        self.__attributes.add(attr.name, attr, index = len(self.__attributes.keys()))
+        self.__attributes.add(attr.name(), attr, index = len(self.__attributes.keys()))
         
     def setParent(self, parent):
         '''

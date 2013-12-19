@@ -13,6 +13,7 @@ import os
 #import maya modules
 from maya import cmds
 #import package modules
+from japeto import PLUGINDIR
 
 #import libs
 from japeto.libs import common
@@ -20,10 +21,14 @@ from japeto.libs import attribute
 from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import ordereddict
+from japeto.libs import fileIO
 
 #import components
 from japeto.components import component
 from japeto.mlRig import ml_graph
+
+fileIO.loadPlugin(os.path.join(PLUGINDIR, 'rigNode.py'))
+
 reload(ml_graph)
 
 class Rig(ml_graph.MlGraph):
@@ -159,10 +164,10 @@ class Rig(ml_graph.MlGraph):
                 parent = self.getNodeByName(parent)
                 node = self.addNode(obj, parent)
                 node.initialize(**kwargs)
+                self.components[name] = node
                 '''
-                self.components[name] = obj
-                self.components[name].initialize(**kwargs)
-                self.__registeredItems.append(name)
+                #self.components[name].initialize(**kwargs)
+                #self.__registeredItems.append(name)
         
         elif inspect.isfunction(obj) or inspect.ismethod (obj):
             self.functions[name] = (obj,kwargs)
@@ -174,7 +179,8 @@ class Rig(ml_graph.MlGraph):
         Runs the setup rig for each component registered to the system
         '''
         if self.nodes():
-            pass
+            for node in self.nodes():
+                node.runSetupRig()
                 
         '''
         if self.components:
@@ -191,35 +197,19 @@ class Rig(ml_graph.MlGraph):
 
         #loops through components and runs their runRig function
         if self.nodes():
-            print self.nodes()
-        '''
-        if self.__registeredItems:
-            print self.__registeredItems
-            for item in self.nodes():
-                if self.components.has_key(item):
-                    self.components[item].runRig()
-                    if self.components[item].controls:
-                        for ctrls in self.components[item].controls.values():
-                            for ctrl in ctrls:
-                                if ctrl not in self.controls:
-                                    self.controls.append(ctrl)
-                                #end if
-                            #end loop
+            for node in self.nodes():
+                node.runRig()
+                if node.controls:
+                    for ctrls in node.controls.values():
+                        for ctrl in ctrls:
+                            if ctrl not in self.controls:
+                                self.controls.append(ctrl)
+                            #end if
                         #end loop
-                        for jnt in self.components[item].skinClusterJnts:
-                            if jnt not in self.skinClusterJoints:
-                                    self.skinClusterJoints.append(jnt)
-                                #end if
-                            #end loop
-                        #end loop
-                    #end if
-                #end if
-                #elif self.functions.has_key(item):
-                    #self._runFunction(item)
-                #end elif
-            #end loop
-        #end if
-        '''
+                    #end loop
+                    for jnt in node.skinClusterJnts:
+                        if jnt not in self.skinClusterJoints:
+                                self.skinClusterJoints.append(jnt)
 
     def newScene(self):
         '''
@@ -232,7 +222,7 @@ class Rig(ml_graph.MlGraph):
         sets up the hierachry
         '''
         #create hierachy
-        cmds.createNode('transform', n = self.rigGrp)
+        cmds.createNode('rig', n = self.rigGrp)
         cmds.createNode('transform', n = self.noXformGrp)
         cmds.createNode('transform', n = self.jointsGrp)
         cmds.createNode('transform', n = self.controlsGrp)

@@ -7,7 +7,6 @@ rigNodeID = OpenMaya.MTypeId(0x101ff)
 matrixNodeID = OpenMayaMPx.MPxTransformationMatrix().baseTransformationMatrixId
 
 class RigNode(OpenMayaMPx.MPxTransform):
-
     def __init__(self, transform=None):
         if transform is None:
             OpenMayaMPx.MPxTransform.__init__(self)

@@ -2,18 +2,20 @@
 This modules contains the class that handles Puppet nodes
 '''
 #import python modules
-
+import os
 #import Maya modules
 import maya.cmds as cmds
 import maya.OpenMaya as om
 
 #import package modules
 import japeto.libs.common as common
-
+import japeto.libs.fileIO as fileIO
+from japeto import PLUGINDIR
 #Constant Variables
 PUPPET     = 'Puppet' 
 TAGNAME    = 'puppet_nodes'
 
+fileIO.loadPlugin(os.path.join(PLUGINDIR,'puppetNode.py'))
 
 class Puppet(object):
     def __init__(self, mobject):
@@ -109,7 +111,7 @@ def create(name):
     
     #if puppet node does not exist, create one
     if not common.isValid(PUPPET):
-        puppetObject = mFnDependNode.create('transform', PUPPET)
+        puppetObject = mFnDependNode.create('puppet', PUPPET)
         cmds.addAttr(PUPPET, ln = TAGNAME, at = 'message')
     #end if
 
