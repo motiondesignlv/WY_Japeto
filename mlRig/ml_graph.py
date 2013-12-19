@@ -27,6 +27,8 @@ class MlGraph(object):
         #if name passed in instead of node
         if isinstance(node, basestring):
             node = ml_node.MlNode(node, parent)
+        elif parent:
+            node.setParent(parent)
         
         if not ml_node.MlNode.isValid(node):
             ml_node.MlNode.inValidError(node)    
@@ -55,3 +57,18 @@ class MlGraph(object):
             nodes.extend(node.descendants())
             
         return nodes
+    
+    def nodeNames(self):
+        nodeNames = list()
+        for node in self.__rootNodes:
+            nodeNames.append(node.name())
+            for child in node.descendants():
+                nodeNames.append(child.name())
+            
+        return nodeNames
+    
+    def getNodeByName(self, name):
+        for node in self.nodes():
+            if name == node.name():
+                return node
+        return None

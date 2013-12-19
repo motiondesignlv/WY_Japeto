@@ -42,13 +42,13 @@ class Chain(component.Component):
         
         self.addArgument('startJoint',
                 '%s_start%s_%s_%s' % (self._getPrefix(),
-                common.getDescription(self.name),
+                common.getDescription(self.name()),
                 common.SKINCLUSTER,
                 common.JOINT))
 
         self.addArgument('endJoint',
                 '%s_end%s_%s_%s' % (self._getPrefix(),
-                common.getDescription(self.name),
+                common.getDescription(self.name()),
                 common.SKINCLUSTER,
                 common.JOINT))
 
@@ -156,7 +156,7 @@ class Chain(component.Component):
         parent = self.startJoint
         for i in range( 1, self.numJoints - 1 ):
             j = joint.create( name= '%s_%s_%s_%s_%s' % (self._getSide(),
-                    common.getDescription(self.name),
+                    common.getDescription(self.name()),
                     common.padNumber(i,3),
                     common.SKINCLUSTER,
                     common.JOINT))
@@ -211,7 +211,7 @@ class Chain(component.Component):
         super(Chain, self).rig()
         self.__chainIkFk = ikfk.IkFk(self.startJoint,
             self.endJoint,
-            name = self.name)
+            name = self.name())
 
         self.__chainIkFk.create()
         self.ikFkGroup   = self.__chainIkFk.group
@@ -286,7 +286,7 @@ class Chain(component.Component):
     def _createAimLocator(self, position = [0,0,0], color = None):
         #create aim locator and move into position
         aimLocator = \
-            cmds.spaceLocator(n = '%s_aim_%s' % (self.name, common.LOCATOR))[0]
+            cmds.spaceLocator(n = '%s_aim_%s' % (self.name(), common.LOCATOR))[0]
 
         aimZero = \
             cmds.createNode('transform',

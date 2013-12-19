@@ -44,7 +44,7 @@ class Spine(chain.Chain):
         
         self.__spineIkFk = ikfk.SplineIk(self.startJoint,
             self.endJoint,
-            name = self.name)
+            name = self.name())
         
         if self.numControls == 2:
             self.__spineIkFk.create([0, -1])
@@ -134,7 +134,7 @@ class Spine(chain.Chain):
             
             
             #connect ik/fk attr from group to  visibility of shapes
-            reverse = cmds.createNode('reverse', n = '%s_%s_%s' % (self.name,
+            reverse = cmds.createNode('reverse', n = '%s_%s_%s' % (self.name(),
                                                                 common.IK,
                                                                 common.REVERSE
                                                                 ))
@@ -160,7 +160,7 @@ class Spine(chain.Chain):
         #initialize the spine class (ribbon ik/fk setup)
         self.__spineIkFk = ikfk.IkFkRibbon(self.startJoint,
             self.endJoint,
-            name = self.name)
+            name = self.name())
         #create spine setup
         self.__spineIkFk.create()
         
@@ -239,7 +239,7 @@ class Spine(chain.Chain):
         
         #create target controls
         for i,jnt in enumerate(targetJoints):
-            tweakControl = control.create('%s_%s_%s' % (self.name,
+            tweakControl = control.create('%s_%s_%s' % (self.name(),
                                                         common.TWEAK,
                                                         common.padNumber(i,3)
                                                         ),
@@ -292,7 +292,7 @@ class Spine(chain.Chain):
         super(Spine, self).postRig()
         
         cmds.setAttr('%s.v' % self.__spineIkFk.surface, 0)
-        reverse = cmds.createNode('reverse', n = '%s_%s' % (self.name, common.REVERSE))
+        reverse = cmds.createNode('reverse', n = '%s_%s' % (self.name(), common.REVERSE))
         attribute.connect('%s.ikfk' % self.ikFkGroup, '%s.inputX' % reverse)
         for ctrl in self.controls['ik']:
             for shape in common.getShapes(ctrl):
