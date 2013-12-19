@@ -1,6 +1,6 @@
-from japeto.mlRig import ml_dict
+#from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_node
-import inspect
+#import inspect
 reload(ml_node)
 
 class MlGraph(object):
@@ -13,8 +13,9 @@ class MlGraph(object):
         '''
         super(MlGraph,self).__init__()
         
-        self.__name = name
-        self.__rootNodes = list()
+        self.__name       = name
+        self.__rootNodes  = list()
+        self.__nodes      = list()
         self.__rootNode__ = ml_node.MlNode('root')
     
     def name(self):
@@ -40,6 +41,10 @@ class MlGraph(object):
         
         return node
     
+    def removeNode(self):
+        pass
+        
+    
     def nodeCount(self):
         count = len(self.__rootNodes)
         
@@ -55,3 +60,19 @@ class MlGraph(object):
             nodes.extend(node.descendants())
             
         return nodes
+    
+    def log(self, tabLevel = -1):
+        output = ""
+        tabLevel += 1
+        
+        for i in range(tabLevel):
+            output += "\t"
+            
+        output += '|____%s\n' % self.__rootNode__
+        
+        for node in self.__rootNodes():
+            output += node.log(tabLevel)
+        
+        tabLevel -= 1
+        output += '\n'
+        return output

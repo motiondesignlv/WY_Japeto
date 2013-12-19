@@ -10,7 +10,7 @@ class MlAttribute(object):
     __attrTypes__ = (bool, basestring, int, float, list, tuple)
     @classmethod
     def isValid(cls, attr):
-        if not isinstance(attr, Attribute):
+        if not isinstance(attr, MlAttribute):
             return False
         
         return True
@@ -49,19 +49,19 @@ class MlAttribute(object):
         '''
         del self
     
-    def create(self, longName, shortName, type, value):
-        if not type in Attribute.__attrTypes__:
-            raise TypeError('%s must be one of the following types: %s' % (type, str(*Attribute.__attrTypes__)))
+    def create(self, longName, shortName, attrType, value):
+        if not attrType in MlAttribute.__attrTypes__:
+            raise TypeError('%s must be one of the following types: %s' % (attrType, str(*MlAttribute.__attrTypes__)))
         
         self.__name      = longName
         self.__shortName = shortName
         self.__type      = type
         
     def setStorable(self, value):
-        self.__storable = _setBool(value)
+        self.__storable = self._setBool(value)
         
     def setConnectable(self, value):
-        self.__connectable = _setBool(value)
+        self.__connectable = self._setBool(value)
         
     def _setBool(self, value):
         if not isinstance(value, bool):
