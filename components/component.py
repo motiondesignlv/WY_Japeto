@@ -20,8 +20,6 @@ from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import fileIO
 from japeto.mlRig import ml_node
-reload(ml_node)
-reload(common)
 
 #components
 import japeto.components.puppet as puppet

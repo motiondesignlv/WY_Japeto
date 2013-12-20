@@ -101,7 +101,7 @@ class Biped(rig.Rig):
                       leg.Leg('l_leg'),
                       parent = 'c_spine',
                       position = [1, 0 ,0 ],
-                      stretch = False,
+                      stretch = True,
                       parentHook = 'c_startspine_sc_jnt')
 
         self.register('Left Foot',

@@ -49,12 +49,12 @@ class MlAttribute(object):
         
         #set the type
         self.__type = type(value).__name__
-        
+        print self.__type
         if isinstance(value, basestring):
             cmd = 'self._set%s("%s")' % (self.__type.title(), value)
         else:
             cmd = 'self._set%s(%s)' % (self.__type.title(), value)
-        
+        print cmd
         #execute the command
         value = eval(cmd)
         

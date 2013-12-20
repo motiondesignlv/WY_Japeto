@@ -120,7 +120,7 @@ class LayerGraph(QtCore.QAbstractItemModel):
         if parentNode == self._rootNode:
             return QtCore.QModelIndex()
         
-        #if parent isn't root node, we wrap it up in a QModel index by 
+        #if parent isn't root node, we wrap it up in a QModel index by
         #using internal method.
         return self.createIndex(parentNode.index(), 0, parentNode)
     
@@ -169,10 +169,16 @@ class LayerGraph(QtCore.QAbstractItemModel):
         return self._rootNode
 
     def supportedDropActions( self ):
-        '''Items can be moved and copied (but we only provide an interface for moving items in this example.'''
+        '''Items can be moved and copied (but we only provide an interface 
+        or moving items in this example.'''
         return QtCore.Qt.MoveAction #| QtCore.Qt.CopyAction
 
-    def insertRows(self, row, count, parent = QtCore.QModelIndex(), node = None):
+    def insertRows(self, row, count,
+                   parent = QtCore.QModelIndex(),
+                   node = None):
+        '''
+        Insert rows at given row index
+        '''
         self.beginInsertRows(parent, row, row + count - 1)
         if node:
             if not parent.isValid():
@@ -222,13 +228,17 @@ class LayerGraph(QtCore.QAbstractItemModel):
         # Where are we inserting?
         beginRow = 0
         if row != -1:
-            print "ROW IS NOT -1, meaning inserting inbetween, above or below an existing node"
+            print """ROW IS NOT -1, meaning inserting inbetween,
+                    above or below an existing node"""
             beginRow = row
         elif parent.isValid():
-            print "PARENT IS VALID, inserting ONTO something since row was not -1, beginRow becomes 0 because we want to insert it at the begining of this parents children"
+            print """PARENT IS VALID, inserting ONTO something since row was not -1, 
+                    beginRow becomes 0 because we want to insert it at the begining
+                    of this parents children"""
             beginRow = 0
         else:
-            print "PARENT IS INVALID, inserting to root, can change to 0 if you want it to appear at the top"
+            print """PARENT IS INVALID, inserting to root, can change to 0 if you want 
+                    it to appear at the top"""
             beginRow = self.rowCount(QtCore.QModelIndex())
         
         # create a read only stream to read back packed data from our QMimeData
@@ -254,13 +264,16 @@ class LayerGraph(QtCore.QAbstractItemModel):
             if not node:
                 break
             
-            # add the python object that was wrapped up by a QVariant back in our mimeData method
+            # add the python object that was wrapped up by a QVariant back
+            #in our mimeData method
             dropList.append( node ) 
         
             # number of items to insert later
             numDrop += 1
         
-            # This will insert new items, so you have to either update the values after the insertion or write your own method to receive our decoded dropList objects.
+            # This will insert new items, so you have to either update the
+            #values after the insertion or write your own method to receive
+            #our decoded dropList objects.
             self.insertRows(beginRow, numDrop, parent, node) 
 
         return True
@@ -317,8 +330,6 @@ class CentralTabWidget(QtGui.QTabWidget):
         #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove) 
         self._setupTreeView.setDragEnabled( True )
         self._setupTreeView.setAcceptDrops( True )
-        self._setupTreeView.expandAll()
-        
         
         #file view
         self._fileView = FileView()
@@ -362,14 +373,19 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         
-        QtCore.QObject.connect(self._treeFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
-        QtCore.QObject.connect(self._setupTreeFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
+        QtCore.QObject.connect(self._treeFilter,
+                               QtCore.SIGNAL("textChanged(QString)"),
+                               self._proxyModel.setFilterRegExp)
+        QtCore.QObject.connect(self._setupTreeFilter,
+                               QtCore.SIGNAL("textChanged(QString)"),
+                               self._proxyModel.setFilterRegExp)
         
         self._treeView.setModel(self._proxyModel)
         self._setupTreeView.setModel(self._proxyModel)
         
         self.addTab(setupWidget, 'Setup')
         self.addTab(buildWidget, 'Build')
+        self._setupTreeView.expandAll()
         
         #set selections
         self._setupTreeView.setCurrentIndex(self._model.index(0,0))
@@ -408,40 +424,50 @@ class CentralTabWidget(QtGui.QTabWidget):
             rootNode = self._model._rootNode
             cmd = 'import japeto.components.%s as %s' % (nodeName, nodeName)
             exec(cmd)
-            #eval('reload(%s)' % nodeName)
             newNodeCmd = '%s.%s' % (nodeName, nodeName.title())
             newNode = eval(newNodeCmd)
             newNode = newNode(str(nodeName))
             newNode.initialize()
-            self._model.insertRows(rootNode.childCount(), 1, parent = QtCore.QModelIndex(), node = newNode)
-
+            self._model.insertRows(rootNode.childCount(), 1,
+                                   parent = QtCore.QModelIndex(),
+                                   node = newNode)
 
     def _populateSetupAttrsLayout(self, index):
+        #Check if there are any items in the layout
         if self._setupAttrsLayout.count():
             self.clearLayout(self._setupAttrsLayout)
 
+        #check to see if the index passed is valid
         if not index.isValid():
             return None
         
+        #get the node
         node = self._model.itemFromIndex(index)
 
+        #go through the attributes on the node and create appropriate field
         for attr in node.attributes():
+            print attr.name(), ':', attr.value()
             if attr.name() == 'position':
-                field = fields.VectorField(attr.name(), value = attr.value())
-            elif attr.attrType() == "str":
-                field = fields.LineEditField(attr.name(), value = attr.value())
+                field = fields.VectorField(attr.name(), value = attr.value(), attribute = attr)
+            elif attr.attrType() == "str" or attr.attrType() == "list":
+                field = fields.LineEditField(attr.name(), value = str(attr.value()), attribute = attr)
             elif attr.attrType() == "bool":
-                field = fields.BooleanField(attr.name(), value = attr.value())
+                field = fields.BooleanField(attr.name(), value = attr.value(), attribute = attr)
             elif attr.attrType() == "int":
-                field = fields.IntField(attr.name(), value = attr.value())
+                field = fields.IntField(attr.name(), value = attr.value(), attribute = attr)
             elif attr.attrType() == "float":
-                field = fields.IntField(attr.name(), value = attr.value())
+                field = fields.IntField(attr.name(), value = attr.value(), attribute = attr)
+            
+            #add the field to the layout
             self._setupAttrsLayout.addWidget(field)
-        
+        #add stretch to push all item up
         self._setupAttrsLayout.addStretch()
             
             
     def clearLayout(self, layout):
+        '''
+        Clears a layout of any items with in the layout
+        '''
         for i in reversed(range(layout.count())):
             item = layout.itemAt(i)
     
@@ -457,12 +483,23 @@ class CentralTabWidget(QtGui.QTabWidget):
     
             # remove the item from layout
             layout.removeItem(item)  
-        
+            
+    def getAttrFieldValues(self):
+        for i in reversed(range(self._setupAttrsLayout.count())):
+            item = self._setupAttrsLayout.itemAt(i)
+            if isinstance(item, QtGui.QWidgetItem):
+                print item.widget().value()
 
 
 class JapetoWindow(QtGui.QMainWindow):
     def __init__(self, graph, parent = None):
         super(JapetoWindow, self).__init__(parent)
+        #get style sheet
+        f = open(os.path.join(os.path.dirname(__file__),'japeto_styleSheet.qss'), 'r')
+        styleData = f.read()
+        self.setStyleSheet(styleData)
+        f.close()
+        
         self.setWindowTitle('Japeto Rig Build UI')
         tabWidget = CentralTabWidget(graph)
         self.setCentralWidget(tabWidget)
