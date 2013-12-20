@@ -394,12 +394,14 @@ class CentralTabWidget(QtGui.QTabWidget):
         
     def _runSetupButton(self):
         for rootNode in self._model._rootNode.children():
-            print 'root : %s' % rootNode.name()
-            print '%s children : %s' % (rootNode.name(), rootNode.children() )
+            rootNode.runSetupRig()
             for node in rootNode.descendants():
-                print node.name()
+                node.runSetupRig()
                 
     def _runSelectedSetupButton(self):
+        '''
+        Runs the selected item in the setup view
+        '''
         index = self._setupTreeView.currentIndex()
         if not index.isValid():
             return None
@@ -409,7 +411,11 @@ class CentralTabWidget(QtGui.QTabWidget):
         if node:
             attrDict = dict()
             for attr in node.attributes():
-                attrDict[attr.name()] = attr.value()
+                if attr.name() == 'fingers':
+                    attrDict[attr.name()] = eval(attr.value())
+                    print attrDict[attr.name()]
+                else:
+                    attrDict[attr.name()] = attr.value()
                 
             node.initialize(**attrDict)
             node.runSetupRig()

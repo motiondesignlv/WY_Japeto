@@ -37,8 +37,7 @@ class Arm(limb.Limb):
 		self.addArgument('tipJoint', '%s_tipArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
 		
 	def setupRig(self):
-		if super(Arm,self).setupRig():
-			return True
+		super(Arm,self).setupRig()
 		
 		self.skinClusterJnts.remove(self.endJoint)
 		self.skinClusterJnts.insert(0,self.clavicleJoint)
@@ -81,8 +80,7 @@ class Arm(limb.Limb):
 		
 		
 	def rig(self):
-		if super(Arm,self).rig():
-			return True
+		super(Arm,self).rig()
 		
 		#create pelvis control
 		clavicleCtrl = control.create(

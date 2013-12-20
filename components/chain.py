@@ -155,7 +155,7 @@ class Chain(component.Component):
         step   = 1.0 / (self.numJoints - 1)
         parent = self.startJoint
         for i in range( 1, self.numJoints - 1 ):
-            j = joint.create( name= '%s_%s_%s_%s_%s' % (self._getSide(),
+            j = joint.create( name= '%s_%s_%s_%s_%s' % (self._getPrefix(),
                     common.getDescription(self.name()),
                     common.padNumber(i,3),
                     common.SKINCLUSTER,
