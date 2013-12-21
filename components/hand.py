@@ -125,6 +125,8 @@ class Hand(component.Component):
             self.__fingers[obj].postSetupRig()
 
     def rig(self):
+        if not self._puppetNode:
+            self.runSetupRig()
         #TODO: Place build code for fingers here
         for obj in self.fingers:
             self.__fingers[obj].rig()

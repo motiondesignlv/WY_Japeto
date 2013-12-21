@@ -62,7 +62,7 @@ class Chain(component.Component):
     def setupRig(self):
         super(Chain, self).setupRig()
         
-        self.skinClusterJnts.extend([self.startJoint, self.endJoint])
+        self.skinClusterJnts = [self.startJoint, self.endJoint]
                 
         if self._getSide() == common.LEFT:
             positions = (
@@ -95,8 +95,10 @@ class Chain(component.Component):
                     positions[0][1],
                     positions[0][2] + 5]
         #end elif
-
+        print self.skinClusterJnts
+        print positions
         for i,jnt in enumerate(self.skinClusterJnts):
+            
             cmds.joint(n = jnt,position = positions[i])
             
             if i == 0:

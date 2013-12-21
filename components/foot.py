@@ -91,9 +91,9 @@ class Foot(component.Component):
     def setupRig(self):
         super(Foot, self).setupRig()
 
-        self.skinClusterJnts.extend([self.ankleJoint,
-                self.ballJoint,
-                self.toeJoint])
+        self.skinClusterJnts = [ self.ankleJoint,
+                                 self.ballJoint,
+                                 self.toeJoint ]
 
         if self._getSide() == common.LEFT:
             positions = (
@@ -207,6 +207,8 @@ class Foot(component.Component):
         super(Foot, self).postSetupRig()
 
     def rig(self):
+        if not self._puppetNode:
+            self.runSetupRig()
         cmds.parent([self.__bankInPivot,
                 self.__bankOutPivot,
                 self.__heelPivot],

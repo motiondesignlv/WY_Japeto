@@ -127,18 +127,18 @@ class Rig(ml_graph.MlGraph):
         @type side: *str*  
         '''
         if side == common.LEFT:
-            for component in self.components:
-                if self.components[component]._getSide() == side:
-                    guides = self.components[component].getGuides()
+            for node in self.nodes():
+                if node._getSide() == side:
+                    guides = node.getGuides()
 
                     for guide in guides:
                         description = common.getDescription(guide)
                         joint.mirror(guide, '%s_%s' % (common.LEFT, description), 
                                      '%s_%s' % (common.RIGHT, description))
         elif side == common.RIGHT:
-            for component in self.components:
-                if self.components[component]._getSide() == side:
-                    guides = self.components[component].getGuides()
+            for node in self.nodes():
+                if node._getSide() == side:
+                    guides = node.getGuides()
 
                     for guide in guides:
                         description = common.getDescription(guide)
@@ -252,18 +252,18 @@ class Rig(ml_graph.MlGraph):
         '''
         build rig hierarchy and attach components
         '''
-        for component in self.components:
-            cmds.parent(self.components[component].controlsGrp, self._trsCtrl)
-            cmds.parent(self.components[component].jointsGrp, self.jointsGrp)
+        for node in self.nodes():
+            cmds.parent(node.controlsGrp, self._trsCtrl)
+            cmds.parent(node.jointsGrp, self.jointsGrp)
             for attr in ['displayJnts', 'jointVis']:
                 fullAttrPath  = '%s.%s' % (self.name(), attr)
-                componentAttr = '%s.%s' % (self.components[component].rigGrp, attr)
+                componentAttr = '%s.%s' % (node.rigGrp, attr)
                 if cmds.objExists(componentAttr):
                     if not cmds.objExists(fullAttrPath):
-                        attribute.copy(attr, self.components[component].rigGrp, self.name(), reverseConnect=False)
+                        attribute.copy(attr, node.rigGrp, self.name(), reverseConnect=False)
                     #end if
                     
-                    connectedAttrs = attribute.getConnections(attr, self.components[component].rigGrp, incoming = False)
+                    connectedAttrs = attribute.getConnections(attr, node.rigGrp, incoming = False)
                     if connectedAttrs:
                         for connectedAttr in connectedAttrs:
                             cmds.disconnectAttr(componentAttr, connectedAttr)
@@ -272,7 +272,7 @@ class Rig(ml_graph.MlGraph):
                     #end if
                 #end if
             #end for
-            cmds.delete(self.components[component].rigGrp)
+            cmds.delete(node.rigGrp)
         #end loop
 
 

@@ -69,13 +69,13 @@ class Component(ml_node.MlNode):
         super(Component, self).__init__(name)
         self.setName(name)
         
-        self.skinClusterJnts = list()
-        self.joints = dict()
-        self.controls = dict()
-        self.hookRoot = list()
-        self.hookPoint = list()
-        self._buildArguments = dict()
-        self._puppetNode = str()
+        self.skinClusterJnts  = list()
+        self.joints           = dict()
+        self.controls         = dict()
+        self.hookRoot         = list()
+        self.hookPoint        = list()
+        self.setupConstraints = list()
+        self._buildArguments  = dict()
 
     #----------------------------------
     #GETTERS
@@ -135,6 +135,7 @@ class Component(ml_node.MlNode):
     #Initialize
     @overloadArguments
     def initialize(self, **kwargs):
+        self._puppetNode = str()
         #declare group names of variables
         self.setupRigGrp = '%s_setup_%s' % (self.name(), common.GROUP)
         self.skeletonGrp = '%s_skeleton_%s' %(self.name(),common.GROUP)
@@ -143,7 +144,6 @@ class Component(ml_node.MlNode):
         self.rigGrp   = '%s_rig_%s' % (self.name(), common.GROUP)
         self.jointsGrp   = '%s_joints_%s' % (self.name(), common.GROUP)
         self.controlsGrp   = '%s_controls_%s' % (self.name(), common.GROUP)
-        self.setupConstraints = list()
         self.__side = common.getSide(self.name()) #checks if there is a side based off name template
         self.__location = common.getLocation(self.name()) #checks if there is a location based off name template
         
@@ -155,6 +155,7 @@ class Component(ml_node.MlNode):
     #SETUP FUNCTIONS
     #----------------------------------    
     def setupRig(self):
+        self.setupConstraints = []
         #makes component a puppet node
         self.puppetNode = puppet.create(self.name())
         
@@ -236,6 +237,8 @@ class Component(ml_node.MlNode):
     #BUILD FUNCTIONS
     #----------------------------------		    
     def rig(self):
+        if not self._puppetNode:
+            self.runSetupRig()
         '''
         this is the build section for the rig.
         '''

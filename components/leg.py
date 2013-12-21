@@ -70,6 +70,14 @@ class Leg(limb.Limb):
                 [self.position[0] - 2, self.position[1] + 7, self.position[2] +1],
                 [self.position[0] - 2, self.position[1] + 2, self.position[2]]
                 )
+        else:
+            positions = (
+                [self.position[0], self.position[1] + 14, self.position[2]],
+                [self.position[0], self.position[1] + 12, self.position[2]],
+                [self.position[0], self.position[1] + 7, self.position[2] +1],
+                [self.position[0], self.position[1] + 2, self.position[2]]
+                )
+
 
         #create pelvis joint and parent leg under pelvis
         joint.create(name = self.pelvisJoint,

@@ -57,29 +57,28 @@ class Limb(component.Component):
         super(Limb,self).initialize(**kwargs)
 
         self.addArgument('startJoint',
-                '%s_upLimb_%s_%s' % (self._getPrefix(),common. SKINCLUSTER, common.JOINT))
+                '%s_upLimb_%s_%s' % (self._getPrefix(),common.SKINCLUSTER, common.JOINT))
 
         self.addArgument('midJoint',
-                '%s_loLimb_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
+                '%s_loLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
 
         self.addArgument('tipJoint',
-                '%s_tipLimb_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
+                '%s_tipLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
 
         self.addArgument('endJoint',
-                '%s_endLimb_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
+                '%s_endLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
 
         self.addArgument('numSegments', 1)
         self.addArgument('stretch', True)
 
 
     def setupRig(self):
-        if super(Limb,self).setupRig():
-            return True
+        super(Limb,self).setupRig()
 
-        self.skinClusterJnts.extend([self.startJoint,
-                self.midJoint,
-                self.tipJoint,
-                self.endJoint])
+        self.skinClusterJnts = [ self.startJoint,
+                                 self.midJoint,
+                                 self.tipJoint,
+                                 self.endJoint ]
 
         if self._getSide() == common.LEFT:
             positions = (
@@ -270,6 +269,8 @@ class Limb(component.Component):
 
 
     def rig(self):
+        if not self._puppetNode:
+            self.runSetupRig()
         if cmds.objExists('%s.master_guide' % self.setupRigGrp):
             self.masterGuide = attribute.getConnections('master_guide', self.setupRigGrp)[0].split('.')[0]
 
@@ -420,7 +421,7 @@ class Limb(component.Component):
         #end if
 
         if self.loTwistJnts:
-            twistJnt = common.duplicate(self.midJoint, name = self.midJoint.replace('%s' % common.SKINCLUSTER, 'loTwist_%s' % common.SKINCLUSTER), parent = self.midJoint)
+            twistJnt = common.duplicate(self.midJoint,name = self.midJoint.replace('%s' % common.SKINCLUSTER, 'loTwist_%s' % common.SKINCLUSTER), parent = self.midJoint)
             constraint = cmds.aimConstraint(ikfkDict['blendJoints'][2],twistJnt,aimVector =  aimVector, upVector  = upVector,  worldUpType ="objectrotation", worldUpVector = upVector, worldUpObject = self.tipJoint)
             cmds.setAttr('%s.v' % twistJnt, 0)
         #end if
@@ -437,14 +438,14 @@ class Limb(component.Component):
         #Add to class variables
         #------------------------
         #assign joints to the joints list
-        self.joints.update({'ik' : ikfkDict['ikJoints'], 'fk' : ikfkDict['fkJoints'], 'blend' : ikfkDict['blendJoints'], 'target' : ikfkDict['targetJnts']})
+        self.joints = {'ik' : ikfkDict['ikJoints'], 'fk' : ikfkDict['fkJoints'], 'blend' : ikfkDict['blendJoints'], 'target' : ikfkDict['targetJnts']}
         #assign controls to the controls list
         #assign fkCtrls into the controls dictionary 
-        self.controls.update({'ik' : [ikCtrl, pvCtrl],'fk' : fkCtrls })
+        self.controls = {'ik' : [ikCtrl, pvCtrl],'fk' : fkCtrls }
         self.ikfkGroup = ikfkDict['group']
         #assign hooks
-        self.hookRoot.extend([ikfkDict['ikJoints'][0], common.getParent(fkCtrls[0]), ikCtrl, ikfkDict['targetJnts'][-1]])
-        self.hookPoint.extend([ikfkDict['blendJoints'][-1]])
+        self.hookRoot = [ikfkDict['ikJoints'][0], common.getParent(fkCtrls[0]), ikCtrl, ikfkDict['targetJnts'][-1]]
+        self.hookPoint = [ikfkDict['blendJoints'][-1]]
         #add no twist joint to the skincluster list
         self.skinClusterJnts.append(noTwistJnt)
 
