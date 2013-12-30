@@ -198,7 +198,6 @@ class Rig(ml_graph.MlGraph):
             if isinstance (obj, component.Component):
                 node = self.addNode(obj, parent, index)
                 node.initialize(**kwargs)
-                print name
                 self.components[name] = node
         elif inspect.ismethod(obj) or inspect.isfunction(obj):
             node = ml_node.MlNode(obj.__func__.__name__)
@@ -214,6 +213,11 @@ class Rig(ml_graph.MlGraph):
             for node in self.nodes():
                 if not isinstance(node, component.Component):
                     continue
+                attrDict = dict()
+                for attr in node.attributes():
+                    attrDict[attr.name()] = attr.value()
+                    
+                node.initialize(**attrDict)
                 node.runSetupRig()
                 
     def run(self):
@@ -287,6 +291,7 @@ class Rig(ml_graph.MlGraph):
         '''
         #if there is no rig node in the scene, we will run the setup first
         if not cmds.ls(type = "rig"):
+            self.preBuild()
             self.run()
 
         for node in self.nodes():
@@ -332,6 +337,7 @@ class Rig(ml_graph.MlGraph):
 
         if self.controls:
             for ctrl in self.controls:
+                print ctrl, tagControlsAttr.split('.')[1]
                 attribute.connect(tagControlsAttr, '%s.%s' % (ctrl, tagControlsAttr.split('.')[1]))
             #end loop
         #end if

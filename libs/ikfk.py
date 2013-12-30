@@ -558,7 +558,7 @@ class IkFkFoot(IkFk):
         
         #create foot roll groups
         parent = self.group
-        for grp in footRollGrpList:
+        for grp in set(footRollGrpList):
             #store each group in the footRollDict
             self.__footRollGrpDict[grp] = cmds.createNode('transform', n = '%s_%s' % (self.name, grp))
             grpFootRollAttr = attribute.addAttr(self.__footRollGrpDict[grp] , 'footRolls', attrType = 'message')

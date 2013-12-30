@@ -221,20 +221,21 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
             # add all the items into the stream
             stream << variant
         
-        print "Encoding drag with: ", "application/x-MlNodes"
+        #print "Encoding drag with: ", "application/x-MlNodes" < --- for testing
         mimeData.setData("application/x-MlNodes", encodedData)
         return mimeData
 
     def dropMimeData(self, data, action, row, column, parent):
     
         if action == QtCore.Qt.MoveAction:
-            print "Moving"
+            #print "Moving" <-- for testing 
+            pass
         
         # Where are we inserting?
         beginRow = 0
         if row != -1:
-            print """ROW IS NOT -1, meaning inserting inbetween,
-                    above or below an existing node"""
+            #print """ROW IS NOT -1, meaning inserting inbetween,
+            #       above or below an existing node""" <-- for testing
             beginRow = row
         elif parent.isValid():
             print """PARENT IS VALID, inserting ONTO something since row was not -1, 
@@ -465,6 +466,12 @@ class CentralTabWidget(QtGui.QTabWidget):
         
         mainMenu.popup(QtGui.QCursor.pos())
 
+    def _initializeNode(self, node):
+        attrDict = dict()
+        for attr in node.attributes():
+            attrDict[attr.name()] = attr.value()
+            
+        node.initialize(**attrDict)
 
     def _executeSelectedNode(self):
         '''
@@ -479,12 +486,15 @@ class CentralTabWidget(QtGui.QTabWidget):
         for rootNode in self._model._rootNode.children():
             rootNode.runSetupRig()
             for node in rootNode.descendants():
+                self._initializeNode(node)
                 node.runSetupRig()
                 
     def _runSetupFromSelected(self):
         startNode = self._selectedNode()
+        self._initializeNode(startNode)
         startNode.runSetupRig()
         for node in startNode.descendants():
+            self._initializeNode(node)
             node.runSetupRig()
                     
     def _runSelectedSetup(self):
@@ -494,26 +504,23 @@ class CentralTabWidget(QtGui.QTabWidget):
         node = self._selectedNode()
         
         if node:
-            attrDict = dict()
-            for attr in node.attributes():
-                if attr.name() == 'fingers':
-                    attrDict[attr.name()] = eval(attr.value())
-                else:
-                    attrDict[attr.name()] = attr.value()
-                
-            node.initialize(**attrDict)
+            self._initializeNode(node)
             node.runSetupRig()
             
     def _runBuild(self):
         for rootNode in self._model._rootNode.children():
+            self._initializeNode(rootNode)
             rootNode.runRig()
             for node in rootNode.descendants():
+                self._initializeNode(node)
                 node.runRig()
                 
     def _runBuildFromSelected(self):
         startNode = self._selectedNode()
+        self._initializeNode(startNode)
         startNode.runRig()
         for node in startNode.descendants():
+            self._initializeNode(node)
             node.runRig()
                     
     def _runSelectedBuild(self):
@@ -523,14 +530,7 @@ class CentralTabWidget(QtGui.QTabWidget):
         node = self._selectedNode()
         
         if node:
-            attrDict = dict()
-            for attr in node.attributes():
-                if attr.name() == 'fingers':
-                    attrDict[attr.name()] = eval(attr.value())
-                else:
-                    attrDict[attr.name()] = attr.value()
-                
-            node.initialize(**attrDict)
+            self._initializeNode(node)
             node.runRig()
             
     def _addComponentToGraph(self):

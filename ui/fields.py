@@ -120,6 +120,9 @@ class IntField(BaseField):
         super(IntField, self).setValue(int(value))
         
         return super(IntField,self).value()
+
+
+
                         
 class VectorField(BaseField):
     def __init__(self, *args, **kwargs):

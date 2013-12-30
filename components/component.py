@@ -76,6 +76,7 @@ class Component(ml_node.MlNode):
         self.hookPoint        = list()
         self.setupConstraints = list()
         self._buildArguments  = dict()
+        self._puppetNode      = str()
 
     #----------------------------------
     #GETTERS
@@ -135,7 +136,6 @@ class Component(ml_node.MlNode):
     #Initialize
     @overloadArguments
     def initialize(self, **kwargs):
-        self._puppetNode = str()
         #declare group names of variables
         self.setupRigGrp = '%s_setup_%s' % (self.name(), common.GROUP)
         self.skeletonGrp = '%s_skeleton_%s' %(self.name(),common.GROUP)
@@ -240,11 +240,13 @@ class Component(ml_node.MlNode):
     #BUILD FUNCTIONS
     #----------------------------------		    
     def rig(self):
-        if not self._puppetNode:
-            self.runSetupRig()
         '''
         this is the build section for the rig.
         '''
+        if not self._puppetNode:
+            self.runSetupRig()
+        
+        
         #resolve build arguments
         self.puppetNode.restoreArgs(self)
         
