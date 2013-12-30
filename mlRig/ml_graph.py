@@ -8,8 +8,8 @@ class MlGraph(object):
         '''
         This constructor for the class sets up the base graph attributes.
         
-        @param name: Name of the graph
-        @type name: *str*
+        :param name: Name of the graph
+        :type name: *str*
         '''
         super(MlGraph,self).__init__()
         
@@ -46,7 +46,6 @@ class MlGraph(object):
     def removeNode(self):
         pass
         
-    
     def nodeCount(self):
         count = len(self.__rootNodes)
         

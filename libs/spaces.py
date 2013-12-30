@@ -21,14 +21,14 @@ def create( spaceNode, spaceAttrNode = None , parent=None ):
     '''
     Create space switcher
 
-    @param spaceNode: Transform node to be constrained.
-    @type spaceNode: *str*
-    @param spaceAttrNode: Node where the 'space' attribute is going to be created.
-    @type spaceAttrNode: *str*
-    @param parent: Parent for the spaces group.
-    @type parent: *str*
-    @return: Spaces group
-    @rtype: *str*
+    :param spaceNode: Transform node to be constrained.
+    :type spaceNode: *str*
+    :param spaceAttrNode: Node where the 'space' attribute is going to be created.
+    :type spaceAttrNode: *str*
+    :param parent: Parent for the spaces group.
+    :type parent: *str*
+    :return: Spaces group
+    :rtype: *str*
     '''
     # Load decompose matrix plugin
 
@@ -88,7 +88,7 @@ def create( spaceNode, spaceAttrNode = None , parent=None ):
 
 class Spaces( object ):
     '''
-    @cvar spaceNode:  :
+    cvar spaceNode:  :
     @cvar spaceGrp:  :
     @cvar spaceAttrNode:  :
     @cvar spaceConstraint:

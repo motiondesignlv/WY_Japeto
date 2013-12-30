@@ -40,20 +40,20 @@ class Chain(component.Component):
     def initialize(self,**kwargs):
         super(Chain,self).initialize(**kwargs)
         
+        self.addArgument('numJoints', 2, 2)
+        self.addArgument('stretch', True, 3)
+        
         self.addArgument('startJoint',
                 '%s_start%s_%s_%s' % (self._getPrefix(),
                 common.getDescription(self.name()),
                 common.SKINCLUSTER,
-                common.JOINT))
+                common.JOINT), 5)
 
         self.addArgument('endJoint',
                 '%s_end%s_%s_%s' % (self._getPrefix(),
                 common.getDescription(self.name()),
                 common.SKINCLUSTER,
-                common.JOINT))
-
-        self.addArgument('numJoints', 5)
-        self.addArgument('stretch', True)
+                common.JOINT), 6)
     
     @property
     def _ikfkChain(self):

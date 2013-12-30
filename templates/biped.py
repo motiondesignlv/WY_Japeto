@@ -81,18 +81,22 @@ class Biped(rig.Rig):
         '''
         super(Biped,self).initialize() #<---calling the parent class
 
+        #------------------------------------------------
+        #BUILD CHILDREN
+        #------------------------------------------------
         #center
         self.register('Spine',
                       spine.Spine('c_spine'),
+                      parent = 'build',
                       position = [0,15,0],
-                      numJoints = 4, 
+                      numJoints = 4,
                       numControls = 2)
         
         self.register('Neck',
                       neck.Neck('c_neck'),
                       parent = 'c_spine',
                       position = [0,27,0],
-                      numJoints = 4, 
+                      numJoints = 4,
                       numControls = 2,
                       parentHook = 'c_endspine_sc_jnt')
 
@@ -146,6 +150,12 @@ class Biped(rig.Rig):
                       parent = 'r_arm',
                       position = [0,25,0],
                       parentHook = 'r_tipArm_sc_jnt')
+        
+        #------------------------------------------------
+        #POST BUILD CHILDREN
+        #------------------------------------------------
+        self.register('Hooks', self.connectHooks, 'postBuild')
+        self.register('Spaces', self.createSpaces, 'postBuild')
 
     def mirror(self, side = common.LEFT):
         '''
@@ -320,21 +330,13 @@ class Biped(rig.Rig):
                                destination = rootCtrl,connect = True,
                                reverseConnect = False)
         
-        '''
-        Create some spaces
-        @warning: this will change 
-        
-        @todo: need to write a module for this
-        '''
-        #cmds.createNode('transform', n = )
-        #cmds.parentConstraint(common.getParent(self.components['Neck'].controls['ik'][-1]))
 
     def postBuild(self):
         super(Biped, self).postBuild()
         '''
         Clean up the rig
         
-        @todo: Figure out where things will go and scaling
+        .. todo: Figure out where things will go and scaling
         '''
         for ctrl in [self.rootCtrl, self.hipCtrl]:
             attribute.lockAndHide(['v','s'], ctrl)
@@ -346,8 +348,8 @@ class Biped(rig.Rig):
         '''
         connectHooks takes care of connecting hooks. Connects the rig together
         
-        @todo: Figure out where things will go and scaling.
-        @todo: Make this more procedural
+        .. todo: Figure out where things will go and scaling.
+        .. todo: Make this more procedural
         '''
         #delete constraints that are no longer needed
         cmds.delete(cmds.listRelatives(self.components['Left Foot'].hookRoot[-1],c = True, type = 'constraint'))
@@ -388,6 +390,14 @@ class Biped(rig.Rig):
         cmds.parentConstraint(self.components['Right Foot'].hookPoint[0], self.components['Right Leg'].hookRoot[-1], mo = True)
         
     def createSpaces(self):
+        '''
+        Create some spaces
+        .. warning: this will change 
+        
+        .. todo: need create different ways to interact and
+                 create spaces dynamically in setup process. 
+        :see: japeto.libs.spaces.Spaces
+        '''
         spineEndIk      = self.components['Spine'].controls['ik'][-1]
         spineStartIk    = self.components['Spine'].controls['ik'][0]
         neckIk          = self.components['Neck'].controls['ik'][-1]

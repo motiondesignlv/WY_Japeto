@@ -2,7 +2,7 @@
 This is the base component for all the rig components
 
 :author: Walter Yoder
-:contact: walteryoder@gmail.com
+:contact: walteryoder:gmail.com
 :date: October 2012
 '''
 
@@ -34,11 +34,11 @@ def overloadArguments (func):
     '''
     Overload default arguments decorator
 
-    @param func: Function to decorate
-    @type func: *Function*
+    :param func: Function to decorate
+    :type func: *Function*
 
-    @return: Return function
-    @rtype: *Function*
+    :return: Return function
+    :rtype: *Function*
     '''
     # Define wrapper
     @wraps (func)
@@ -147,9 +147,9 @@ class Component(ml_node.MlNode):
         self.__side = common.getSide(self.name()) #checks if there is a side based off name template
         self.__location = common.getLocation(self.name()) #checks if there is a location based off name template
         
-        self.addArgument('position', [0,0,0])
-        self.addArgument('controlScale', 1)
-        self.addArgument('parentHook', str())
+        self.addArgument('position', [0,0,0], 0)
+        self.addArgument('controlScale', 1, 1)
+        self.addArgument('parentHook', str(), 2)
 
     #----------------------------------
     #SETUP FUNCTIONS
@@ -183,7 +183,7 @@ class Component(ml_node.MlNode):
         clean up section for the setup rig
         '''
         #create attributes and lock/hide attrs on top nodes as well as masterGuide control
-        displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')	
+        displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')
         attribute.lockAndHide(['r','t','s','v'], [self.setupRigGrp, self.skeletonGrp,self.guidesGrp, common.getParent(self.masterGuide)])
         attribute.lockAndHide('v', self.masterGuide)
         
@@ -201,7 +201,7 @@ class Component(ml_node.MlNode):
         for jnt in skeletonJnts:
             if cmds.objExists(jnt):
                 attribute.connect(displayAttr , '%s.displayLocalAxis' % jnt)
-                common.setDisplayType(jnt, 'reference')	
+                common.setDisplayType(jnt, 'reference')
 
         #parent all constraints to guides group
         if self.setupConstraints:
@@ -223,7 +223,10 @@ class Component(ml_node.MlNode):
                 cmds.parent(displayLine, self.guidesGrp)
 
         #set build args on puppet node
-        self.puppetNode.storeArgs(**self.buildArguments)
+        attrs = dict()
+        for attr in self.attributes():
+            attrs[attr.name()] = attr.value()
+        self.puppetNode.storeArgs(**attrs)
         
     def runSetupRig(self):
         '''
@@ -263,13 +266,14 @@ class Component(ml_node.MlNode):
                     if parent[0] == self.skeletonGrp:
                         cmds.parent(jnt, self.jointsGrp)
         
+        #delete the setup rig group
         cmds.delete(self.setupRigGrp)
         
         for jnt in self.skinClusterJnts:
             if cmds.objExists(jnt):
                 #turn display axis off
                 cmds.setAttr('%s.displayLocalAxis' % jnt, 0)
-                #take the rotations of the joint and make the orientaion
+                #take the rotations of the joint and make the orientation
                 joint.rotateToOrient(jnt)
 
 
@@ -306,23 +310,22 @@ class Component(ml_node.MlNode):
         self.rig()
         self.postRig()
 
-
     #-------------------------------
     #utility functions
     #-------------------------------
     def setupCtrl(self, name, obj, color = None):
         '''
-        @param name: The name of control created
-        @type name: *str*	
+        :param name: The name of control created
+        :type name: *str*	
         
-        @param obj: object to be controled
-        @type obj: *str*
+        :param obj: object to be controled
+        :type obj: str
         
-        @param color: object to be controled
-        @type color: *str*
+        :param color: object to be controled
+        :type color: str
         
-        @return: Guide control
-        @rtype: *str*	
+        :return: Guide control
+        :rtype: str	
         '''
         #create hierarchy
         guideZero = cmds.createNode('transform', n = '%s_%s' % (name, common.ZERO))
@@ -358,6 +361,9 @@ class Component(ml_node.MlNode):
 
 
     def getGuides(self):
+        '''
+        Grabs the guides from the guides group created from the setup process
+        '''
         guides = list()
         guideAttrs = attribute.getConnections('tag_guides', self.setupRigGrp)
         if guideAttrs:
@@ -368,6 +374,10 @@ class Component(ml_node.MlNode):
 
 
     def getSkeletonJnts(self):
+        '''
+        This grabs all teh skeleton joints from the skeleton group in the
+        setup function
+        '''
         skeletonJnts = list()
         skeletonRels = cmds.listRelatives(self.skeletonGrp, ad = True, type = 'joint')
         
@@ -380,14 +390,24 @@ class Component(ml_node.MlNode):
         return skeletonJnts
         
 
-    def addArgument(self, name, value):
+    def addArgument(self, name, value, index = -1):
         '''
         this is how it's done
         '''
         #adds key and value to __dict__ attribute, which is a dictionary.
         vars(self) [name] = value
-        self.addAttribute(name, value)
-
-
-    def _getBuildAttrs(self):
-        pass
+        self.addAttribute(name, value, index)
+        
+    def removeArgument(self, name):
+        '''
+        This removes the attribute but does not remove the class attibute
+        since the build still needs certain attributes to run from parent
+        classes. This will ensure that the builds are stable, but attributes
+        shown in the ui can be added and removed.
+        
+        :param name: Name of the attribute you wish to remove
+        :type name: str
+        '''
+        #del(vars(self)[name])
+        attr = self.getAttributeByName(name)
+        self.removeAttribute(attr)

@@ -32,7 +32,7 @@ class Spine(chain.Chain):
     def initialize(self,**kwargs):
         super(Spine,self).initialize(**kwargs)
         
-        self.addArgument('numControls', 2)
+        self.addArgument('numControls', 2, 4)
         
         #TODO: Place builds arguments specific to the spine
 

@@ -26,6 +26,7 @@ from japeto.libs import fileIO
 #import components
 from japeto.components import component
 from japeto.mlRig import ml_graph
+from japeto.mlRig import ml_node
 
 fileIO.loadPlugin(os.path.join(PLUGINDIR, 'rigNode.py'))
 
@@ -38,11 +39,11 @@ class Rig(ml_graph.MlGraph):
         Get controls based on whether or not the given asset has
         a tag_controls attribute.
         
-        @param asset: Asset you want to get controls from
-        @type asset: *str*
+        :param asset: Asset you want to get controls from
+        :type asset: str
         
-        @return: Returns controls on the given asset
-        @rtype: *list* or *None*
+        :return: Returns controls on the given asset
+        :rtype: list | None
         '''
         controlAttr = '%s.tag_controls' % asset
         
@@ -57,9 +58,9 @@ class Rig(ml_graph.MlGraph):
         '''
         Save the controls for the asset
         
-        @param controls: controls that will be written out 
+        :param controls: controls that will be written out 
                         if they're nurbsCurves
-        @type controls: *list* or *str* or *tuple*
+        :type controls: list | str | tuple
         '''
         #declare list that will be used to gather controls to save
         savedControls = list()
@@ -114,20 +115,26 @@ class Rig(ml_graph.MlGraph):
         return self.__registeredItems
 
     def initialize(self):
+        self.register('New Scene', self.newScene)
+        self.register('Pre-Build', self.preBuild)
         self.register('Build', self.build)
+        self.register('Post-Build', self.postBuild)
+        #self.register(name, obj, parent)
         return True
 
     def mirror(self, side = common.LEFT):
         '''
         This will mirror across from side given to the opposite side
         
-        @see: japeto.libs.joint.mirror()
+        :see: japeto.libs.joint.mirror
         
-        @param side: Side to use to mirror from
-        @type side: *str*  
+        :param side: Side to use to mirror from
+        :type side: str
         '''
         if side == common.LEFT:
             for node in self.nodes():
+                if not isinstance(node, component.Component):
+                    continue
                 if node._getSide() == side:
                     guides = node.getGuides()
 
@@ -137,6 +144,8 @@ class Rig(ml_graph.MlGraph):
                                      '%s_%s' % (common.RIGHT, description))
         elif side == common.RIGHT:
             for node in self.nodes():
+                if not isinstance(node, component.Component):
+                    continue
                 if node._getSide() == side:
                     guides = node.getGuides()
 
@@ -146,33 +155,56 @@ class Rig(ml_graph.MlGraph):
                                      '%s_%s' % (common.RIGHT, description),
                                      '%s_%s' % (common.LEFT, description))
 
-    def register(self, name, obj, parent = str(), **kwargs):
+    def register(self, name, obj, parent = str(), after = None, before = None, **kwargs):
         '''
         Register build components to the user interface
-        @example:
+        :example:
             >>> register("Left Arm", limb.arm(), position = [20,10,10])
             
-        @param name: Nice name for user interface
-        @type name: *str*
+        :param name: Nice name for user interface
+        :type name: str
 
-        @param object: python object to be called when run() is called
-        @type object: *method* or *function*
+        :param object: python object to be called when run() is called
+        :type object: method | function
         '''
+        #construct variables
+        index = None
+        searchNode = None
+        increment = 0
+        parent = self.getNodeByName(parent)
+        
+        #check if where the object we're registering is 
+        #before or after the given node
+        if after:
+            searchNode = after
+            increment = 1
+        elif before:
+            searchNode = before
+            increment = -1
+        
+        #set the index
+        if parent:
+            index = parent.childCount()
+            #if there is a searchNode, place the object before or after
+            #the given node.
+            if searchNode:
+                for node in parent.nodes():
+                    if searchNode == node.name():
+                        index = node.index() + increment
+                        break
+
         if not inspect.ismethod (obj) and not inspect.isfunction (obj):
             # Check if object is a component
             if isinstance (obj, component.Component):
-                parent = self.getNodeByName(parent)
-                node = self.addNode(obj, parent)
+                node = self.addNode(obj, parent, index)
                 node.initialize(**kwargs)
+                print name
                 self.components[name] = node
-                '''
-                #self.components[name].initialize(**kwargs)
-                #self.__registeredItems.append(name)
-        
-        elif inspect.isfunction(obj) or inspect.ismethod (obj):
-            self.functions[name] = (obj,kwargs)
-            self.__registeredItems.append(name)
-        '''
+        elif inspect.ismethod(obj) or inspect.isfunction(obj):
+            node = ml_node.MlNode(obj.__func__.__name__)
+            self.addNode(node, parent, index)
+            #node.setParent(parent)
+            node.execute = obj
 
     def setup(self):
         '''
@@ -180,15 +212,10 @@ class Rig(ml_graph.MlGraph):
         '''
         if self.nodes():
             for node in self.nodes():
+                if not isinstance(node, component.Component):
+                    continue
                 node.runSetupRig()
                 
-        '''
-        if self.components:
-            for component in self.components:
-                self.components[component].runSetupRig()
-            #end loop
-        #end if
-        '''
     def run(self):
         '''
         build each individual component, or function in the order it was
@@ -198,6 +225,8 @@ class Rig(ml_graph.MlGraph):
         #loops through components and runs their runRig function
         if self.nodes():
             for node in self.nodes():
+                if not isinstance(node, component.Component):
+                    continue
                 node.runRig()
                 if node.controls:
                     for ctrls in node.controls.values():
@@ -221,6 +250,10 @@ class Rig(ml_graph.MlGraph):
         '''
         sets up the hierachry
         '''
+        #if there is no puppet node in the scene, we will run the setup first
+        if not cmds.ls(type = "puppet"):
+            self.setup()
+            
         #create hierachy
         cmds.createNode('rig', n = self.rigGrp)
         cmds.createNode('transform', n = self.noXformGrp)
@@ -252,7 +285,17 @@ class Rig(ml_graph.MlGraph):
         '''
         build rig hierarchy and attach components
         '''
+        #if there is no rig node in the scene, we will run the setup first
+        if not cmds.ls(type = "rig"):
+            self.run()
+
         for node in self.nodes():
+            if not isinstance(node, component.Component):
+                    continue
+                
+            if not common.isValid(node.rigGrp):
+                node.runRig()
+                
             cmds.parent(node.controlsGrp, self._trsCtrl)
             cmds.parent(node.jointsGrp, self.jointsGrp)
             for attr in ['displayJnts', 'jointVis']:
@@ -280,7 +323,7 @@ class Rig(ml_graph.MlGraph):
         '''
         clean up rig asset
         
-        @todo: Finish complete cleanup of the rig
+        .. todo: Finish complete cleanup of the rig
         '''
         #create nodes on the rigGrp node
         tagControlsAttr = control.tag_as_control(self.rigGrp)
@@ -313,13 +356,13 @@ class Rig(ml_graph.MlGraph):
         '''
         Check to see if the given name is a key in self.functions ordereddict
         
-        @warning: This function should not be used outside of this class
+        ..warning: This function should not be used outside of this class
                   unless it's a subclass
         
-        @see: Rig.register() and Rig.__init__()
+        :see: Rig.register() and Rig.__init__()
         
-        @param name: Name of the key which the function was registered
-        @type name: *str* 
+        :param name: Name of the key which the function was registered
+        :type name: str
         
         '''
         #check to see if function exists
@@ -337,12 +380,15 @@ class Rig(ml_graph.MlGraph):
         '''
         This will export controls for the asset
         
-        @see: Rig.saveControls(controls, filePath)
+        :see: Rig.saveControls(controls, filePath)
         
-        @warning: This will put any control you try to export in the current 
+        .. warning: This will put any control you try to export in the current 
                   directory of this file. It should be exporting to an asset directory
         
-        @todo: Find out where the controls will be saved.
-        @todo: Figure out how we will store the file path for an asset
+        .. todo: Find out where the controls will be saved.
+        .. todo: Figure out how we will store the file path for an asset
         '''
-        Rig.saveControls(Rig.getControls(self.name()), filePath = os.path.join(os.path.dirname(__file__), '%s.%s' % (self.name(), common.CONTROL)))
+        Rig.saveControls(Rig.getControls(self.name()),
+                         filePath = os.path.join(os.path.dirname(__file__),
+                                                 '%s.%s' % (self.name(),
+                                                            common.CONTROL)))

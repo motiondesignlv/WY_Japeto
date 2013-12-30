@@ -35,8 +35,8 @@ class Hand(component.Component):
         self.__handCtrl = '%s_hand_%s' % (self._getPrefix(), common.CONTROL)
         self.handJoint  = '%s_hand_%s' % (self._getPrefix(), common.JOINT)
 
-        self.addArgument('fingers', ['thumb', 'index', 'middle', 'ring', 'pinky'])
-        self.addArgument('numJoints', 4)
+        self.addArgument('fingers', ['thumb', 'index', 'middle', 'ring', 'pinky'], 1)
+        self.addArgument('numJoints', 4, 2)
 
     #getters
     @property

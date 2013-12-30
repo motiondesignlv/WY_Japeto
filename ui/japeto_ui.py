@@ -1,3 +1,6 @@
+'''
+japeto UI classes 
+'''
 import fields 
 reload(fields)
 
@@ -13,6 +16,7 @@ import os
 from japeto.mlRig import ml_graph, ml_node
 from japeto import components
 from japeto import templates
+from japeto.components import component
 
 #import maya modules
 from maya import OpenMaya
@@ -68,10 +72,10 @@ class FileListModel(QtCore.QAbstractListModel):
         return fileList
 
         
-class LayerGraph(QtCore.QAbstractItemModel):
+class LayerGraphModel(QtCore.QAbstractItemModel):
     NodeRole = QtCore.Qt.UserRole
     def __init__(self, graph, parent = None):
-        super(LayerGraph, self).__init__(parent)
+        super(LayerGraphModel, self).__init__(parent)
 
         self._rootNode = ml_node.MlNode('root')
         children = graph.rootNodes()
@@ -300,8 +304,8 @@ class CentralTabWidget(QtGui.QTabWidget):
         #BUILD WIDGET
         #-------------------------------------------------
         '''
-        buildWidget = QtGui.QWidget()
-        buildWidgetLayout = QtGui.QGridLayout()
+        utilsWidget = QtGui.QWidget()
+        utilsWidgetLayout = QtGui.QGridLayout()
         self._treeFilter = QtGui.QLineEdit()
         self._treeView = QtGui.QTreeView()
         self._treeView.setAlternatingRowColors(True)
@@ -315,10 +319,10 @@ class CentralTabWidget(QtGui.QTabWidget):
         verticleLayout.addWidget(self._intField2)
         
         #bring it all together
-        buildWidgetLayout.addWidget(self._treeFilter, 0,0)
-        buildWidgetLayout.addWidget(self._treeView, 1,0)
-        buildWidgetLayout.addLayout(verticleLayout, 1,1)
-        buildWidget.setLayout(buildWidgetLayout)
+        utilsWidget.addWidget(self._treeFilter, 0,0)
+        utilsWidget.addWidget(self._treeView, 1,0)
+        utilsWidget.addLayout(verticleLayout, 1,1)
+        utilsWidget.setLayout(buildWidgetLayout)
         '''
         
         #-------------------------------------------------
@@ -344,7 +348,7 @@ class CentralTabWidget(QtGui.QTabWidget):
         
         #buttons
         #setupButtonLayout = QtGui.QHBoxLayout()
-        self._addFileButton = QtGui.QPushButton('->')
+        self._addFileButton = QtGui.QPushButton('-Add->')
         self._setupSelectedButton  = QtGui.QPushButton('Run Selected')
         self._setupButton  = QtGui.QPushButton('Run All')
         #setupButtonLayout.addWidget(self._setupSelectedButton)
@@ -369,7 +373,7 @@ class CentralTabWidget(QtGui.QTabWidget):
         #setup proxy model
         self._proxyModel = QtGui.QSortFilterProxyModel()
         #model for scenegraph
-        self._model = LayerGraph(self._graph)
+        self._model = LayerGraphModel(self._graph)
         
         #hook proxy model to scenegraph model
         self._proxyModel.setSourceModel(self._model)
@@ -408,48 +412,69 @@ class CentralTabWidget(QtGui.QTabWidget):
 
     
     def showCustomContextMenu(self, pos):
+        '''
+        Show the context menu at the position of the curser
+        
+        :param pos: The point where the curser is on the screen
+        :type pos: QtCore.QPoint
+        '''
         index = self._setupTreeView.indexAt(pos)
 
         if not index.isValid():
             return
 
-        #node = self._model.itemFromIndex(index)
+        node = self._model.itemFromIndex(index)
         
         #construct menus
         mainMenu = QtGui.QMenu(self)
-        setupMenu = QtGui.QMenu('Setup',mainMenu)
-        buildMenu = QtGui.QMenu('Build',mainMenu)
         
-        #setup menu actions
-        runSelectedSetupAction     = setupMenu.addAction('Setup This Node')
-        runFromSelectedSetupAction = setupMenu.addAction('Setup From This Node')
-        runAllSetupAction          = setupMenu.addAction('Setup All')
-        
-        QtCore.QObject.connect(runSelectedSetupAction, QtCore.SIGNAL('triggered()'), self._runSelectedSetup)
-        QtCore.QObject.connect(runFromSelectedSetupAction, QtCore.SIGNAL('triggered()'), self._runSetupFromSelected)
-        QtCore.QObject.connect(runAllSetupAction, QtCore.SIGNAL('triggered()'), self._runSetupFromSelected)
-        
-        #build menu actions
-        runSelectedBuildAction     = buildMenu.addAction('Build This Node')
-        runFromSelectedBuildAction = buildMenu.addAction('Build From This Node')
-        runAllBuildAction          = buildMenu.addAction('Build All')
-        
-        QtCore.QObject.connect(runSelectedBuildAction, QtCore.SIGNAL('triggered()'), self._runSelectedBuild)
-        QtCore.QObject.connect(runFromSelectedBuildAction, QtCore.SIGNAL('triggered()'), self._runBuildFromSelected)
-        QtCore.QObject.connect(runAllBuildAction, QtCore.SIGNAL('triggered()'), self._runBuildFromSelected)
+        if isinstance(node, component.Component):
+            setupMenu = QtGui.QMenu('Setup',mainMenu)
+            buildMenu = QtGui.QMenu('Build',mainMenu)
+            
+            #setup menu actions
+            runSelectedSetupAction     = setupMenu.addAction('Setup This Node')
+            runFromSelectedSetupAction = setupMenu.addAction('Setup From This Node')
+            runAllSetupAction          = setupMenu.addAction('Setup All')
+            
+            QtCore.QObject.connect(runSelectedSetupAction, QtCore.SIGNAL('triggered()'), self._runSelectedSetup)
+            QtCore.QObject.connect(runFromSelectedSetupAction, QtCore.SIGNAL('triggered()'), self._runSetupFromSelected)
+            QtCore.QObject.connect(runAllSetupAction, QtCore.SIGNAL('triggered()'), self._runSetupFromSelected)
+            
+            #build menu actions
+            runSelectedBuildAction     = buildMenu.addAction('Build This Node')
+            runFromSelectedBuildAction = buildMenu.addAction('Build From This Node')
+            runAllBuildAction          = buildMenu.addAction('Build All')
+            
+            QtCore.QObject.connect(runSelectedBuildAction, QtCore.SIGNAL('triggered()'), self._runSelectedBuild)
+            QtCore.QObject.connect(runFromSelectedBuildAction, QtCore.SIGNAL('triggered()'), self._runBuildFromSelected)
+            QtCore.QObject.connect(runAllBuildAction, QtCore.SIGNAL('triggered()'), self._runBuildFromSelected)
 
-        # your menu...
-        #add menus to main menu        
-        mainMenu.addMenu(setupMenu)
-        mainMenu.addMenu(buildMenu)
+            # your menu...
+            #add menus to main menu
+            mainMenu.addMenu(setupMenu)
+            mainMenu.addMenu(buildMenu)
+        else:
+            executeNodeAction = mainMenu.addAction('Execute')
+            QtCore.QObject.connect(executeNodeAction, QtCore.SIGNAL('triggered()'), self._executeSelectedNode)
         
         #main menu actions
         mainMenu.addSeparator()
-        removeNodeAction           = mainMenu.addAction('Remove Node')
+        removeNodeAction = mainMenu.addAction('Remove Node')
         QtCore.QObject.connect(removeNodeAction, QtCore.SIGNAL('triggered()'), self._removeSelectedNode)
         
         mainMenu.popup(QtGui.QCursor.pos())
 
+
+    def _executeSelectedNode(self):
+        '''
+        Runs the selected item in the setup view
+        '''
+        node = self._selectedNode()
+        
+        if node:
+            node.execute()
+            
     def _runSetup(self):
         for rootNode in self._model._rootNode.children():
             rootNode.runSetupRig()
@@ -509,6 +534,9 @@ class CentralTabWidget(QtGui.QTabWidget):
             node.runRig()
             
     def _addComponentToGraph(self):
+        '''
+        Adds selected component from the file view
+        '''
         index = self._fileView.currentIndex()
         
         model = self._fileView.model()
@@ -551,6 +579,12 @@ class CentralTabWidget(QtGui.QTabWidget):
             del node
         
     def _populateSetupAttrsLayout(self, index):
+        '''
+        Populates the attributes for the given node
+        
+        :param index: QModelIndex of the node you want to get attibutes for
+        :type index: QtCore.QModelIndex
+        '''
         #Check if there are any items in the layout
         if self._setupAttrsLayout.count():
             self.clearLayout(self._setupAttrsLayout)
@@ -584,6 +618,9 @@ class CentralTabWidget(QtGui.QTabWidget):
     def clearLayout(self, layout):
         '''
         Clears a layout of any items with in the layout
+        
+        :param layout: Layout that you wish to clear
+        :type layout: QtGui.QLayout
         '''
         for i in reversed(range(layout.count())):
             item = layout.itemAt(i)
@@ -633,7 +670,7 @@ class TemplateDialog(QtGui.QDialog):
         
     def _getTemplates(self):
         '''
-        List all the files in the given directory for this model. 
+        Get all the templates on disk
         '''
         nullFiles = ['__init__.py']
         files = os.listdir(templates.__path__[0])
@@ -648,46 +685,79 @@ class TemplateDialog(QtGui.QDialog):
         return fileList
     
     def _close(self):
+        '''
+        Closes to the dialog
+        '''
         self.close()
         
     def _getChosenTemplate(self):
+        '''
+        Assigns the chosen template to the template attribute on this dialog
+        '''
         self.template = self.comboBox.currentText()
         self.close()
 
 class JapetoWindow(QtGui.QMainWindow):
     def __init__(self, graph, parent = None):
+        '''
+        This is the main window used for the Japeto rigging system
+        
+        :param graph: The graph which the ui will use for the setup view
+        :type graph: ml_graph.MlGraph
+        
+        :param parent: The parent for the ui
+        :type parent: QtGui.QWidget
+        '''
         super(JapetoWindow, self).__init__(parent)
-        #get style sheet
+        #load in the style sheet
         f = open(os.path.join(os.path.dirname(__file__),'japeto_styleSheet.qss'), 'r')
         styleData = f.read()
         self.setStyleSheet(styleData)
         f.close()
         
+        #set the window title and central widget
         self.setWindowTitle('Japeto Rig Build UI')
         tabWidget = CentralTabWidget(graph)
         self.setCentralWidget(tabWidget)
+        
+        #add menu bar to window
         menuBar = self.menuBar()
         fileMenu = menuBar.addMenu('File')
         loadTemplateAction = fileMenu.addAction('Load Template')
+        saveTemplateAction = fileMenu.addAction('Save Template')
         QtCore.QObject.connect(loadTemplateAction, QtCore.SIGNAL('triggered()'), self._loadTemplate)
+        QtCore.QObject.connect(saveTemplateAction, QtCore.SIGNAL('triggered()'), self._saveTemplate)
         
     def _loadTemplate(self):
+        '''
+        Load all the templates into the dialog
+        '''
         self.templateDialog = TemplateDialog(self)
         self.templateDialog.show()
 
         self.templateDialog.finished.connect(self.setTemplate)
+        
+    def _saveTemplate(self):
+        '''
+        Load all the templates into the dialog
+        '''
+        print "Saving Template"
     
     def setTemplate(self, *args):
+        '''
+        sets the template to the templat chosen in the templateDialog
+        '''
+        #get the template chosen
         template = str(self.templateDialog.template)
+        
+        #import the file and initialize
         if template:
-            tabWidget = self.centralWidget()
-            
+            tabWidget = self.centralWidget()            
             cmd = 'import japeto.templates.%s as %s' % (template, template)
             exec(cmd)
             newNodeCmd = '%s.%s("%s")' % (template, template.title(), template)
             tabWidget._graph = eval(newNodeCmd)
             tabWidget._graph.initialize()
-            tabWidget._model = LayerGraph(tabWidget._graph)
+            tabWidget._model = LayerGraphModel(tabWidget._graph)
             tabWidget._proxyModel.setSourceModel(tabWidget._model)
             tabWidget._setupTreeView.setModel(tabWidget._proxyModel)
-            print tabWidget._graph.nodes()

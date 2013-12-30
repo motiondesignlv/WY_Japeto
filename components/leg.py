@@ -27,26 +27,31 @@ class Leg(limb.Limb):
         self.addArgument('pelvisJoint',
                 '%s_pelvis_%s_%s' % (self._getPrefix(),
                 common. SKINCLUSTER,
-                common.JOINT))
+                common.JOINT),
+                         5)
 
         self.addArgument('startJoint',
                 '%s_upLeg_%s_%s' % (self._getPrefix(),
                  common. SKINCLUSTER,
-                 common.JOINT))
+                 common.JOINT),
+                         6)
 
         self.addArgument('midJoint',
                 '%s_loLeg_%s_%s' % (self._getPrefix(),
                  common. SKINCLUSTER,
-                 common.JOINT))
+                 common.JOINT),
+                         7)
 
         self.addArgument('tipJoint',
                 '%s_tipLeg_%s_%s' % (self._getPrefix(),
                 common. SKINCLUSTER,
-                common.JOINT))
+                common.JOINT),
+                         8)
+        
+        self.removeArgument('endJoint')
 
     def setupRig(self):
-        if super(Leg,self).setupRig():
-            return True
+        super(Leg,self).setupRig()
         
         self.skinClusterJnts.remove(self.endJoint)
         self.skinClusterJnts.insert(0,self.pelvisJoint)

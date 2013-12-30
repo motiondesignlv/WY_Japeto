@@ -5,19 +5,12 @@ This is the arm component
 :contact: walteryoder@gmail.com
 :date:    October 2012
 '''
-
-#import python modules
-import os
-import sys
-
 #import maya modules
 import maya.cmds as cmds
 
 #import package modules
 #import libs
 from japeto.libs import common
-from japeto.libs import attribute
-from japeto.libs import ikfk
 from japeto.libs import control
 from japeto.libs import transform
 from japeto.libs import joint
@@ -31,10 +24,12 @@ class Arm(limb.Limb):
 	def initialize(self,**kwargs):
 		super(Arm,self).initialize(**kwargs)
 		
-		self.addArgument('clavicleJoint', '%s_clavicle%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
-		self.addArgument('startJoint', '%s_upArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
-		self.addArgument('midJoint', '%s_loArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
-		self.addArgument('tipJoint', '%s_tipArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT))
+		self.addArgument('clavicleJoint','%s_clavicle%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT), 5)
+		self.addArgument('startJoint', '%s_upArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT), 6)
+		self.addArgument('midJoint', '%s_loArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT), 7)
+		self.addArgument('tipJoint', '%s_tipArm_%s_%s' % (self._getPrefix(), common. SKINCLUSTER, common.JOINT), 8)
+		
+		self.removeArgument('endJoint')
 		
 	def setupRig(self):
 		super(Arm,self).setupRig()

@@ -55,21 +55,25 @@ class Limb(component.Component):
     @component.overloadArguments
     def initialize(self,**kwargs):
         super(Limb,self).initialize(**kwargs)
+        
+        self.addArgument('numSegments', 1, 2)
+        self.addArgument('stretch', True, 3)
 
         self.addArgument('startJoint',
-                '%s_upLimb_%s_%s' % (self._getPrefix(),common.SKINCLUSTER, common.JOINT))
+                '%s_upLimb_%s_%s' % (self._getPrefix(),common.SKINCLUSTER, common.JOINT),
+                5)
 
         self.addArgument('midJoint',
-                '%s_loLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
+                '%s_loLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT),
+                6)
 
         self.addArgument('tipJoint',
-                '%s_tipLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
+                '%s_tipLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT),
+                7)
 
         self.addArgument('endJoint',
-                '%s_endLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT))
-
-        self.addArgument('numSegments', 1)
-        self.addArgument('stretch', True)
+                '%s_endLimb_%s_%s' % (self._getPrefix(), common.SKINCLUSTER, common.JOINT), 
+                8)
 
 
     def setupRig(self):

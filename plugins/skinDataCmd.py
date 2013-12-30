@@ -5,53 +5,53 @@
 //                        //
 /////////////////////////////////////////////////
 
-@copyright: (c) 2013 Magic Leap
+:copyright: (c) 2013 Magic Leap
 
-@author: Walt Yoder
-@since: 12/5/2013
+:author: Walt Yoder
+:since: 12/5/2013
 
-@summary:
+:summary:
     Scripted command used to query and set weights on a mesh that has a skinCluster 
     connected to it. It can also query influence objects attached to the skinCluster.
 
-@usage:
+:usage:
     Get weights:
     Will get the weights on a skinCluster for a particular mesh or skinCluster.
 
     Set weights:
     Will set the weights on a skinCluster for a particular mesh or skinCluster.
 
-@scripting:
+:scripting:
     If you want to use this command in a script please note the flag options below.
 
     -vertex or -vtx
     This specifies the vertices you would like to apply you weights too
-    @attention: Only works in command mode
+    :attention: Only works in command mode
 
     -influence or -inf
     Specifies the influence objects you wish to apply the weights for or query.
-    @attention: Only working in command and Query modes
+    :attention: Only working in command and Query modes
 
     -weights or -wts
     Specifies the weight values you would like to apply.
-    @attention: Only working in command and Query modes
+    :attention: Only working in command and Query modes
     
     -blendWeight or -bwt
     Specifies the blend weight values you would like to query or apply.
-    @attention: Only working in command and Query modes
+    :attention: Only working in command and Query modes
 
-@example:
-    @Mel:
+:example:
+    :Mel:
         >>> skinData -wts .5 -wts .2 -inf "joint1" -vrt "pPlane1.vtx[3]" -vtx "pPlane1.vtx[5]" "pPlane1";
         >>> skinData -q -wts "pPlane1"
         >>> skinData -q -inf pPlane1"
-    @Python:
+    .. python:
         >>> from maya import cmds
         >>> cmds.skinData('pPlane1', wts = (0.2, 0.3), vtx = ("pPlane1.vtx[3]",pPlane1.vtx[5]"), inf = 'joint1')
         >>> cmds.skinData('pPlane1', q = True, wts = True)
         
         
-@todo: Get the command working with multiple influences when assigning weights
+.. todo: Get the command working with multiple influences when assigning weights
 '''
 
 import maya.OpenMaya as OpenMaya
@@ -220,11 +220,11 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         Gets the deformer object on the given mesh. If no mesh is passed in,
         by default we will get active selection from you Maya scene
 
-        @param mesh: Polygonal mesh you wish to get skincluster from
-        @type mesh: *str* or *unicode*
+        :param mesh: Polygonal mesh you wish to get skincluster from
+        :type mesh: *str* or *unicode*
         
-        @return: Returns an MObject for the skinCluster attached to given mesh.
-        @rtype: *MObject* or *None*
+        :return: Returns an MObject for the skinCluster attached to given mesh.
+        :rtype: *MObject* or *None*
         
         '''
         self.__mSelList.add(self.__mesh)
@@ -273,14 +273,14 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         '''
         Gets the weights from on the mesh
         
-        @param dagPath: DagPath to the mesh
-        @type dagPaht: *OpenMaya.MDagPath*
+        :param dagPath: DagPath to the mesh
+        :type dagPaht: *OpenMaya.MDagPath*
         
-        @param components: Object pointing to the Components (i.e. Vertices)
-        @type components: *OpenMaya.MObject*
+        :param components: Object pointing to the Components (i.e. Vertices)
+        :type components: *OpenMaya.MObject*
         
-        @param influence: Name of the influence being queried
-        @type influence: *str* or *unicode* 
+        :param influence: Name of the influence being queried
+        :type influence: *str* or *unicode* 
         '''
         weights = OpenMaya.MDoubleArray()
         util = OpenMaya.MScriptUtil()

@@ -76,17 +76,17 @@ class Foot(component.Component):
         self.addArgument('ankleJoint',
                 '%s_ankle_%s_%s' % (self._getPrefix(),
                 common.SKINCLUSTER,
-                common.JOINT))
+                common.JOINT), 5)
 
         self.addArgument('ballJoint',
                 '%s_ball_%s_%s' % (self._getPrefix(),
                 common.SKINCLUSTER,
-                common.JOINT))
+                common.JOINT), 6)
 
         self.addArgument('toeJoint',
                 '%s_toe_%s_%s' % (self._getPrefix(),
                 common. SKINCLUSTER,
-                common.JOINT))
+                common.JOINT), 7)
 
     def setupRig(self):
         super(Foot, self).setupRig()

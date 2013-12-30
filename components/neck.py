@@ -25,7 +25,7 @@ class Neck(spine.Spine):
     def setupRig(self):
         super(Neck, self).setupRig()
         '''
-        @todo: still need to flesh out setup for neck
+        ..todo: still need to flesh out setup for neck
         '''
         endJointGuide   = self.endJoint.replace(common.JOINT, common.GUIDES)
         if not cmds.objExists(endJointGuide):

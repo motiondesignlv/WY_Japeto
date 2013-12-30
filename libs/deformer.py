@@ -5,17 +5,24 @@ This is the deformer module for all the deformer utility functions
 :contact: walteryoder@gmail.com
 :date: September 2013
 '''
+#import python modules
+import os
+
 #import Maya modules
 from maya import cmds
 from maya import OpenMaya
 from maya import OpenMayaAnim
 
 #import package modules
+import japeto
 from japeto.libs import common
-from japeto.libs import node
 from japeto.libs import pyon
 from japeto.libs import ordereddict
+from japeto.libs import fileIO
 reload(common)
+
+#load plugin for skinData
+fileIO.loadPlugin(os.path.join(japeto.PLUGINDIR, 'skinDataCmd.py'))
 
 class SkinCluster(object):
     

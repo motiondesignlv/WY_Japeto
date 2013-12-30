@@ -10,13 +10,13 @@ class MlNode(object):
     '''
     Base node to manage all data for nodes
     
-    @todo:
+    .. todo:
         - Change validation to check for both node and node name
         - Make sure self.__children and self.__parent return the
           same type of data. (i.e. Node or Node.name)
       
-    @warning:
-        Some data may not match (i.e. Node.children returns 
+    .. warning:
+        Some data may not match (i.e. Node.children returns
         childNode.name and Node.parent return instance of parentNode)
     
     '''
@@ -72,19 +72,19 @@ class MlNode(object):
     def setName(self, value):
         self.__name  = value
     
-    def addAttribute(self, attr, value):
+    def addAttribute(self, attr, value, index = -1):
         '''
         sets the data on the node based on key : value pairs
         
-        @example:
+        :example:
             >>> setData(limb.arm(), position = [20,10,10])
             {"Left Arm" : []}
             
-        @param attr: Nice name for user interface
-        @type attr: *str*
+        :param attr: Nice name for user interface
+        :type attr: str
 
-        @param value: python object to be called when run() is called
-        @type value: *str*
+        :param value: python object to be called when run() is called
+        :type value: str
         '''
         if isinstance(attr, basestring):
             attr = ml_attribute.MlAttribute(attr, value = value)
@@ -93,22 +93,26 @@ class MlNode(object):
         if not isinstance(attr, ml_attribute.MlAttribute):
             raise TypeError('%s must be %s' % (attr, ml_attribute.MlAttribute))
         
+        #change index if it's none
+        if index == -1:
+            index = len(self.__children.keys())
+        
         #add attributes to the attributes dictionary
-        self.__attributes.add(attr.name(), attr, index = len(self.__attributes.keys()))
+        self.__attributes.add(attr.name(), attr, index)
         
     def setParent(self, parent):
         '''
         Sets the parent for self. Parent node must be node.Node
         
-        @example:
+        :example:
             >>> a = node.Node('A')
             >>> b = node.Node('B') 
             >>> b.setParent(a)
             >>> a.children
             ['B' : b]
         
-        @param parent: Node you want to be parent of self
-        @type parent: *node.Node* 
+        :param parent: Node you want to be parent of self
+        :type parent: node.Node 
         '''
         #validate
         if not MlNode.isValid(parent) and parent != None:
@@ -125,19 +129,19 @@ class MlNode(object):
         parent.addChild(self)
         
     
-    def addChild(self, child, index = None):
+    def addChild(self, child, index = -1):
         '''
         Adds an existing node as a child.
         
-        @example:
+        :example:
             >>> a = node.Node('A')
             >>> b = node.Node('B') 
             >>> a.addChild(a)
             >>> a.children
             ['B']
             
-        @param child: child node you wish to add 
-        @type child: *node.Node*  
+        :param child: child node you wish to add 
+        :type child: node.Node  
         '''
         #validate child
         if not MlNode.isValid(child):
@@ -149,7 +153,7 @@ class MlNode(object):
         child.setParent(self)
         
         #change index if it's none
-        if index == None:
+        if index == -1:
             index = len(self.__children.keys())
 
         #add child
@@ -159,15 +163,15 @@ class MlNode(object):
         '''
         Adds an existing node as a child.
         
-        @example:
+        :example:
             >>> a = node.Node('A')
             >>> b = node.Node('B') 
             >>> a.addChild(a)
             >>> a.children
             ['B']
             
-        @param child: child node you wish to add 
-        @type child: *node.Node*  
+        :param child: child node you wish to add 
+        :type child: node.Node
         '''
         if index == None:
             index = 0
@@ -181,11 +185,11 @@ class MlNode(object):
         Returns True or False depending on whether or not self 
         has child node.
         
-        @param name: Name of the child to query
-        @type name: *str*
+        :param name: Name of the child to query
+        :type name: str
         
-        @return: True if it has child, False if it does not
-        @rtype: *bool*  
+        :return: True if it has child, False if it does not
+        :rtype: bool 
         '''
         #check to see if the node has a child
         if self.isChild(name):
@@ -198,17 +202,26 @@ class MlNode(object):
         Returns the value of the node. Normally this will be a 
         class or function.
         '''
-        return self.__attributes  
+        return self.__attributes 
+    
+    def getAttributeByName(self, name):
+        '''
+        Get the attribute with the given name
+        ''' 
+        if name in self.__attributes.keys():
+            return self.__attributes[name]
+        
+        return None
     
     def getChild(self, name = str(), index = None):
         '''
         Gets child by name
         
-        @param name: Name of the child to query
-        @type name: *str*
+        :param name: Name of the child to query
+        :type name: str
         
-        @return: Child node
-        @rtype: *node.Node*  
+        :return: Child node
+        :rtype: node.Node  
         '''
         if self.__children.has_key(name):
             return self.__children[name]
@@ -219,11 +232,11 @@ class MlNode(object):
         '''
         Gets child by name
         
-        @param name: Name of the child to query
-        @type name: *str*
+        :param name: Name of the child to query
+        :type name: str
         
-        @return: Child node
-        @rtype: *node.Node*  
+        :return: Child node
+        :rtype: node.Node  
         '''
         if index != None:
             if self.children():
@@ -231,13 +244,19 @@ class MlNode(object):
         
         return None
     
-    
+    def removeAttribute(self, attribute):
+        if not ml_attribute.MlAttribute.isValid(attribute):
+            ml_attribute.MlAttribute.inValidError(attribute)
+        #remove it from the attributes dictionary
+        self.__attributes.pop(attribute.name())
+        #delete the attribute
+        del(attribute)
     
     def removeChild(self, child):
         '''
         Removes child node from list of children and take is out of self
         
-        @example:
+        :example:
             >>> a.children
             ['B', 'C']
             >>> b.parent.name
@@ -246,8 +265,8 @@ class MlNode(object):
             >>> a.children
             ['C']
         
-        @param child: Node you want to remove from self
-        @type child: *node.Node*
+        :param child: Node you want to remove from self
+        :type child: node.Node
         '''
         #check if child is valid
         if not MlNode.isValid(child):
@@ -256,12 +275,12 @@ class MlNode(object):
         if self.__children.has_key(child.name):
             self.__children.pop(child.name) #remove it from __children dict
             child.setParent(None) #remove self from parent
-
+            
     def moveChild(self, child, index):
         '''
         moves child node from one position in dict to another
         
-        @example:
+        :example:
             >>> a.children
             ['B', 'C']
             >>> b.parent.name
@@ -270,8 +289,8 @@ class MlNode(object):
             >>> a.children
             ['C','B']
         
-        @param child: Node you want to move
-        @type child: *node.Node*  or *str*
+        :param child: Node you want to move
+        :type child: node.Node | str
         '''
         #check if child is a valid node
         if not MlNode.isValid(child):
@@ -329,7 +348,6 @@ class MlNode(object):
         
         return 0
     
-    
     def log(self, tabLevel = -1):
         output = ""
         tabLevel += 1
@@ -348,7 +366,7 @@ class MlNode(object):
     
     def execute(self, *args, **kwargs):
         '''
-        @todo: add execution code here
+        .. todo: add execution code here
         '''
         return
             
