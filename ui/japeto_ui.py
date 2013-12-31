@@ -121,6 +121,10 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
         node = index.internalPointer()
         parentNode = node.parent()
         
+        
+        if not parentNode:
+            parentNode = self._rootNode
+            
         #if parent is root, return QModelIndex
         if parentNode == self._rootNode:
             return QtCore.QModelIndex()
@@ -644,9 +648,12 @@ class CentralTabWidget(QtGui.QTabWidget):
             if isinstance(item, QtGui.QWidgetItem):
                 print item.widget().value()
     
-class TemplateDialog(QtGui.QDialog):
+class LoadTemplateDialog(QtGui.QDialog):
+    '''
+    Dialog used for loading graphs or templates that have been saved or written
+    '''
     def __init__(self, parent = None):
-        super(TemplateDialog, self).__init__(parent)
+        super(LoadTemplateDialog, self).__init__(parent)
         self.template = None
         
         layout = QtGui.QVBoxLayout()
@@ -696,6 +703,61 @@ class TemplateDialog(QtGui.QDialog):
         '''
         self.template = self.comboBox.currentText()
         self.close()
+        
+        
+class SaveTemplateDialog(QtGui.QFileDialog):
+    '''
+    This is the dialog used for saving our graphs/templates
+    '''
+    __caption__ = 'Save Template'
+    __filter__  = '*.py'
+    
+    def __init__(self, parent = None, directory = str()):
+        super(SaveTemplateDialog, self).__init__(parent, self.__caption__, directory, self.__filter__)
+        
+        self.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+        self.setDefaultSuffix('.py')
+        self._fileName = str()
+        
+    def show(self):
+        '''
+        Shows the fileDialog and sets the _fileName attribute from the user input 
+        '''
+        #Bring up the file dialog box and return the file that is being saved if any
+        fileName = str(self.getSaveFileName(parent = self.parent(), caption = self.__caption__, directory = str(self.directory().absolutePath()), filter = self.__filter__))
+        
+        #if no file name we will exit the function
+        if not fileName:
+            return
+        
+        #seperate the fileName from the extension so we can attach the proper extension
+        fileName, fileExt = os.path.splitext(fileName)
+
+        #make sure the file hase the extension
+        self._fileName = '%s%s' % (fileName, self.defaultSuffix())
+        
+    def saveFile(self, data):
+        '''
+        Saves the file specified through the dialog writing the data passed in.
+        This is used by for writing the graph/template in the JapetoWindow
+        
+        :see: JapetoWindow._saveTemplate
+        
+        :param data: Data/graph/template to be written to the file
+        :type data: str        
+        '''
+        if not self._fileName:
+            raise RuntimeError("No file path specified")
+        
+        if not isinstance(data, str):
+            raise TypeError("Data passed in must be passed as a string")
+        
+        print "Saving %s" % self._fileName
+
+        #write the data to the file
+        f = open(self._fileName, 'w')
+        f.write(data)
+        f.close()
 
 class JapetoWindow(QtGui.QMainWindow):
     def __init__(self, graph, parent = None):
@@ -732,23 +794,26 @@ class JapetoWindow(QtGui.QMainWindow):
         '''
         Load all the templates into the dialog
         '''
-        self.templateDialog = TemplateDialog(self)
-        self.templateDialog.show()
+        self.loadTemplateDialog = LoadTemplateDialog(self)
+        self.loadTemplateDialog.show()
 
-        self.templateDialog.finished.connect(self.setTemplate)
+        self.loadTemplateDialog.finished.connect(self.setTemplate)
         
     def _saveTemplate(self):
         '''
         Load all the templates into the dialog
         '''
-        print "Saving Template"
-    
+        self.saveTemplateDialog = SaveTemplateDialog(self)
+        self.saveTemplateDialog.show()
+        
+        self.saveTemplateDialog.saveFile('test')
+
     def setTemplate(self, *args):
         '''
-        sets the template to the templat chosen in the templateDialog
+        sets the template to the template chosen in the templateDialog
         '''
         #get the template chosen
-        template = str(self.templateDialog.template)
+        template = str(self.loadTemplateDialog.template)
         
         #import the file and initialize
         if template:

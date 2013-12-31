@@ -343,8 +343,9 @@ class MlNode(object):
         '''
         returns what index the current node is at on the parents list of children
         '''
-        if self.__parent.children():
-            return self.__parent.children().index(self)
+        if self.__parent:
+            if self.__parent.children():
+                return self.__parent.children().index(self)
         
         return 0
     

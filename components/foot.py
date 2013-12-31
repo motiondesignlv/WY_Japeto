@@ -209,6 +209,7 @@ class Foot(component.Component):
     def rig(self):
         if not self._puppetNode:
             self.runSetupRig()
+            
         cmds.parent([self.__bankInPivot,
                 self.__bankOutPivot,
                 self.__heelPivot],
