@@ -1,6 +1,6 @@
 #from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_node
-#import inspect
+import inspect
 reload(ml_node)
 
 class MlGraph(object):
@@ -63,15 +63,22 @@ class MlGraph(object):
         return nodes
     
     def log(self, tabLevel = -1):
-        output = ""
-        tabLevel += 1
+        '''
+        Logs the whole graph. Returns the whole graph in a sting
         
+        :param tabLevel: This shows how many tabs in we start
+        :type tabLevel: int
+        '''
+        output = "\n"
+        tabLevel += 1 #add to the tabLevel
+        
+        #tab in based on the tabLevel
         for i in range(tabLevel):
             output += "\t"
             
-        output += '|____%s\n' % self.__rootNode__
+        output += '____%s\n' % self.__rootNode__.name()
         
-        for node in self.__rootNodes():
+        for node in self.__rootNodes:
             output += node.log(tabLevel)
         
         tabLevel -= 1
@@ -92,4 +99,12 @@ class MlGraph(object):
             if name == node.name():
                 return node
         return None
-
+    
+    '''
+    def save(self, filepath):
+        print 'Saving %s' % filepath
+        
+        for node in self.nodes():
+            node
+    ''' 
+        

@@ -9,6 +9,7 @@ This is the rig template for all the rig templates
 #import python modules
 import inspect
 import os
+from string import Template
 
 #import maya modules
 from maya import cmds
@@ -81,6 +82,56 @@ class Rig(ml_graph.MlGraph):
         #save the controls in savedControls list
         control.save(savedControls, filepath = filePath)
     
+    @staticmethod
+    def saveTemplate(graph,filepath):
+        exampleFile = open(os.path.join(os.path.dirname(__file__), 'example'), 'r')
+        data = Template(exampleFile.read())
+        parentModule = graph.__class__.__base__.__module__
+        parent = graph.__class__.__base__.__name__
+        importData = 'import %s as %s \n' % (parentModule, parent.lower())
+        registerData = ''
+        for node in graph.nodes():
+            _class = node.__class__.__name__
+            nodeParent = node.parent()
+            if _class.lower() not in importData:
+                importData += 'import %s as %s\n' % (node.__class__.__module__,_class.lower())
+            registerData += 'self.register("%s"' % node.niceName
+            if not isinstance(node, component.Component):
+                registerData += ', self.%s' % node.name()
+            else:
+                registerData += ', %s.%s("%s")' % (_class.lower(),_class,node.name())
+            if nodeParent:
+                registerData += ',parent = "%s" ' % nodeParent.name()
+                
+            for attr in node.attributes():
+                if isinstance(attr.value(), basestring):
+                    registerData += ', %s = "%s"' % (attr.name(), attr.value())
+                else:
+                    registerData += ', %s = %s' % (attr.name(), attr.value())
+            
+            registerData += ')\n' + (' ' * 8)
+           
+        d = dict(EXAMPLE=graph.__class__.__name__.capitalize(), 
+                 PARENT = '%s.%s' % (parent.lower(), parent),
+                 NAME = '"%s"' % graph.name(),
+                 IMPORT = importData,
+                 REGISTER = registerData
+                 )
+        
+        datastr = data.safe_substitute(d)
+        
+        exampleFile.close()
+        
+        f = open(filepath, 'w')
+        
+        f.write(datastr)    
+        f.close()
+    
+    @staticmethod
+    def createTemplate(graphName, name, parent = ml_graph.MlGraph):
+        graph = type(graphName.capitalize(), (parent,), dict())
+        return graph(name)
+        
     
     def __init__(self, name):
         super(Rig, self).__init__(name)
@@ -198,11 +249,13 @@ class Rig(ml_graph.MlGraph):
             if isinstance (obj, component.Component):
                 node = self.addNode(obj, parent, index)
                 node.initialize(**kwargs)
+                node.niceName = name
                 self.components[name] = node
         elif inspect.ismethod(obj) or inspect.isfunction(obj):
             node = ml_node.MlNode(obj.__func__.__name__)
             self.addNode(node, parent, index)
             #node.setParent(parent)
+            node.niceName = name
             node.execute = obj
 
     def setup(self):
@@ -369,7 +422,6 @@ class Rig(ml_graph.MlGraph):
         
         :param name: Name of the key which the function was registered
         :type name: str
-        
         '''
         #check to see if function exists
         if self.functions.has_key(name):

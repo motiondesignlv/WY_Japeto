@@ -16,6 +16,7 @@ import os
 from japeto.mlRig import ml_graph, ml_node
 from japeto import components
 from japeto import templates
+from japeto.templates import rig
 from japeto.components import component
 
 #import maya modules
@@ -306,31 +307,6 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._graph = graph
         
         #-------------------------------------------------
-        #BUILD WIDGET
-        #-------------------------------------------------
-        '''
-        utilsWidget = QtGui.QWidget()
-        utilsWidgetLayout = QtGui.QGridLayout()
-        self._treeFilter = QtGui.QLineEdit()
-        self._treeView = QtGui.QTreeView()
-        self._treeView.setAlternatingRowColors(True)
-        #self._contextTreeMenu
-        
-        #fields
-        verticleLayout = QtGui.QVBoxLayout()
-        self._intField = fields.IntField('Test1')
-        self._intField2 = fields.IntField('Test2')
-        verticleLayout.addWidget(self._intField)
-        verticleLayout.addWidget(self._intField2)
-        
-        #bring it all together
-        utilsWidget.addWidget(self._treeFilter, 0,0)
-        utilsWidget.addWidget(self._treeView, 1,0)
-        utilsWidget.addLayout(verticleLayout, 1,1)
-        utilsWidget.setLayout(buildWidgetLayout)
-        '''
-        
-        #-------------------------------------------------
         #SETUP TAB
         #-------------------------------------------------
         setupWidget = QtGui.QWidget()
@@ -473,6 +449,12 @@ class CentralTabWidget(QtGui.QTabWidget):
     def _initializeNode(self, node):
         attrDict = dict()
         for attr in node.attributes():
+            #if fingers attribute, evaluate the attribute differently
+            #.. todo: this is hacky
+            if attr.name == 'fingers':
+                attrDict[attr.name()] = eval(attr.value())
+                continue
+            
             attrDict[attr.name()] = attr.value()
             
         node.initialize(**attrDict)
@@ -648,6 +630,66 @@ class CentralTabWidget(QtGui.QTabWidget):
             if isinstance(item, QtGui.QWidgetItem):
                 print item.widget().value()
     
+class InheritTemplateDialog(QtGui.QDialog):
+    '''
+    Dialog used for loading graphs or templates that have been saved or written
+    '''
+    def __init__(self, parent = None):
+        super(InheritTemplateDialog, self).__init__(parent)
+        self.parentTemplate = None
+        
+        layout = QtGui.QVBoxLayout()
+        buttonLayout = QtGui.QHBoxLayout()
+        self.okButton = QtGui.QPushButton('Ok')
+        self.closeButton = QtGui.QPushButton('Close')
+        
+        
+        self.closeButton.clicked.connect(self._close)
+        self.okButton.clicked.connect(self._getChosenTemplate)
+        
+        self.comboBox = QtGui.QComboBox(self)
+        self.comboBox.addItems(self._getTemplates())
+        
+        self.templateNameLineEdit = fields.LineEditField('New Template Name')
+        
+        buttonLayout.addWidget(self.okButton)
+        buttonLayout.addWidget(self.closeButton)
+        layout.addWidget(self.templateNameLineEdit)
+        layout.addWidget(self.comboBox)
+        layout.addLayout(buttonLayout)
+        
+        self.setLayout(layout)
+        
+    def _getTemplates(self):
+        '''
+        Get all the templates on disk
+        '''
+        nullFiles = ['__init__.py']
+        files = os.listdir(templates.__path__[0])
+        fileList = list()
+        for file in files:
+            if file not in nullFiles and '.pyc' not in file:
+                if '.py' in file and file not in fileList:
+                    fileList.append(file.split('.')[0])
+                #end if
+            
+        #end loop
+        return fileList
+    
+    def _close(self):
+        '''
+        Closes to the dialog
+        '''
+        self.close()
+        
+    def _getChosenTemplate(self):
+        '''
+        Assigns the chosen template to the template attribute on this dialog
+        '''
+        self.parentTemplate = self.comboBox.currentText()
+        self.close()
+
+
 class LoadTemplateDialog(QtGui.QDialog):
     '''
     Dialog used for loading graphs or templates that have been saved or written
@@ -703,8 +745,7 @@ class LoadTemplateDialog(QtGui.QDialog):
         '''
         self.template = self.comboBox.currentText()
         self.close()
-        
-        
+
 class SaveTemplateDialog(QtGui.QFileDialog):
     '''
     This is the dialog used for saving our graphs/templates
@@ -728,13 +769,15 @@ class SaveTemplateDialog(QtGui.QFileDialog):
         
         #if no file name we will exit the function
         if not fileName:
-            return
+            return False
         
         #seperate the fileName from the extension so we can attach the proper extension
         fileName, fileExt = os.path.splitext(fileName)
 
         #make sure the file hase the extension
         self._fileName = '%s%s' % (fileName, self.defaultSuffix())
+        
+        return True
         
     def saveFile(self, data):
         '''
@@ -748,16 +791,14 @@ class SaveTemplateDialog(QtGui.QFileDialog):
         '''
         if not self._fileName:
             raise RuntimeError("No file path specified")
-        
+        '''
         if not isinstance(data, str):
             raise TypeError("Data passed in must be passed as a string")
-        
+        '''
         print "Saving %s" % self._fileName
 
         #write the data to the file
-        f = open(self._fileName, 'w')
-        f.write(data)
-        f.close()
+        rig.Rig.saveTemplate(data, self._fileName)
 
 class JapetoWindow(QtGui.QMainWindow):
     def __init__(self, graph, parent = None):
@@ -785,8 +826,10 @@ class JapetoWindow(QtGui.QMainWindow):
         #add menu bar to window
         menuBar = self.menuBar()
         fileMenu = menuBar.addMenu('File')
+        newTemplateAction = fileMenu.addAction('New Template')
         loadTemplateAction = fileMenu.addAction('Load Template')
         saveTemplateAction = fileMenu.addAction('Save Template')
+        QtCore.QObject.connect(newTemplateAction, QtCore.SIGNAL('triggered()'), self._newTemplate)
         QtCore.QObject.connect(loadTemplateAction, QtCore.SIGNAL('triggered()'), self._loadTemplate)
         QtCore.QObject.connect(saveTemplateAction, QtCore.SIGNAL('triggered()'), self._saveTemplate)
         
@@ -798,16 +841,48 @@ class JapetoWindow(QtGui.QMainWindow):
         self.loadTemplateDialog.show()
 
         self.loadTemplateDialog.finished.connect(self.setTemplate)
-        
+    
+    def _newTemplate(self):
+        '''
+        Load all the templates into the dialog
+        '''
+        self.inheritTemplateDialog = InheritTemplateDialog(self)
+        self.inheritTemplateDialog.show()
+
+        self.inheritTemplateDialog.finished.connect(self.setNewTemplate)
+    
     def _saveTemplate(self):
         '''
         Load all the templates into the dialog
         '''
         self.saveTemplateDialog = SaveTemplateDialog(self)
-        self.saveTemplateDialog.show()
+        result = self.saveTemplateDialog.show()
         
-        self.saveTemplateDialog.saveFile('test')
+        if result:
+            self.saveTemplateDialog.saveFile(self.centralWidget()._graph)
 
+    def setNewTemplate(self, *args):
+        '''
+        sets the template to the template chosen in the templateDialog
+        '''
+        #get the template chosen
+        parentTemplate = str(self.inheritTemplateDialog.parentTemplate)
+        templateName = self.inheritTemplateDialog.templateNameLineEdit.value()
+        
+        #import the file and initialize
+        if parentTemplate and templateName:
+            tabWidget = self.centralWidget()
+            cmd = 'import japeto.templates.%s as %s' % (parentTemplate, parentTemplate)
+            exec(cmd)
+            print templateName.capitalize(),templateName, '%s.%s' % (parentTemplate,parentTemplate.capitalize())
+            tabWidget._graph = rig.Rig.createTemplate(templateName.capitalize(),
+                                                      templateName,
+                                                      eval('%s.%s' % (parentTemplate,parentTemplate.capitalize()))) 
+            tabWidget._graph.initialize()
+            tabWidget._model = LayerGraphModel(tabWidget._graph)
+            tabWidget._proxyModel.setSourceModel(tabWidget._model)
+            tabWidget._setupTreeView.setModel(tabWidget._proxyModel)
+    
     def setTemplate(self, *args):
         '''
         sets the template to the template chosen in the templateDialog

@@ -8,7 +8,7 @@ class BaseField(QtGui.QWidget):
         
         self.__label = QtGui.QLabel(label)
         self.__value = value
-        self.__description = self.setAccessibleDescription(description)
+        #self.__description = self.setAccessibleDescription(description)
         self.__attribute= attribute
         print self.__attribute
     

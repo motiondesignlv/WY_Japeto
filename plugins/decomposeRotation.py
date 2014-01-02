@@ -1,14 +1,5 @@
 '''
 ---------------------------------------------------
-Name: SK Decompose Rotation Node Plugin
-
-Version: 1.0 / August 5th, 2009
-Version: 1.1 / May 2013
-
-Original Author: Serguei Kalentchouk
-Contributing Author: Jan Berger
-
-Email: serguei.kalentchouk@disney.com
 
 Description: Decompose rotation into individual
 twist angle values around all 3 axies

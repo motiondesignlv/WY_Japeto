@@ -38,6 +38,7 @@ class MlNode(object):
         self.__children   = ml_dict.MlDict()
         self.__attributes = ml_dict.MlDict()
         self.__enabled    = True
+        self.niceName     = str()
         
         if parent:
             if not MlNode.isValid(parent):
