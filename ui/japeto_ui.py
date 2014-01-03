@@ -2,14 +2,12 @@
 japeto UI classes 
 '''
 import fields 
-reload(fields)
 
 #PyQt modules
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 #python modules
-import sys
 import os
 
 #Japeto modules
@@ -498,7 +496,6 @@ class CentralTabWidget(QtGui.QTabWidget):
             #if fingers attribute, evaluate the attribute differently
             #.. todo: Make an attribute specifically for list in ml_attirbute.MlAttribute
             if attr.name == 'fingers':
-                print attr.value()
                 attrDict[attr.name()] = eval(attr.value())
                 continue
             

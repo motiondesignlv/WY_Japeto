@@ -19,7 +19,6 @@ from japeto.libs import common
 from japeto.libs import pyon
 from japeto.libs import ordereddict
 from japeto.libs import fileIO
-reload(common)
 
 #load plugin for skinData
 fileIO.loadPlugin(os.path.join(japeto.PLUGINDIR, 'skinDataCmd.py'))

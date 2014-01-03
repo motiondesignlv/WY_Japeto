@@ -60,7 +60,8 @@ class Hand(component.Component):
         return self.__handPosition
 
     def setupRig(self):
-        super(Hand, self).setupRig()
+        if super(Hand, self).setupRig():
+            return True
         
 
         if self._getSide() == common.LEFT:
@@ -118,7 +119,8 @@ class Hand(component.Component):
                                         common.SIDE_COLOR[self._getSide()])
 
     def postSetupRig(self):
-        super(Hand, self).postSetupRig()
+        if super(Hand, self).postSetupRig():
+            return True
 
         #TODO: Place build code for fingers here
         for obj in self.fingers:
@@ -131,7 +133,9 @@ class Hand(component.Component):
         for obj in self.fingers:
             self.__fingers[obj].rig()
         
-        super(Hand, self).rig()
+        if super(Hand, self).rig():
+            return True
+        
         #TODO: Put build code here
         control.create(self.handCtrl.replace('_%s' % common.CONTROL, ''),
                        type = 'implicitSphere',
@@ -150,8 +154,8 @@ class Hand(component.Component):
 
 
     def postRig(self):
-        super(Hand, self).postRig()
-
+        if super(Hand, self).postRig():
+            return True
 
         #TODO: Place build code for fingers here
         for obj in self.fingers:

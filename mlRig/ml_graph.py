@@ -1,7 +1,5 @@
 #from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_node
-import inspect
-reload(ml_node)
 
 class MlGraph(object):
     def __init__(self, name):

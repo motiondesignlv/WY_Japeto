@@ -77,7 +77,8 @@ class Limb(component.Component):
 
 
     def setupRig(self):
-        super(Limb,self).setupRig()
+        if super(Limb,self).setupRig():
+            return True
 
         self.skinClusterJnts = [ self.startJoint,
                                  self.midJoint,
@@ -277,16 +278,17 @@ class Limb(component.Component):
             self.runSetupRig()
         if cmds.objExists('%s.master_guide' % self.setupRigGrp):
             self.masterGuide = attribute.getConnections('master_guide', self.setupRigGrp)[0].split('.')[0]
-
-        #get orientations for controls
-        fkOrient = self.__fkOrient()
-        ikOrient = self.__ikOrient()
-        upVector = self.upVector
-        aimVector = self.aimVector
+        if common.isValid(self.masterGuide):
+            #get orientations for controls
+            fkOrient  = self.__fkOrient()
+            ikOrient  = self.__ikOrient()
+            upVector  = self.upVector
+            aimVector = self.aimVector
 
         #call parent class rig function
-        super(Limb, self).rig()
-
+        if super(Limb, self).rig():
+            return True
+        
         #create ik fk switch
         ikfkDict = ikfk.create(jointChain = [self.startJoint, self.midJoint, self.tipJoint], stretch = self.stretch)
         ikfkDict['group'] = cmds.rename(ikfkDict['group'], '%s_%s' % (self.name(),ikfkDict['group']))

@@ -51,7 +51,8 @@ class Leg(limb.Limb):
         self.removeArgument('endJoint')
 
     def setupRig(self):
-        super(Leg,self).setupRig()
+        if super(Leg,self).setupRig():
+            return True
         
         self.skinClusterJnts.remove(self.endJoint)
         self.skinClusterJnts.insert(0,self.pelvisJoint)

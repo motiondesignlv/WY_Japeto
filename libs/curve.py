@@ -8,14 +8,11 @@ This is the curve module for all the curve utility functions
 
 #import maya modules
 from maya import cmds
-from maya import mel
 from maya import OpenMaya
 
 #import package modules
 from japeto.libs import common
 from japeto.libs import node
-reload(node)
-
 
 class Curve(node.Node):
     def __init__(self, name = str(), **kwargs):

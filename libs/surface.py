@@ -10,10 +10,6 @@
 # @points on a surface: closestPointOnSurface buildDictClosestPointSurface createFollicles
 # '''
 # #---------------------------------------------------------------------------------------
-import os
-import sys
-import doctest
-
 #import Maya Modules
 from maya import cmds
 from maya import mel

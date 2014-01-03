@@ -3,8 +3,6 @@ Node will track and manage all data with-in a node
 '''
 from japeto.mlRig import ml_dict
 from japeto.mlRig import ml_attribute
-reload(ml_attribute)
-reload(ml_dict)
 
 class MlNode(object):
     '''

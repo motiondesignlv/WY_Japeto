@@ -5,10 +5,8 @@ This is the joint module for all the joint utility functions
 :contact: walteryoder@gmail.com
 :date: October 2012
 '''
-
 #import python modules
 import os
-import sys
 import tempfile
 
 #import Maya modules
@@ -20,17 +18,14 @@ from japeto.libs import fileIO
 from japeto.libs import attribute
 from japeto.libs import ordereddict
 from japeto.libs import pyon
-reload(attribute)
 
 def create(name, parent = None, position = [0,0,0]):
     '''
-
-    @param name:
-    @param position:
-    @param parent: parent of created joint
-    @type parent: *str*
+    :param name:
+    :param position:
+    :param parent: parent of created joint
+    :type parent: str
     '''
-
     #clear selection
     cmds.select(cl = True)
 
@@ -50,8 +45,8 @@ def orientToRotate (joint):
     '''
     Transfers the joint orientation values to euler rotation
 
-    @param joint: Joint(s) you want to do the transfer for
-    @type joint: *str* or *list*
+    :param joint: Joint(s) you want to do the transfer for
+    :type joint: *str* or *list*
     '''
     sArrJoints = [joint] #common.toList(joint)
 
@@ -66,16 +61,15 @@ def orientToRotate (joint):
                 ori = cmds.xform(j,q=True,ws=True,ro=True)
                 cmds.setAttr(j+'.jo',0,0,0)
                 cmds.xform(j,ws=True,ro=ori)
-
             else:
-               cmds.warning('%s attributes are locked and unable to change rotation') 
+                cmds.warning('%s attributes are locked and unable to change rotation') 
 
 def rotateToOrient (joint):
     '''
     Transfer the euler rotate values to the joint orientation
 
-    @param joint: Joint(s) you want to do the transfer for
-    @type joint: *str* or *list*
+    :param joint: Joint(s) you want to do the transfer for
+    :type joint: *str* or *list*
     '''
     sArrJoints = [joint]#common.toList(joint)
 
@@ -102,23 +96,23 @@ def rotateToOrient (joint):
 def mirror (joint, search = common.LEFT, replace = common.RIGHT, axis = "x"):
     '''
     Mirror joint orientation
-    *It won't create a new joint, it will only mirror the oriention from one existing joint to another.
+    It won't create a new joint, it will only mirror the oriention from one existing joint to another.
 
     .. python ::
 
         mirror( cmds.ls(sl=True) )
 
-    @param joint: Joint you want to mirror
-    @type joint: *str* or *list*
+    :param joint: Joint you want to mirror
+    :type joint: *str* or *list*
 
-    @param search: Search side token
-    @type search: *str*
+    :param search: Search side token
+    :type search: *str*
 
-    @param replace: Replace side token
-    @type replace: *str*
+    :param replace: Replace side token
+    :type replace: *str*
 
-    @param axis: Mirror plane axis, for example **x**
-    @type axis: *str*
+    :param axis: Mirror plane axis, for example **x**
+    :type axis: *str*
     '''
 
     # get given joints

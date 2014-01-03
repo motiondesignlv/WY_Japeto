@@ -31,8 +31,6 @@ from japeto.mlRig import ml_node
 
 fileIO.loadPlugin(os.path.join(PLUGINDIR, 'rigNode.py'))
 
-reload(ml_graph)
-
 class Rig(ml_graph.MlGraph):
     @classmethod
     def getControls(cls, asset):
@@ -55,7 +53,44 @@ class Rig(ml_graph.MlGraph):
         return None
     
     @classmethod
-    def saveControls(cls, controls, filePath):
+    def getJoints(cls, asset):
+        '''
+        Get joints based on whether or not the given asset has
+        a tag_joints attribute.
+        
+        :param asset: Asset you want to get controls from
+        :type asset: str
+        
+        :return: Returns controls on the given asset
+        :rtype: list | None
+        '''
+                
+        jointAttr = '%s.displayJnts' % asset
+        if common.isValid(jointAttr):
+            joints = attribute.getConnections(jointAttr, plugs = False)
+            if joints:
+                print 'shit'
+                return joints
+        if cmds.ls(type = 'puppet'):
+            puppet = cmds.ls(type = 'puppet')
+            joints = list()
+            if puppet:
+                for node in attribute.getConnections('%s.puppet_nodes' % puppet[0], plugs = False):
+                    jointAttr = '%s.displayAxis' % node
+                    if common.isValid(jointAttr):
+                        masterGuides = attribute.getConnections(jointAttr, plugs = False)
+                        if masterGuides:
+                            for guide in masterGuides:
+                                jnts = attribute.getConnections(jointAttr.replace(node, guide), plugs = False)
+                                if node in jnts:
+                                    jnts.pop(jnts.index(node))
+                                joints.extend(jnts)
+                return joints
+
+        return None
+    
+    @classmethod
+    def saveControls(cls, controls, filepath):
         '''
         Save the controls for the asset
         
@@ -80,7 +115,34 @@ class Rig(ml_graph.MlGraph):
         #end loop
         
         #save the controls in savedControls list
-        control.save(savedControls, filepath = filePath)
+        control.save(savedControls, filepath = filepath)
+        
+    @classmethod
+    def saveJoints(cls, joints, filepath):
+        '''
+        Save the joints for the asset
+        
+        :param joints: joints that will be written out
+        :type joints: list | str | tuple
+        '''
+        #declare list that will be used to gather controls to save
+        savedJoints = list()
+        #make sure controls is a list before proceeding
+        joints = common.toList(joints)
+        
+        if not isinstance(joints, list):
+            raise RuntimeError('%s must be a list' % joints)
+        #end if
+        
+        for jnt in joints:
+            if common.isValid(jnt):
+                if common.isType(jnt, 'joint'):
+                    savedJoints.append(jnt)
+            #end if
+        #end loop
+        
+        #save the controls in savedControls list
+        joint.save(savedJoints, filepath = filepath)
     
     @staticmethod
     def saveTemplate(graph,filepath):
@@ -137,7 +199,7 @@ class Rig(ml_graph.MlGraph):
         super(Rig, self).__init__(name)
 
         #declare group names of variables
-        self.rigGrp      = name
+        self.rigGrp      = '%s_rig' % name
         self.noXformGrp  = 'noXform'
         self.jointsGrp   = 'joints'
         self.controlsGrp = 'controls'
@@ -171,9 +233,9 @@ class Rig(ml_graph.MlGraph):
         self.register('Build', self.build)
         self.register('Post-Build', self.postBuild)
         self.register('Utils', ml_node.MlNode('utils'))
-        self.register('Export Controls', self.exportControls, 'utils', filePath = os.path.dirname(__file__))
-        #self.register('Export Joints', self.exportControls, 'utils', filePath = os.path.dirname(__file__))
-        self.register('Export Joints', self.mirror, 'utils', side = common.LEFT)
+        self.register('Export Controls', self.exportControls, 'utils', filepath = os.path.dirname(__file__))
+        self.register('Export Joints', self.exportJoints, 'utils', filepath = os.path.dirname(__file__))
+        self.register('Mirror', self.mirror, 'utils', side = common.LEFT)
         
         return True
 
@@ -372,11 +434,11 @@ class Rig(ml_graph.MlGraph):
             cmds.parent(node.controlsGrp, self._trsCtrl)
             cmds.parent(node.jointsGrp, self.jointsGrp)
             for attr in ['displayJnts', 'jointVis']:
-                fullAttrPath  = '%s.%s' % (self.name(), attr)
+                fullAttrPath  = '%s.%s' % (self.rigGrp, attr)
                 componentAttr = '%s.%s' % (node.rigGrp, attr)
                 if cmds.objExists(componentAttr):
                     if not cmds.objExists(fullAttrPath):
-                        attribute.copy(attr, node.rigGrp, self.name(), reverseConnect=False)
+                        attribute.copy(attr, node.rigGrp, self.rigGrp, reverseConnect=False)
                     #end if
                     
                     connectedAttrs = attribute.getConnections(attr, node.rigGrp, incoming = False)
@@ -420,7 +482,7 @@ class Rig(ml_graph.MlGraph):
 
         #lock and hide attributes
         attribute.lockAndHide(['s', 'v'], [self._shotCtrl, self._trsCtrl])
-        attribute.lockAndHide(['t', 'r', 's', 'v'], self.name())
+        attribute.lockAndHide(['t', 'r', 's', 'v'], self.rigGrp)
         
         #clear selection
         cmds.select(cl = True)
@@ -448,11 +510,11 @@ class Rig(ml_graph.MlGraph):
         
         return
 
-    def exportControls(self, filePath = os.path.dirname(__file__)):
+    def exportControls(self, filepath = os.path.dirname(__file__)):
         '''
         This will export controls for the asset
         
-        :see: Rig.saveControls(controls, filePath)
+        :see: Rig.saveControls(controls, filepath)
         
         .. warning: This will put any control you try to export in the current 
                   directory of this file. It should be exporting to an asset directory
@@ -460,6 +522,35 @@ class Rig(ml_graph.MlGraph):
         .. todo: Find out where the controls will be saved.
         .. todo: Figure out how we will store the file path for an asset
         '''
-        fileName, fileExt = os.path.splitext(filePath)
+        fileName, fileExt = os.path.splitext(filepath)
+        if cmds.ls(type = 'rig'):
+            filepath = os.path.join(fileName,'%s.%s' % (self.name(),common.CONTROL))
+            controls = Rig.getControls(self.rigGrp)
+            print "Saving %s's controls to %s" % (self.name(),filepath)
+            Rig.saveControls(controls,filepath)
+            print "finished saving %s's controls" % self.name()
+            return True
+        else:
+            cmds.warning("Can't find/save any controls")
+            return False
         
-        Rig.saveControls(Rig.getControls(self.name()),filePath = os.path.join(fileName,'%s.%s' % (self.name(),common.CONTROL)))
+    def exportJoints(self, filepath):
+        '''
+        This will export joints for the asset
+        
+        :see: Rig.saveJoints(joints, filePath)
+        
+        .. warning: This will put any joint you try to export in the current 
+                  directory of this file. It should be exporting to an asset directory
+        
+        .. todo: Find out where the joints will be saved.
+        .. todo: Figure out how we will store the file path for an asset
+        '''
+        fileName, fileExt = os.path.splitext(filepath)
+        joints = Rig.getJoints(self.rigGrp)
+        if joints:
+            print joints
+            print "Saving joints"
+            Rig.saveJoints(joints,filepath = os.path.join(fileName,'%s.%s' % (self.name(),common.JOINT)))
+            print "Done Saving Joints"
+            

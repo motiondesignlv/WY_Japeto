@@ -8,7 +8,6 @@ This is the common module for all the common utility functions
 
 #importing python modules
 import sys
-import os
 
 #import maya modules
 import maya.cmds as cmds
@@ -16,7 +15,6 @@ import maya.mel as mel
 import maya.OpenMaya as OpenMaya
 
 #import package modules
-import japeto
 
 #Constant variables
 #-------------------

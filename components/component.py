@@ -77,6 +77,7 @@ class Component(ml_node.MlNode):
         self.setupConstraints = list()
         self._buildArguments  = dict()
         self._puppetNode      = str()
+        
 
     #----------------------------------
     #GETTERS
@@ -145,7 +146,8 @@ class Component(ml_node.MlNode):
         self.jointsGrp   = '%s_joints_%s' % (self.name(), common.GROUP)
         self.controlsGrp   = '%s_controls_%s' % (self.name(), common.GROUP)
         self.__side = common.getSide(self.name()) #checks if there is a side based off name template
-        self.__location = common.getLocation(self.name()) #checks if there is a location based off name template
+        self.__location  = common.getLocation(self.name()) #checks if there is a location based off name template
+        self.masterGuide = '%s_master_%s' % (self.name(), common.GUIDES)
         
         self.addArgument('position', [0,0,0], 0)
         self.addArgument('controlScale', 1, 1)
@@ -155,12 +157,14 @@ class Component(ml_node.MlNode):
     #SETUP FUNCTIONS
     #----------------------------------    
     def setupRig(self):
+        if common.isValid(self.name()):
+            return True
         self.setupConstraints = []
         #makes component a puppet node
         self.puppetNode = puppet.create(self.name())
         
         #Create master guide control and 
-        self.masterGuide = control.createSetup('%s_master' % self.name(), type = 'square')
+        control.createSetup('%s_master' % self.name(), type = 'square')
         common.setColor(self.masterGuide, 'darkred')
         
         #create hierarchy
@@ -182,6 +186,8 @@ class Component(ml_node.MlNode):
         '''
         clean up section for the setup rig
         '''
+        if common.isValid('%s.displayAxis' % self.masterGuide):
+            return True
         #create attributes and lock/hide attrs on top nodes as well as masterGuide control
         displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')
         attribute.lockAndHide(['r','t','s','v'], [self.setupRigGrp, self.skeletonGrp,self.guidesGrp, common.getParent(self.masterGuide)])
@@ -243,6 +249,9 @@ class Component(ml_node.MlNode):
         '''
         this is the build section for the rig.
         '''
+        if common.isValid(self.controlsGrp):
+            return True
+        
         if not self._puppetNode:
             self.runSetupRig()
         
@@ -283,6 +292,12 @@ class Component(ml_node.MlNode):
         '''
         clean up for the rig build.
         '''
+        if common.isValid('%s.jointVis' % self.rigGrp):
+            return True
+        
+        if cmds.ls(type = 'rig') and common.isValid(self.controlsGrp) and not common.isValid(self.rigGrp):
+            return True
+        
         jointVisAttr     = attribute.addAttr(self.rigGrp, 'jointVis', attrType = 'enum', defValue = 'off:on')
         scaleAttr        = attribute.addAttr(self.rigGrp, 'uniformScale', attrType = 'double', defValue = 1, min = 0)
         jointDisplayAttr = attribute.addAttr(self.rigGrp, 'displayJnts', attrType = 'enum', defValue = 'Normal:Template:Reference')

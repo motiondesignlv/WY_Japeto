@@ -7,13 +7,11 @@ This is the common module for all the common utility functions
 '''
 
 #importing python modules
-import sys
 import os
 import shutil
 
 #import maya modules
 import maya.cmds as cmds
-import maya.mel as mel
 
 
 def copyFile(src, dst):

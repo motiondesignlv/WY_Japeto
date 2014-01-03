@@ -1,9 +1,8 @@
 import sys
 
 # Import Maya modules
-import maya.cmds        as cmds
-import maya.mel         as mel
-import maya.OpenMaya    as OpenMaya
+import maya.cmds as cmds
+import maya.OpenMaya as OpenMaya
 
 # Import japeto modules
 import japeto

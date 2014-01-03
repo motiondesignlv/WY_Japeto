@@ -1,0 +1,42 @@
+'''
+This is the $EXAMPLE template
+
+:author: 
+:contact: 
+:date: 
+'''
+#import python modules
+
+#import maya modules
+from maya import cmds
+
+#import package modules
+$IMPORT
+
+
+class $EXAMPLE($PARENT):
+    def __init__(self, name):
+        super($EXAMPLE, self).__init__(name)#<--Do not remove
+
+    def initialize(self):
+        #register nodes here
+        $REGISTER
+    
+    def preBuild(self):
+        '''
+        sets up the hierachry
+        '''
+        super($EXAMPLE, self).preBuild()#<--Do not remove
+        
+    def build(self):
+        '''
+        build rig hierarchy
+        '''
+        super($EXAMPLE, self).build()#<--Do not remove
+
+
+    def postBuild(self):
+        '''
+        clean up rig asset
+        '''
+        super($EXAMPLE,self).postBuild() #<--Do not remove

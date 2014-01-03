@@ -3,9 +3,7 @@ Fields that are used in our UI
 
 #.. todo: Make a field specifically for lists
 '''
-
 from PyQt4 import QtGui, QtCore
-import sys
 
 class BaseField(QtGui.QWidget):
     def __init__(self, label, value = None, description = str(), parent = None, attribute = None):
@@ -15,7 +13,6 @@ class BaseField(QtGui.QWidget):
         self.__value = value
         #self.__description = self.setAccessibleDescription(description)
         self.__attribute= attribute
-        print self.__attribute
     
     def label(self):
         return self.__label

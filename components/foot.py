@@ -19,7 +19,6 @@ import japeto.libs.transform as transform
 #import components
 import japeto.components.component as component
 
-
 class Foot(component.Component):
     def __init__(self, name):
         super(Foot, self).__init__(name)
@@ -89,7 +88,8 @@ class Foot(component.Component):
                 common.JOINT), 7)
 
     def setupRig(self):
-        super(Foot, self).setupRig()
+        if super(Foot, self).setupRig():
+            return True
 
         self.skinClusterJnts = [ self.ankleJoint,
                                  self.ballJoint,
@@ -204,7 +204,8 @@ class Foot(component.Component):
                     self.controlScale * .5)
 
     def postSetupRig(self):
-        super(Foot, self).postSetupRig()
+        if super(Foot, self).postSetupRig():
+            return True
 
     def rig(self):
         if not self._puppetNode:
@@ -215,7 +216,8 @@ class Foot(component.Component):
                 self.__heelPivot],
                 w = True)
 
-        super(Foot,self).rig()
+        if super(Foot,self).rig():
+            return True
 
         #create foot ik/fk chain and parent group to joints group
         self.__footIkFk = \

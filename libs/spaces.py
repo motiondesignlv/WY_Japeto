@@ -11,7 +11,6 @@ Spaces Library
 import maya.cmds as cmds
 
 # Import rigtools modules
-from japeto.libs import common
 from japeto.libs import attribute
 from japeto.libs import transform
 

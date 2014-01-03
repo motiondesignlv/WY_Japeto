@@ -10,7 +10,6 @@ import maya.cmds as cmds
 
 #import package modules
 import japeto.templates.rig as rig
-reload(rig)
 
 #import libs
 from japeto.libs import common
@@ -178,14 +177,15 @@ class Biped(rig.Rig):
         '''
         super(Biped,self).build()
 
-        displayAttr = '%s.displayJnts' % self.name()
+        displayAttr = '%s.displayJnts' % self.rigGrp
         #get the control size of the spine
         spineCtrlSize = self.components['Spine'].controlScale
 
         #create the root joint and control
         #-----------------------------------------------
-        joint.create(self.rootJoint,
-            position = self.components['Spine'].position)
+        if not common.isValid(self.rootJoint):
+            joint.create(self.rootJoint,
+                position = self.components['Spine'].position)
 
         cmds.parent(self.rootJoint, self.jointsGrp)
 
@@ -205,7 +205,8 @@ class Biped(rig.Rig):
 
         #create the hip joint and control
         #-----------------------------------------------
-        joint.create(self.hipJoint,position =self.components['Spine'].position)
+        if not common.isValid(self.hipJoint):
+            joint.create(self.hipJoint,position =self.components['Spine'].position)
 
         #parent the joint to 
         cmds.parent(self.hipJoint,self.jointsGrp)

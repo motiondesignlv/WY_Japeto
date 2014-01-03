@@ -36,27 +36,27 @@ class IkFk(object):
         createIkHandle("l_upArm_ik_jnt", "l_wrist_ik_jnt", name = "l_arm_ik_hdl", parent = "ikfk_grp")
         #Return: ["l_arm_ik_hdl
         
-        @param startJoint: first joint in the chain for the ikHandle to effect
-        @type startJoint: *str*
+        :param startJoint: first joint in the chain for the ikHandle to effect
+        :type startJoint: *str*
         
-        @param endJoint: last joint in the chain for the ikHandle to effect
-        @type endJoint: *str*
+        :param endJoint: last joint in the chain for the ikHandle to effect
+        :type endJoint: *str*
         
-        @param type: The type of ikHandle used on creation
-        @type type: *str*
+        :param type: The type of ikHandle used on creation
+        :type type: *str*
         :options: 'ikRPsolver', ikSCSolver
         
-        @param name: Name given to the ikHandle
-        @type name: *str*
+        :param name: Name given to the ikHandle
+        :type name: *str*
         
-        @param parent: Parent object for the ikHandle
-        @type parent: *str*
+        :param parent: Parent object for the ikHandle
+        :type parent: *str*
         
-        @return ikHandle: Name of the ikHandle
-        @rtype ikHandle: *str*
+        :return ikHandle: Name of the ikHandle
+        :rtype ikHandle: *str*
         
-        @return effector: Name of the effector of the ikHandle
-        @rtype effector: *str*
+        :return effector: Name of the effector of the ikHandle
+        :rtype effector: *str*
         
         '''
         if not name:

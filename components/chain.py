@@ -60,7 +60,8 @@ class Chain(component.Component):
         return self.__chainIkFk
         
     def setupRig(self):
-        super(Chain, self).setupRig()
+        if super(Chain, self).setupRig():
+            return True
         
         self.skinClusterJnts = [self.startJoint, self.endJoint]
                 
@@ -95,8 +96,6 @@ class Chain(component.Component):
                     positions[0][1],
                     positions[0][2] + 5]
         #end elif
-        print self.skinClusterJnts
-        print positions
         for i,jnt in enumerate(self.skinClusterJnts):
             
             cmds.joint(n = jnt,position = positions[i])
@@ -210,7 +209,9 @@ class Chain(component.Component):
 
 
     def rig(self):
-        super(Chain, self).rig()
+        if super(Chain, self).rig():
+            return True
+        
         self.__chainIkFk = ikfk.IkFk(self.startJoint,
             self.endJoint,
             name = self.name())
@@ -225,7 +226,9 @@ class Chain(component.Component):
         
             
     def postRig(self):
-        super(Chain, self).postRig()
+        if super(Chain, self).postRig():
+            return True
+        
         #parent ikfk group to the rig grp
         cmds.parent(self.ikFkGroup, self.jointsGrp)
         

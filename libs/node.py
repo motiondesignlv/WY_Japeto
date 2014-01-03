@@ -11,7 +11,6 @@ This is the node module for all the node class
 
 #import maya modules
 import maya.cmds as cmds
-import maya.mel as mel
 
 #import package modules
 from japeto.libs import common

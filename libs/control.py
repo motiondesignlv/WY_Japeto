@@ -11,7 +11,6 @@ import os
 
 #import maya modules
 import maya.cmds as cmds
-import maya.mel as mel
 
 #import package modules
 from japeto.libs import common
@@ -20,7 +19,6 @@ from japeto.libs import pyon
 from japeto.libs import curve
 from japeto.libs import attribute
 from japeto.libs import fileIO
-reload(pyon)
 
 CONTROL_FILEPATH  = os.path.join(os.path.dirname(__file__), 'control.pyon')
 

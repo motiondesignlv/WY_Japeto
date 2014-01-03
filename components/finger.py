@@ -26,7 +26,8 @@ class Finger(chain.Chain):
         super(Finger,self).initialize(**kwargs)
         
     def setupRig(self):
-        super(Finger, self).setupRig()
+        if super(Finger, self).setupRig():
+            return True
 
         if self._getSide() == common.LEFT:
             cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [-4.0, 0, 0])
