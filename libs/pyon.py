@@ -75,7 +75,7 @@ class Encoder( object ):
 
         items = range( len( obj ) )
         for i,k in enumerate(obj.keys()):
-            if isinstance(obj[k],node.Node):
+            if isinstance(obj[k],node.MlNode):
                 items[i] = '%snode %s: %s' % ( ' '*self.indent*self.__depth__, self.encode( k ), self.encode( obj[k] ) )
             else:
                 items[i] = '%s%s: %s' % ( ' '*self.indent*self.__depth__, self.encode( k ), self.encode( obj[k] ) )
@@ -118,7 +118,7 @@ class Encoder( object ):
             return self.encode_list( obj )
 
         #Parse node
-        elif isinstance(obj,node.Node):
+        elif isinstance(obj,node.MlNode):
             self.__depth__ += 1
             return self.encode_node(obj)            
         

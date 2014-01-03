@@ -248,8 +248,8 @@ class Chain(component.Component):
                     self._fkControlSetup(["jnt1", "jnt2", "jnt3"])
                     #Return: ["ctrl1", "ctrl2", "ctrl3"]
                     
-        @param joints: Joints to have controls drive
-        @type joints: *list* or *tupple* or *str*
+        :param joints: Joints to have controls drive
+        :type joints: *list* or *tupple* or *str*
         
         
         '''

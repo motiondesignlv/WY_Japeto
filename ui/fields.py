@@ -1,4 +1,9 @@
-#!/usr/bin/env python
+'''
+Fields that are used in our UI
+
+#.. todo: Make a field specifically for lists
+'''
+
 from PyQt4 import QtGui, QtCore
 import sys
 
@@ -97,6 +102,8 @@ class IntField(BaseField):
         self._layout.addWidget(self._intBox)
         self._layout.addStretch()
         self.setLayout(self._layout)
+        self.setMinimumSize(180,50)
+        self.setMaximumSize(200,50)
         
         
     def setValue(self, value):
@@ -137,7 +144,7 @@ class VectorField(BaseField):
         self._valueLayout.addWidget(self._yField)
         self._valueLayout.addWidget(self._zField)
         self._layout.addWidget(self.label())
-        self._layout.addStretch()
+        #self._layout.addStretch()
         self._layout.addLayout(self._valueLayout)
 
         #set text if any value
@@ -160,6 +167,9 @@ class VectorField(BaseField):
         self._zField._lineEdit.textChanged.connect(self._setZ)
         
         self.setLayout(self._layout)
+        #self._layout.setGeometry(QtCore.QRect(100,100,300,300))
+        self.setMinimumSize(150,150)
+        self.setMaximumSize(150,150)
 
     
     def setValue(self, value):

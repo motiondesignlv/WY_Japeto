@@ -619,19 +619,16 @@ class IkFkSpline(IkFk):
         
         .. todo:: add maintainVolume option
         
-        @param curve: the name of the curve transform (or shape) you want to use - This curve must be connected to a splineIK. This can be a live rebuild
-        @type curve: str
-        @param scaleCompensate: a node to use as the base character scale reference to ensure character scaling is taken into account
-        @type scaleCompensate: str
-        @param scaleAxis: the axis to scale (or translate) along for stretching
-        @type scaleAxis: str (x, y, z)
-        @param uniform: whether to use uniform stretching (default is false which means joints most affected by curve distortion will stretch more)
-                        This will cause a live uniform rebuild of your source curve to connect it to the splineIK.
-                        The uniform rebuild will have the same number of cvs as the source and will be the same degree curve. If you want more control
-                        you can always create the live rebuild first, connect it to the splineIK.geometry input and then run this on the rebuild curve
-        @type uniform: bool
-        @param useTranslationStretch: whether to translate the joints rather than scale (be aware this may cause the joints to overshoot the curve.)
-        @type useTranslationStretch: bool
+        :param curve: the name of the curve transform (or shape) you want to use - This curve must be connected to a splineIK. This can be a live rebuild
+        :type curve: str
+        :param scaleCompensate: a node to use as the base character scale reference to ensure character scaling is taken into account
+        :type scaleCompensate: str
+        :param scaleAxis: the axis to scale (or translate) along for stretching
+        :type scaleAxis: str (x, y, z)
+        :param uniform: whether to use uniform stretching (default is false which means joints most affected by curve distortion will stretch more)
+        :type uniform: bool
+        :param useTranslationStretch: whether to translate the joints rather than scale (be aware this may cause the joints to overshoot the curve.)
+        :type useTranslationStretch: bool
         
         '''
         # arg validation

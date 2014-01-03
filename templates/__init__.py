@@ -1,2 +1,0 @@
-def saveTemplate(graph,filepath):
-    

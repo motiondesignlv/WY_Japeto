@@ -41,8 +41,12 @@ class FileListModel(QtCore.QAbstractListModel):
         
         self._data = self._getFiles()
         
-    def headerData(self):
-        return 'Components'
+    def headerData(self,section, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:  
+            return QtCore.QVariant('Components')
+     
+        return None  
+        
     
     def rowCount(self, parent):
         return len(self._data)
@@ -63,16 +67,16 @@ class FileListModel(QtCore.QAbstractListModel):
         nullFiles = ['__init__.py', 'puppet.py', 'component.py']
         files = os.listdir(FileListModel.__dirPath__)
         fileList = list()
-        for file in files:
-            if file not in nullFiles and '.pyc' not in file:
-                if '.py' in file and file not in fileList:
-                    fileList.append(file.split('.')[0])
+        for _file in files:
+            if _file not in nullFiles and '.pyc' not in _file:
+                if '.py' in _file and _file not in fileList:
+                    fileList.append(_file.split('.')[0])
                 #end if
             
         #end loop
         return fileList
 
-        
+
 class LayerGraphModel(QtCore.QAbstractItemModel):
     NodeRole = QtCore.Qt.UserRole
     def __init__(self, graph, parent = None):
@@ -108,16 +112,19 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
         elif role == self.NodeRole:
             return node
     
-    def headerData(self, section, orientation, role):
-        return "Outliner"
+    def headerData(self,section, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:  
+            return QtCore.QVariant('Graph')  
+     
+        return None  
         
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
     
     def parent(self, index):
         """
-        @param index: Index of the node on the graph you want to get the parent
-        @type index: *QModelIndex* 
+        :param index: Index of the node on the graph you want to get the parent
+        :type index: *QModelIndex* 
         """
         node = index.internalPointer()
         parentNode = node.parent()
@@ -146,16 +153,14 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
     
     def index(self, row, column,parent = QtCore.QModelIndex()):
         """
-        @param row: Row index of the child node.
-        @type index: *int* 
+        :param row: Row index of the child node.
+        :type index: *int* 
         
-        @param column: Column index of the child node.
-        @type column: *int* 
+        :param column: Column index of the child node.
+        :type column: *int* 
         
-        @param parent: Parent of the child we are looking for.
-        @type parent: *QModelIndex*
-        
-        
+        :param parent: Parent of the child we are looking for.
+        :type parent: *QModelIndex*
         """
         if not parent.isValid():
             parentNode = self._rootNode
@@ -181,7 +186,7 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
     def supportedDropActions( self ):
         '''Items can be moved and copied (but we only provide an interface 
         or moving items in this example.'''
-        return QtCore.Qt.MoveAction #| QtCore.Qt.CopyAction
+        return QtCore.Qt.MoveAction 
 
     def insertRows(self, row, count,
                    parent = QtCore.QModelIndex(),
@@ -243,14 +248,14 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
             #       above or below an existing node""" <-- for testing
             beginRow = row
         elif parent.isValid():
-            print """PARENT IS VALID, inserting ONTO something since row was not -1, 
-                    beginRow becomes 0 because we want to insert it at the begining
-                    of this parents children"""
+            #print """PARENT IS VALID, inserting ONTO something since row was not -1, 
+            #        beginRow becomes 0 because we want to insert it at the begining
+            #        of this parents children"""
             parentNode = parent.internalPointer()
             beginRow = parentNode.childCount()
         else:
-            print """PARENT IS INVALID, inserting to root, can change to 0 if you want 
-                    it to appear at the top"""
+            #print """PARENT IS INVALID, inserting to root, can change to 0 if you want 
+            #        it to appear at the top"""
             beginRow = self.rowCount(QtCore.QModelIndex())
         
         # create a read only stream to read back packed data from our QMimeData
@@ -289,16 +294,63 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
             self.insertRows(beginRow, numDrop, parent, node)
 
         return True
+
+
+class FileGraphModel(LayerGraphModel):
+    __componentPath__ = components.__path__[0]
     
-class FileView(QtGui.QListView):
+    def __init__(self, parent = None):
+        self._graph      = ml_graph.MlGraph('fileList')
+        self._components = self._graph.addNode('Components')
+        #self._nodes      = self._graph.addNode('Nodes')
+        
+        #disable the top nodes
+        self._components.disable()
+        #self._nodes.disable()
+                
+        self._getComponents()
+        
+        super(FileGraphModel, self).__init__(self._graph,parent)
+    
+    def headerData(self,section, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:  
+            return QtCore.QVariant('Nodes')  
+     
+        return None  
+    
+    def flags(self, index):
+        if index.isValid():
+            node = index.internalPointer()
+            if not node.active():
+                return QtCore.Qt.ItemIsEnabled
+        
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+
+    def _getComponents(self):
+        '''
+        List all the files in the given directory for this model. (__dirPath__)
+        '''
+        nullFiles = ['__init__.py', 'puppet.py', 'component.py']
+        files = os.listdir(FileGraphModel.__componentPath__)
+        fileList = list()
+        for _file in files:
+            if _file not in nullFiles and '.pyc' not in _file:
+                if '.py' in _file and _file not in fileList:
+                    self._graph.addNode(_file.split('.')[0], self._components)
+                #end if
+
+    
+class FileView(QtGui.QTreeView):
     def __init__(self, parent = None):
         super(FileView, self).__init__(parent)
         
         self.setAlternatingRowColors(True)
-        self._model = FileListModel()
+        self._model = FileGraphModel()
+        #self._model = FileListModel()
         self.setModel(self._model)
-        self.setDragDropMode(QtGui.QAbstractItemView.DragOnly)
-        self.setDragEnabled(True)
+        #self.setDragDropMode(QtGui.QAbstractItemView.DragOnly)
+        #self.setDragEnabled(True)
+        self.expandAll()
         
 
 class CentralTabWidget(QtGui.QTabWidget):
@@ -314,29 +366,30 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._setupTreeFilter = QtGui.QLineEdit()
         self._setupTreeView = QtGui.QTreeView()
         self._setupTreeView.setAlternatingRowColors(True)
-        #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
-        #self._setupTreeView.setDragDropMode(QtGui.QAbstractItemView.InternalMove) 
         self._setupTreeView.setDragEnabled( True )
         self._setupTreeView.setAcceptDrops( True )
+        
+        #setupGroupBoxLayout.addWidget(self._setupTreeFilter)
+        #setupGroupBoxLayout.addWidget(self._setupTreeView)
+        #self.setupGroupBox.setLayout(setupGroupBoxLayout)
         
         #file view
         self._fileView = FileView()
         
         #fields
-        self._setupAttrsLayout = QtGui.QVBoxLayout()
-        #test = fields.IntField('Test1')
-        #self._setupAttrsLayout.addWidget(test)
+        attrsGroupBox = QtGui.QGroupBox('Attributes', self)
+        attrsGroupLayout = QtGui.QVBoxLayout()
+        self._setupAttrsWidget = QtGui.QWidget()
+        self._setupAttrsLayout = QtGui.QVBoxLayout(self._setupAttrsWidget)
+        self.attrsScrollArea = QtGui.QScrollArea()
+        attrsGroupLayout.addWidget(self.attrsScrollArea)
+        
+        self.attrsScrollArea.setWidgetResizable(True)
+        self.attrsScrollArea.setWidget(self._setupAttrsWidget)
+        attrsGroupBox.setLayout(attrsGroupLayout)
         
         #buttons
-        #setupButtonLayout = QtGui.QHBoxLayout()
         self._addFileButton = QtGui.QPushButton('-Add->')
-        self._setupSelectedButton  = QtGui.QPushButton('Run Selected')
-        self._setupButton  = QtGui.QPushButton('Run All')
-        #setupButtonLayout.addWidget(self._setupSelectedButton)
-        #setupButtonLayout.addWidget(self._setupButton)
-        
-        #self._setupButton.clicked.connect(self._runSetupButton)
-        #self._setupSelectedButton.clicked.connect(self._runSelectedSetupButton)
         self._addFileButton.clicked.connect(self._addComponentToGraph)
         
         #bring it all together
@@ -344,8 +397,8 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._setupWidgetLayout.addWidget(self._setupTreeFilter, 0,2)
         self._setupWidgetLayout.addWidget(self._addFileButton, 1,1)
         self._setupWidgetLayout.addWidget(self._setupTreeView, 1,2)
-        #self._setupWidgetLayout.addLayout(setupButtonLayout, 2,2)
-        self._setupWidgetLayout.addLayout(self._setupAttrsLayout, 1,3)
+        #self._setupWidgetLayout.addLayout(self._setupAttrsLayout, 1,3)
+        self._setupWidgetLayout.addWidget(attrsGroupBox, 1,3)
         setupWidget.setLayout(self._setupWidgetLayout)
         
         #-------------------------------------------------
@@ -360,11 +413,6 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._proxyModel.setSourceModel(self._model)
         self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        '''
-        QtCore.QObject.connect(self._treeFilter,
-                               QtCore.SIGNAL("textChanged(QString)"),
-                               self._proxyModel.setFilterRegExp)
-        '''
         QtCore.QObject.connect(self._setupTreeFilter,
                                QtCore.SIGNAL("textChanged(QString)"),
                                self._proxyModel.setFilterRegExp)
@@ -373,9 +421,6 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._setupTreeView.setModel(self._proxyModel)
         
         self.addTab(setupWidget, 'Setup')
-        '''
-        self.addTab(buildWidget, 'Build')
-        '''
         self._setupTreeView.expandAll()
         
         #set selections
@@ -384,9 +429,7 @@ class CentralTabWidget(QtGui.QTabWidget):
             self._populateSetupAttrsLayout(self._model.index(0,0))
         
         self._setupTreeView.clicked.connect(self._populateSetupAttrsLayout)
-        
-        
-        
+
         #CONTEXT MENU
         self._setupTreeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.connect(self._setupTreeView, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"), self.showCustomContextMenu)
@@ -405,6 +448,9 @@ class CentralTabWidget(QtGui.QTabWidget):
             return
 
         node = self._model.itemFromIndex(index)
+        #If node is disabled, return
+        if not node.active():
+            return
         
         #construct menus
         mainMenu = QtGui.QMenu(self)
@@ -450,8 +496,9 @@ class CentralTabWidget(QtGui.QTabWidget):
         attrDict = dict()
         for attr in node.attributes():
             #if fingers attribute, evaluate the attribute differently
-            #.. todo: this is hacky
+            #.. todo: Make an attribute specifically for list in ml_attirbute.MlAttribute
             if attr.name == 'fingers':
+                print attr.value()
                 attrDict[attr.name()] = eval(attr.value())
                 continue
             
@@ -464,8 +511,16 @@ class CentralTabWidget(QtGui.QTabWidget):
         Runs the selected item in the setup view
         '''
         node = self._selectedNode()
+        attributes = dict()
         
         if node:
+            attrs = node.attributes()
+            if attrs:
+                for attr in attrs:
+                    attributes[attr.name()] = attr.value()
+                
+                    node.execute(**attributes)
+                    return
             node.execute()
             
     def _runSetup(self):
@@ -525,20 +580,25 @@ class CentralTabWidget(QtGui.QTabWidget):
         '''
         index = self._fileView.currentIndex()
         
-        model = self._fileView.model()
-        nodeName = model.data(index)
+        if not index.isValid():
+            return None
         
-        if nodeName in model._data:
-            rootNode = self._model._rootNode
-            cmd = 'import japeto.components.%s as %s' % (nodeName, nodeName)
-            exec(cmd)
-            newNodeCmd = '%s.%s' % (nodeName, nodeName.title())
-            newNode = eval(newNodeCmd)
-            newNode = newNode('c_%s' % str(nodeName))
-            newNode.initialize()
-            self._model.insertRows(rootNode.childCount(), 1,
-                                   parent = QtCore.QModelIndex(),
-                                   node = newNode)
+        model = self._fileView.model()
+        node = model.itemFromIndex(index)
+        nodeName = node.name()
+        
+        if node.active():
+            if nodeName in model._graph.nodeNames():
+                rootNode = self._model._rootNode
+                cmd = 'import japeto.components.%s as %s' % (nodeName, nodeName)
+                exec(cmd)
+                newNodeCmd = '%s.%s' % (nodeName, nodeName.title())
+                newNode = eval(newNodeCmd)
+                newNode = newNode('c_%s' % str(nodeName))
+                newNode.initialize()
+                self._model.insertRows(rootNode.childCount(), 1,
+                                       parent = QtCore.QModelIndex(),
+                                       node = newNode)
             
     def _selectedNode(self):
         '''
@@ -598,6 +658,9 @@ class CentralTabWidget(QtGui.QTabWidget):
             #add the field to the layout
             self._setupAttrsLayout.addWidget(field)
         #add stretch to push all item up
+        self.attrsScrollArea.setWidget(self._setupAttrsWidget)
+        self._setupAttrsWidget.setLayout(self._setupAttrsLayout)
+        self.attrsScrollArea.setWidgetResizable(True)
         self._setupAttrsLayout.addStretch()
     
     
@@ -833,6 +896,9 @@ class JapetoWindow(QtGui.QMainWindow):
         QtCore.QObject.connect(loadTemplateAction, QtCore.SIGNAL('triggered()'), self._loadTemplate)
         QtCore.QObject.connect(saveTemplateAction, QtCore.SIGNAL('triggered()'), self._saveTemplate)
         
+        self.setMinimumSize(880,550)
+        self.setMaximumSize(1000, 1200)
+        
     def _loadTemplate(self):
         '''
         Load all the templates into the dialog
@@ -868,13 +934,11 @@ class JapetoWindow(QtGui.QMainWindow):
         #get the template chosen
         parentTemplate = str(self.inheritTemplateDialog.parentTemplate)
         templateName = self.inheritTemplateDialog.templateNameLineEdit.value()
-        
         #import the file and initialize
-        if parentTemplate and templateName:
+        if parentTemplate != 'None' and templateName:
             tabWidget = self.centralWidget()
             cmd = 'import japeto.templates.%s as %s' % (parentTemplate, parentTemplate)
             exec(cmd)
-            print templateName.capitalize(),templateName, '%s.%s' % (parentTemplate,parentTemplate.capitalize())
             tabWidget._graph = rig.Rig.createTemplate(templateName.capitalize(),
                                                       templateName,
                                                       eval('%s.%s' % (parentTemplate,parentTemplate.capitalize()))) 
@@ -882,6 +946,7 @@ class JapetoWindow(QtGui.QMainWindow):
             tabWidget._model = LayerGraphModel(tabWidget._graph)
             tabWidget._proxyModel.setSourceModel(tabWidget._model)
             tabWidget._setupTreeView.setModel(tabWidget._proxyModel)
+            tabWidget._setupTreeView.expandAll()
     
     def setTemplate(self, *args):
         '''
@@ -891,7 +956,7 @@ class JapetoWindow(QtGui.QMainWindow):
         template = str(self.loadTemplateDialog.template)
         
         #import the file and initialize
-        if template:
+        if template != 'None':
             tabWidget = self.centralWidget()            
             cmd = 'import japeto.templates.%s as %s' % (template, template)
             exec(cmd)
@@ -901,3 +966,4 @@ class JapetoWindow(QtGui.QMainWindow):
             tabWidget._model = LayerGraphModel(tabWidget._graph)
             tabWidget._proxyModel.setSourceModel(tabWidget._model)
             tabWidget._setupTreeView.setModel(tabWidget._proxyModel)
+            tabWidget._setupTreeView.expandAll()

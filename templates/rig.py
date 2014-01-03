@@ -170,7 +170,11 @@ class Rig(ml_graph.MlGraph):
         self.register('Pre-Build', self.preBuild)
         self.register('Build', self.build)
         self.register('Post-Build', self.postBuild)
-        #self.register(name, obj, parent)
+        self.register('Utils', ml_node.MlNode('utils'))
+        self.register('Export Controls', self.exportControls, 'utils', filePath = os.path.dirname(__file__))
+        #self.register('Export Joints', self.exportControls, 'utils', filePath = os.path.dirname(__file__))
+        self.register('Export Joints', self.mirror, 'utils', side = common.LEFT)
+        
         return True
 
     def mirror(self, side = common.LEFT):
@@ -243,20 +247,31 @@ class Rig(ml_graph.MlGraph):
                     if searchNode == node.name():
                         index = node.index() + increment
                         break
-
-        if not inspect.ismethod (obj) and not inspect.isfunction (obj):
+        
+        if not inspect.ismethod (obj) and not inspect.isfunction (obj) and isinstance(obj, component.Component):
             # Check if object is a component
             if isinstance (obj, component.Component):
                 node = self.addNode(obj, parent, index)
                 node.initialize(**kwargs)
                 node.niceName = name
                 self.components[name] = node
+                return True
         elif inspect.ismethod(obj) or inspect.isfunction(obj):
             node = ml_node.MlNode(obj.__func__.__name__)
             self.addNode(node, parent, index)
             #node.setParent(parent)
             node.niceName = name
             node.execute = obj
+        elif isinstance(obj,ml_node.MlNode):
+            node = self.addNode(obj, parent, index)
+            node.disable()
+        
+        #add the keyword args as attributes to the node
+        if kwargs:
+                for k in kwargs:
+                    node.addAttribute(k, kwargs[k])
+        
+        return
 
     def setup(self):
         '''
@@ -390,7 +405,6 @@ class Rig(ml_graph.MlGraph):
 
         if self.controls:
             for ctrl in self.controls:
-                print ctrl, tagControlsAttr.split('.')[1]
                 attribute.connect(tagControlsAttr, '%s.%s' % (ctrl, tagControlsAttr.split('.')[1]))
             #end loop
         #end if
@@ -434,7 +448,7 @@ class Rig(ml_graph.MlGraph):
         
         return
 
-    def exportControls(self):
+    def exportControls(self, filePath = os.path.dirname(__file__)):
         '''
         This will export controls for the asset
         
@@ -446,7 +460,6 @@ class Rig(ml_graph.MlGraph):
         .. todo: Find out where the controls will be saved.
         .. todo: Figure out how we will store the file path for an asset
         '''
-        Rig.saveControls(Rig.getControls(self.name()),
-                         filePath = os.path.join(os.path.dirname(__file__),
-                                                 '%s.%s' % (self.name(),
-                                                            common.CONTROL)))
+        fileName, fileExt = os.path.splitext(filePath)
+        
+        Rig.saveControls(Rig.getControls(self.name()),filePath = os.path.join(fileName,'%s.%s' % (self.name(),common.CONTROL)))

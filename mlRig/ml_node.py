@@ -72,6 +72,9 @@ class MlNode(object):
     
     def setName(self, value):
         self.__name  = value
+        
+    def active(self):
+        return self.__enabled
     
     def addAttribute(self, attr, value, index = -1):
         '''
