@@ -19,14 +19,17 @@ class MlAttribute(object):
     def inValidError(cls, attr):
         raise TypeError("%s is not of type japeto.mlRig.attribute.Attribute" % attr)
     
-    def __init__(self, longName = None, shortName = None, value = None, *args, **kwargs):
-        super(MlAttribute, self).__init__(*args, **kwargs)
+    def __init__(self, longName = None, shortName = None, value = None, attrType = None, *args, **kwargs):
+        super(MlAttribute, self).__init__()
         self.__name        = longName
         self.__shortName   = shortName
         self.__value       = value
         self.__storable    = True
         self.__connectable = True
-        self.__type        = type(self.__value).__name__
+        if not attrType:
+            self.__type = type(self.__value).__name__
+        else:
+            self.__type = attrType
     
     def attrType(self):
         return self.__type
@@ -47,13 +50,11 @@ class MlAttribute(object):
         if not type(value).__name__ not in self.__attrTypes__:
             raise TypeError('%s needs to be one of the following types: %s' % (value, self.__attrTypes__))
         
-        #set the type
-        self.__type = type(value).__name__
         #build the command
         if isinstance(value, basestring):
-            cmd = 'self._set%s("%s")' % (self.__type.title(), value)
+            cmd = "self._set%s('%s')" % (type(value).__name__.title(), value)
         else:
-            cmd = 'self._set%s(%s)' % (self.__type.title(), value)
+            cmd = 'self._set%s(%s)' % (type(value).__name__.title(), value)
             
         #execute the command
         value = eval(cmd)

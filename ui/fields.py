@@ -4,6 +4,8 @@ Fields that are used in our UI
 #.. todo: Make a field specifically for lists
 '''
 from PyQt4 import QtGui, QtCore
+from japeto.ui import models
+from japeto.mlRig import ml_graph
 
 class BaseField(QtGui.QWidget):
     def __init__(self, label, value = None, description = str(), parent = None, attribute = None):
@@ -81,8 +83,99 @@ class LineEditField(BaseField):
         #set lineEdit text
         if not source == self._lineEdit:
             self._lineEdit.setText(value)
+    
+class ListField(BaseField):
+    def __init__(self, *args, **kwargs):
+        super(ListField, self).__init__(*args, **kwargs)
+        self.listGraph = ml_graph.MlGraph('listGraph')
         
+        for value in self.value():
+            self.listGraph.addNode(value)
+        
+        self._model = models.LayerGraphModel(self.listGraph)
+        self._layout = QtGui.QHBoxLayout()
+        self._listView = QtGui.QListView()
+        self._listView.setModel(self._model)
+        
+        self._layout.addWidget(self.label())
+        self._layout.addStretch()
+        self._layout.addWidget(self._listView)
+        self.setLayout(self._layout)
+        
+        #CONTEXT MENU
+        self._listView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.connect(self._listView, QtCore.SIGNAL("customContextMenuRequested(const QPoint &)"), self.showCustomContextMenu)
 
+    
+    def showCustomContextMenu(self, pos):
+        '''
+        Show the context menu at the position of the curser
+        
+        :param pos: The point where the curser is on the screen
+        :type pos: QtCore.QPoint
+        '''
+        index = self._listView.indexAt(pos)
+
+        if not index.isValid():
+            return
+
+        node = self._model.itemFromIndex(index)
+
+        #If node is disabled, return
+        if not node.active():
+            return
+        
+        #construct menus
+        mainMenu = QtGui.QMenu(self)
+
+        #main menu actions
+        mainMenu.addSeparator()
+        removeNodeAction = mainMenu.addAction('Remove Item')
+        QtCore.QObject.connect(removeNodeAction, QtCore.SIGNAL('triggered()'), self._removeSelectedNode)
+        
+        mainMenu.popup(QtGui.QCursor.pos())     
+        
+    def _removeSelectedNode(self):        
+        index = self._listView.currentIndex()
+        
+        node = self._selectedNode()
+
+        #self._model.removeRows(index.row(), 1, self._model)
+        if node:
+            self._model.beginRemoveRows( index.parent(), index.row(), index.row()+1-1 )
+            self.listGraph.removeNode(node)
+            self._model.endRemoveRows()
+            del node
+            print self.listGraph.nodeNames()
+            self.setValue(self.listGraph.nodeNames())
+        
+    def _selectedNode(self):
+        '''
+        Returns the selected node
+        '''
+        index = self._listView.currentIndex()
+        
+        if not index.isValid():
+            return None
+        
+        return self._model.itemFromIndex(index)
+
+
+class TextEditField(BaseField):
+    def __init__(self, *args, **kwargs):
+        super(TextEditField, self).__init__(*args, **kwargs)
+        
+        self._textEdit = QtGui.QTextEdit(self.value())
+
+        self._layout = QtGui.QVBoxLayout()
+        
+        self._layout.addWidget(self.label())
+        self._layout.addWidget(self._textEdit)
+        self.setLayout(self._layout)
+        self._textEdit.textChanged.connect(self.setText)
+
+    def setText(self):
+        self.setValue(str(self._textEdit.toPlainText()))
         
 class IntField(BaseField):
     def __init__(self, label, value = 0, description = str(), parent = None, min = -100, max = 100, **kwargs):

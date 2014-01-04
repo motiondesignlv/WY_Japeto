@@ -159,6 +159,7 @@ class Component(ml_node.MlNode):
     def setupRig(self):
         if common.isValid(self.name()):
             return True
+        
         self.setupConstraints = []
         #makes component a puppet node
         self.puppetNode = puppet.create(self.name())
@@ -255,8 +256,10 @@ class Component(ml_node.MlNode):
         if not self._puppetNode:
             self.runSetupRig()
         
-        
         #resolve build arguments
+        if not self.puppetNode == self.name():
+            self.puppetNode = puppet.Puppet(self.name())
+        
         self.puppetNode.restoreArgs(self)
         
         cmds.createNode('transform', n = self.rigGrp)

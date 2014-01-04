@@ -56,6 +56,9 @@ class Hand(component.Component):
         elif self._getSide() == common.RIGHT:
             self.__handPosition = \
                     [self.position[0] - 8, self.position[1], self.position[2]]
+        else:
+            self.__handPosition = \
+                    [self.position[0], self.position[1], self.position[2]]
 
         return self.__handPosition
 

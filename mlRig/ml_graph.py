@@ -41,8 +41,11 @@ class MlGraph(object):
         
         return node
     
-    def removeNode(self):
-        pass
+    def removeNode(self, node):
+        if node in self.__rootNodes:
+            self.__rootNodes.pop(node.index())
+        
+        node.parent().removeChild(node)
         
     def nodeCount(self):
         count = len(self.__rootNodes)

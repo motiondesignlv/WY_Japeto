@@ -10,6 +10,7 @@ This is the rig template for all the rig templates
 import inspect
 import os
 from string import Template
+import tempfile
 
 #import maya modules
 from maya import cmds
@@ -57,6 +58,10 @@ class Rig(ml_graph.MlGraph):
         '''
         Get joints based on whether or not the given asset has
         a tag_joints attribute.
+
+        .. warning: This is probably going to change because it's unstable to change.
+        
+        .. todo: get this working with just an attribute connected to all the deform joints
         
         :param asset: Asset you want to get controls from
         :type asset: str
@@ -64,24 +69,31 @@ class Rig(ml_graph.MlGraph):
         :return: Returns controls on the given asset
         :rtype: list | None
         '''
-                
+        #if the attribute is valid then get connections and return
         jointAttr = '%s.displayJnts' % asset
         if common.isValid(jointAttr):
             joints = attribute.getConnections(jointAttr, plugs = False)
             if joints:
-                print 'shit'
                 return joints
+        #if there is no "displayJnts" attribute, we check for a puppet node
+        #in the scene. If there is one, we will check connections to that and 
+        #traverse through the connections until we get to the joints
         if cmds.ls(type = 'puppet'):
             puppet = cmds.ls(type = 'puppet')
             joints = list()
             if puppet:
                 for node in attribute.getConnections('%s.puppet_nodes' % puppet[0], plugs = False):
                     jointAttr = '%s.displayAxis' % node
+                    #get the connections to the "displayAxis" attribute on the node
+                    #and if there is a connection, it should be the "masterGuide" control.
                     if common.isValid(jointAttr):
                         masterGuides = attribute.getConnections(jointAttr, plugs = False)
+                        #get the connections to the masterGuide control, which should contain the joints
                         if masterGuides:
                             for guide in masterGuides:
                                 jnts = attribute.getConnections(jointAttr.replace(node, guide), plugs = False)
+                                #removes the node from the jnts list, since it is
+                                #connected to the "displayAxis" attribute                                
                                 if node in jnts:
                                     jnts.pop(jnts.index(node))
                                 joints.extend(jnts)
@@ -146,25 +158,44 @@ class Rig(ml_graph.MlGraph):
     
     @staticmethod
     def saveTemplate(graph,filepath):
+        '''
+        Saves the template/graph to a python file with the graph name.
+        It uses the template structure. Registers all the nodes on the
+        given graph with there attributes as kwargs.
+        
+        :param graph: Graph you wish to export
+        :type graph: ml_graph.MlGraph
+        
+        :param filepath: Path to where you would like to save graph
+        :type filepath: str
+        '''
+        #open the example file and get the template data
         exampleFile = open(os.path.join(os.path.dirname(__file__), 'example'), 'r')
         data = Template(exampleFile.read())
+        
+        #construct data to replace template strings
         parentModule = graph.__class__.__base__.__module__
         parent = graph.__class__.__base__.__name__
         importData = 'import %s as %s \n' % (parentModule, parent.lower())
-        registerData = ''
+        
+        #Gather all data that will be use "register" to add nodes to the graph
+        #in the file we will be creating
+        registerData = '' #<-- Construct register data as string
         for node in graph.nodes():
             _class = node.__class__.__name__
             nodeParent = node.parent()
             if _class.lower() not in importData:
                 importData += 'import %s as %s\n' % (node.__class__.__module__,_class.lower())
+            #"niceName" 
             registerData += 'self.register("%s"' % node.niceName
-            if not isinstance(node, component.Component):
+            if not isinstance(node, component.Component) and node.active():
                 registerData += ', self.%s' % node.name()
             else:
                 registerData += ', %s.%s("%s")' % (_class.lower(),_class,node.name())
+            #store parent
             if nodeParent:
                 registerData += ',parent = "%s" ' % nodeParent.name()
-                
+            #store attributes 
             for attr in node.attributes():
                 if isinstance(attr.value(), basestring):
                     registerData += ', %s = "%s"' % (attr.name(), attr.value())
@@ -172,7 +203,8 @@ class Rig(ml_graph.MlGraph):
                     registerData += ', %s = %s' % (attr.name(), attr.value())
             
             registerData += ')\n' + (' ' * 8)
-           
+        
+        #store the replace values for the template substitution
         d = dict(EXAMPLE=graph.__class__.__name__.capitalize(), 
                  PARENT = '%s.%s' % (parent.lower(), parent),
                  NAME = '"%s"' % graph.name(),
@@ -180,13 +212,14 @@ class Rig(ml_graph.MlGraph):
                  REGISTER = registerData
                  )
         
+        #substitute the template strings with the data previously stored
         datastr = data.safe_substitute(d)
         
-        exampleFile.close()
+        exampleFile.close() #<-- closes example file
         
+        #open file, write the data, close the file
         f = open(filepath, 'w')
-        
-        f.write(datastr)    
+        f.write(datastr)
         f.close()
     
     @staticmethod
@@ -209,7 +242,7 @@ class Rig(ml_graph.MlGraph):
         self.components  = ordereddict.OrderedDict() 
         self.functions   = ordereddict.OrderedDict() 
         self.controls    = list()
-        self.filePath    = os.path.join(os.path.dirname(__file__), 
+        self.filePath    = os.path.join(str(cmds.workspace(q = True, dir = True)), 
                                         '%s.%s' % (self.name(), common.CONTROL))
         
         self.__registeredItems = list()
@@ -233,8 +266,8 @@ class Rig(ml_graph.MlGraph):
         self.register('Build', self.build)
         self.register('Post-Build', self.postBuild)
         self.register('Utils', ml_node.MlNode('utils'))
-        self.register('Export Controls', self.exportControls, 'utils', filepath = os.path.dirname(__file__))
-        self.register('Export Joints', self.exportJoints, 'utils', filepath = os.path.dirname(__file__))
+        self.register('Export Controls', self.exportControls, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
+        self.register('Export Joints', self.exportJoints, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
         self.register('Mirror', self.mirror, 'utils', side = common.LEFT)
         
         return True
@@ -510,7 +543,7 @@ class Rig(ml_graph.MlGraph):
         
         return
 
-    def exportControls(self, filepath = os.path.dirname(__file__)):
+    def exportControls(self, filepath = str()):
         '''
         This will export controls for the asset
         
@@ -522,6 +555,9 @@ class Rig(ml_graph.MlGraph):
         .. todo: Find out where the controls will be saved.
         .. todo: Figure out how we will store the file path for an asset
         '''
+        if not filepath:
+            os.path.dirname(tempfile.gettempdir())
+            
         fileName, fileExt = os.path.splitext(filepath)
         if cmds.ls(type = 'rig'):
             filepath = os.path.join(fileName,'%s.%s' % (self.name(),common.CONTROL))
@@ -546,6 +582,9 @@ class Rig(ml_graph.MlGraph):
         .. todo: Find out where the joints will be saved.
         .. todo: Figure out how we will store the file path for an asset
         '''
+        if not filepath:
+            os.path.dirname(tempfile.gettempdir())
+        
         fileName, fileExt = os.path.splitext(filepath)
         joints = Rig.getJoints(self.rigGrp)
         if joints:

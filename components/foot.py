@@ -15,6 +15,7 @@ import japeto.libs.attribute as attribute
 import japeto.libs.ikfk as ikfk
 import japeto.libs.control as control
 import japeto.libs.transform as transform
+reload(ikfk)
 
 #import components
 import japeto.components.component as component
@@ -606,5 +607,3 @@ class Foot(component.Component):
         cmds.setAttr('%s.v' % self.__footIkFk.ikJoints[0], 0)
         cmds.setAttr('%s.v' % self.__footIkFk.fkJoints[0], 0)
         cmds.setAttr('%s.v' % self.__footIkFk.blendJoints[0], 0)
-
-

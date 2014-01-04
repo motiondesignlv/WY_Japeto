@@ -74,7 +74,7 @@ class MlNode(object):
     def active(self):
         return self.__enabled
     
-    def addAttribute(self, attr, value, index = -1):
+    def addAttribute(self, attr, value, index = -1, attrType = None):
         '''
         sets the data on the node based on key : value pairs
         
@@ -89,8 +89,8 @@ class MlNode(object):
         :type value: str
         '''
         if isinstance(attr, basestring):
-            attr = ml_attribute.MlAttribute(attr, value = value)
-        
+            attr = ml_attribute.MlAttribute(attr, value = value, attrType = attrType)
+            
         #check to make sure an attribute was passed in
         if not isinstance(attr, ml_attribute.MlAttribute):
             raise TypeError('%s must be %s' % (attr, ml_attribute.MlAttribute))
