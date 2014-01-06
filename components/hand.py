@@ -35,6 +35,8 @@ class Hand(component.Component):
         self.__handCtrl = '%s_hand_%s' % (self._getPrefix(), common.CONTROL)
         self.handJoint  = '%s_hand_%s' % (self._getPrefix(), common.JOINT)
 
+        self.handGuide  = '%s_hand_%s' % (self._getPrefix(), common.CONTROL)
+        
         self.addArgument('fingers', ['thumb', 'index', 'middle', 'ring', 'pinky'], 1)
         self.addArgument('numJoints', 4, 2)
 
@@ -113,13 +115,31 @@ class Hand(component.Component):
                 #end loop
             #end loop
         #end elif
+        else:
+        #move master  guide into position
+            cmds.xform(common.getParent(self.masterGuide), ws = True, t = self.handPosition)
+
+            for i,obj in enumerate(self.fingers):
+                self.__fingers[obj] = finger.Finger('%s_%s' % (self._getPrefix(), obj))
+                self.__fingers[obj].initialize(numJoints = self.numJoints, position = [self.position[0] - 10, self.position[1], (self.position[2] + 2 ) - i], parent = self.parent)
+                self.__fingers[obj].setupRig()
+            
+                cmds.parentConstraint(self.masterGuide, common.getParent(self.__fingers[obj].masterGuide), mo = True)
+        
+                for guide in self.__fingers[obj].getGuides():
+                    #tag the guide control with a tag_guides attribute
+                    tagAttr = attribute.addAttr(guide, 'hand_guides', attrType = 'message')
+                    attribute.connect('%s.tag_guides' % self.setupRigGrp, tagAttr)
+                #end loop
+            #end loop
+        #end elif
+        
         
         #create joint and guide
-        joint.create(self.handJoint, self.skeletonGrp, self.handPosition)
-        self.handGuide = self.setupCtrl(self.handJoint.replace(common.JOINT,
-                                                               common.CONTROL),
-                                        self.handJoint,
-                                        common.SIDE_COLOR[self._getSide()])
+        if not common.isValid(self.handJoint):
+            joint.create(self.handJoint, self.skeletonGrp, self.handPosition)
+        if not common.isValid(self.handJoint.replace(common.JOINT,common.CONTROL)):
+            self.setupCtrl(self.handGuide,self.handJoint, common.SIDE_COLOR[self._getSide()])
 
     def postSetupRig(self):
         if super(Hand, self).postSetupRig():

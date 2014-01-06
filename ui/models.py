@@ -67,10 +67,10 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
     NodeRole = QtCore.Qt.UserRole
     def __init__(self, graph, parent = None):
         super(LayerGraphModel, self).__init__(parent)
-
+        
+        self._graph = graph
         self._rootNode = ml_node.MlNode('root')
-        children = graph.rootNodes()
-        self._rootNode.addChildren(children)
+        self._rootNode.addChildren(graph.rootNodes())
     
     def itemFromIndex( self, index ):
         return index.data(self.NodeRole).toPyObject() if index.isValid() else self._rootNode
@@ -183,9 +183,12 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
         if node:
             if not parent.isValid():
                 parentNode = self._rootNode
+                graphParent = None
             else:
                 parentNode = parent.internalPointer()
+                graphParent = parentNode
             
+            self._graph.addNode(node, graphParent, row)
             parentNode.addChild(node, row)
             
         self.endInsertRows()
@@ -292,6 +295,7 @@ class FileGraphModel(LayerGraphModel):
         
         #disable the top nodes
         self._components.disable()
+        self._nodes.disable()
                 
         self._getComponents()
         self._getNodes()

@@ -187,7 +187,7 @@ class Component(ml_node.MlNode):
         '''
         clean up section for the setup rig
         '''
-        if common.isValid('%s.displayAxis' % self.masterGuide):
+        if common.isValid('%s.displayAxis' % self.masterGuide) or common.isValid(self.masterGuide) != True:
             return True
         #create attributes and lock/hide attrs on top nodes as well as masterGuide control
         displayAttr = attribute.addAttr(self.masterGuide, 'displayAxis', attrType = 'enum', defValue = 'off:on')

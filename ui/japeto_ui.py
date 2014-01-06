@@ -278,7 +278,7 @@ class CentralTabWidget(QtGui.QTabWidget):
                 self._model.insertRows(rootNode.childCount(), 1,
                                        parent = QtCore.QModelIndex(),
                                        node = newNode)
-
+        print self._graph.nodes()
             
     def _selectedNode(self):
         '''
@@ -308,7 +308,7 @@ class CentralTabWidget(QtGui.QTabWidget):
         '''
         Populates the attributes for the given node
         
-        :param index: QModelIndex of the node you want to get attibutes for
+        :param index: QModelIndex of the node you want to get attributes for
         :type index: QtCore.QModelIndex
         '''
         #Check if there are any items in the layout
@@ -324,7 +324,6 @@ class CentralTabWidget(QtGui.QTabWidget):
 
         #go through the attributes on the node and create appropriate field
         for attr in node.attributes():
-            print attr.attrType()
             if attr.name() == 'position':
                 field = fields.VectorField(attr.name(), value = attr.value(), attribute = attr)
             elif attr.attrType() == "str":
@@ -339,6 +338,8 @@ class CentralTabWidget(QtGui.QTabWidget):
                 field = fields.ListField(attr.name(), value = attr.value(), attribute = attr)
             elif attr.attrType() == "code":
                 field = fields.TextEditField(attr.name(), value = attr.value(), attribute = attr)
+            elif attr.attrType() == "file":
+                field = fields.fileBrowserField(label = attr.name(), filter = "",value = attr.value(), attribute = attr)
             
             #add the field to the layout
             self._setupAttrsLayout.addWidget(field)

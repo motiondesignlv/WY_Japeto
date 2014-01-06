@@ -5,14 +5,7 @@ This is the base component for all the rig components
 :contact: walteryoder:gmail.com
 :date: October 2012
 '''
-
-#import python modules
-
-#import maya modules
-import maya.cmds as cmds
-
 #import package modules
-#libs
 from japeto.mlRig import ml_node
 
 class Command(ml_node.MlNode):

@@ -175,17 +175,21 @@ class Biped(rig.Rig):
         '''
         Build code for the asset
         '''
-        super(Biped,self).build()
+        if super(Biped,self).build():
+            return True
+        
+        if common.isValid(self.rootJoint):
+            return True 
+        
+        displayAttr = '%s.displayJnts' % self.rigGrp 
 
-        displayAttr = '%s.displayJnts' % self.rigGrp
         #get the control size of the spine
         spineCtrlSize = self.components['Spine'].controlScale
 
         #create the root joint and control
         #-----------------------------------------------
-        if not common.isValid(self.rootJoint):
-            joint.create(self.rootJoint,
-                position = self.components['Spine'].position)
+        joint.create(self.rootJoint,
+            position = self.components['Spine'].position)
 
         cmds.parent(self.rootJoint, self.jointsGrp)
 

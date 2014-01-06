@@ -86,7 +86,7 @@ class Chain(component.Component):
                     positions[0][2]]
         #end elif    
             
-        elif self._getSide() == common.CENTER:
+        else:
             positions = (
             [self.position[0], self.position[1], self.position[2]],
             [self.position[0], self.position[1] + 9, self.position[2]]
@@ -97,8 +97,8 @@ class Chain(component.Component):
                     positions[0][2] + 5]
         #end elif
         for i,jnt in enumerate(self.skinClusterJnts):
-            
-            cmds.joint(n = jnt,position = positions[i])
+            if not common.isValid(jnt):
+                cmds.joint(n = jnt,position = positions[i])
             
             if i == 0:
                 cmds.parent(jnt, self.skeletonGrp)
@@ -156,11 +156,13 @@ class Chain(component.Component):
         step   = 1.0 / (self.numJoints - 1)
         parent = self.startJoint
         for i in range( 1, self.numJoints - 1 ):
-            j = joint.create( name= '%s_%s_%s_%s_%s' % (self._getPrefix(),
+            j = '%s_%s_%s_%s_%s' % (self._getPrefix(),
                     common.getDescription(self.name()),
                     common.padNumber(i,3),
                     common.SKINCLUSTER,
-                    common.JOINT))
+                    common.JOINT)
+            if not common.isValid(j):
+                joint.create( name= j)
 
             transform.matchXform( self.startJoint,j, type='rotate' )
             ctrl = self.setupCtrl(j.replace('_%s' % common.JOINT, ''),j)
@@ -178,7 +180,9 @@ class Chain(component.Component):
 
             #adding the joint to skincluster joints list
             self.skinClusterJnts.insert(-1, j)
-            cmds.parent(j, parent)
+            relatives = cmds.listRelatives(j, p = True)
+            if not relatives:
+                cmds.parent(j, parent)
             parent = j
 
             if i == self.numJoints - 2:

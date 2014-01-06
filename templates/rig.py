@@ -29,6 +29,7 @@ from japeto.libs import fileIO
 from japeto.components import component
 from japeto.mlRig import ml_graph
 from japeto.mlRig import ml_node
+from japeto.mlRig import ml_attribute
 
 fileIO.loadPlugin(os.path.join(PLUGINDIR, 'rigNode.py'))
 
@@ -181,12 +182,13 @@ class Rig(ml_graph.MlGraph):
         #Gather all data that will be use "register" to add nodes to the graph
         #in the file we will be creating
         registerData = '' #<-- Construct register data as string
+        setAttrTypeData = dict()
         for node in graph.nodes():
             _class = node.__class__.__name__
             nodeParent = node.parent()
             if _class.lower() not in importData:
                 importData += 'import %s as %s\n' % (node.__class__.__module__,_class.lower())
-            #"niceName" 
+            #"niceName"
             registerData += 'self.register("%s"' % node.niceName
             if not isinstance(node, component.Component) and node.active():
                 registerData += ', self.%s' % node.name()
@@ -197,13 +199,18 @@ class Rig(ml_graph.MlGraph):
                 registerData += ',parent = "%s" ' % nodeParent.name()
             #store attributes 
             for attr in node.attributes():
+                if attr.attrType() not in str(ml_attribute.MlAttribute.__attrTypes__):
+                    setAttrTypeData[node.name()] = attr
                 if isinstance(attr.value(), basestring):
                     registerData += ', %s = "%s"' % (attr.name(), attr.value())
                 else:
                     registerData += ', %s = %s' % (attr.name(), attr.value())
             
             registerData += ')\n' + (' ' * 8)
-        
+        for name in setAttrTypeData:
+            registerData += "self.getNodeByName('%s').getAttributeByName('%s').setAttrType('%s')\n" % (name,
+                                                                                                       setAttrTypeData[name].name(),
+                                                                                                       setAttrTypeData[name].attrType()) + (' ' * 8)
         #store the replace values for the template substitution
         d = dict(EXAMPLE=graph.__class__.__name__.capitalize(), 
                  PARENT = '%s.%s' % (parent.lower(), parent),
@@ -269,6 +276,9 @@ class Rig(ml_graph.MlGraph):
         self.register('Export Controls', self.exportControls, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
         self.register('Export Joints', self.exportJoints, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
         self.register('Mirror', self.mirror, 'utils', side = common.LEFT)
+        
+        for node in ['exportControls', 'exportJoints']:
+            self.getNodeByName(node).getAttributeByName('filepath').setAttrType('file')
         
         return True
 
@@ -354,7 +364,6 @@ class Rig(ml_graph.MlGraph):
         elif inspect.ismethod(obj) or inspect.isfunction(obj):
             node = ml_node.MlNode(obj.__func__.__name__)
             self.addNode(node, parent, index)
-            #node.setParent(parent)
             node.niceName = name
             node.execute = obj
         elif isinstance(obj,ml_node.MlNode):
@@ -420,7 +429,9 @@ class Rig(ml_graph.MlGraph):
         #if there is no puppet node in the scene, we will run the setup first
         if not cmds.ls(type = "puppet"):
             self.setup()
-            
+        
+        if common.isValid(self.rigGrp):
+            return True
         #create hierachy
         cmds.createNode('rig', n = self.rigGrp)
         cmds.createNode('transform', n = self.noXformGrp)
@@ -459,11 +470,14 @@ class Rig(ml_graph.MlGraph):
 
         for node in self.nodes():
             if not isinstance(node, component.Component):
-                    continue
+                continue
                 
             if not common.isValid(node.rigGrp):
                 node.runRig()
-                
+            
+            trsChildren = cmds.listRelatives(self._trsCtrl,c = True)
+            if node.controlsGrp in trsChildren:
+                continue
             cmds.parent(node.controlsGrp, self._trsCtrl)
             cmds.parent(node.jointsGrp, self.jointsGrp)
             for attr in ['displayJnts', 'jointVis']:

@@ -33,9 +33,12 @@ class Finger(chain.Chain):
             cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [-4.0, 0, 0])
         elif self._getSide() == common.RIGHT:
             cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [4.0, 0, 0])
+        else:
+            cmds.xform(common.getParent(self.endJoint.replace(common.JOINT, common.GUIDES)), r = True, t = [0.0, 4.0, 0])
         
     def rig(self):
-        super(Finger, self).rig()
+        if super(Finger, self).rig():
+            return True
         
         for ctrl in self.controls['fk']:
             control.scaleShape(ctrl,scale = [self.controlScale  * .5,self.controlScale *.5,self.controlScale * .5])

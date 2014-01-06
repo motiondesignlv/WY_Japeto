@@ -27,6 +27,8 @@ class MlGraph(object):
         if isinstance(node, basestring):
             node = ml_node.MlNode(node, parent)
         elif parent:
+            if node in self.__rootNodes:
+                self.removeNode(node)
             node.setParent(parent)
         
         if not ml_node.MlNode.isValid(node):
@@ -38,6 +40,8 @@ class MlGraph(object):
             self.__rootNodes.insert(index,node)
         elif not parent and index == None:
             self.__rootNodes.append(node)
+        elif parent and index == None:
+            parent.addChild(node)
         
         return node
     
@@ -45,7 +49,8 @@ class MlGraph(object):
         if node in self.__rootNodes:
             self.__rootNodes.pop(node.index())
         
-        node.parent().removeChild(node)
+        if node.parent():
+            node.parent().removeChild(node)
         
     def nodeCount(self):
         count = len(self.__rootNodes)

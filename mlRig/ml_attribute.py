@@ -34,6 +34,9 @@ class MlAttribute(object):
     def attrType(self):
         return self.__type
     
+    def setAttrType(self, value):
+        self.__type = value
+    
     def __repr__(self):
         return "< %s %s >" % (self.__class__.__name__, self.__type)
         

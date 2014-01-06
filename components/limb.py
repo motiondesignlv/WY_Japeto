@@ -108,7 +108,8 @@ class Limb(component.Component):
             )
 
         for i,jnt in enumerate(self.skinClusterJnts):
-            cmds.joint(n = jnt,position = positions[i])
+            if not common.isValid(jnt):
+                cmds.joint(n = jnt,position = positions[i])
 
             if i == 0:
                 cmds.parent(jnt, self.skeletonGrp)

@@ -32,13 +32,19 @@ class Arm(limb.Limb):
 		self.removeArgument('endJoint')
 		
 	def setupRig(self):
-		super(Arm,self).setupRig()
+		if super(Arm,self).setupRig():
+			return True
 		
 		self.skinClusterJnts.remove(self.endJoint)
 		self.skinClusterJnts.insert(0,self.clavicleJoint)
 		
 		#delete end joint and end guide
-		cmds.delete([self.endJoint, self.endJoint.replace(common.JOINT, common.GUIDES)])
+		endJntGuide = self.endJoint.replace(common.JOINT, common.GUIDES)
+		if common.isValid(self.endJoint):
+			cmds.delete(self.endJoint)
+		if common.isValid(endJntGuide):
+			cmds.delete(endJntGuide)
+			
 
 		if self._getSide() == common.LEFT:
 			positions = (
@@ -54,10 +60,19 @@ class Arm(limb.Limb):
 				[self.position[0] - 5, self.position[1], self.position[2] - 1],
 				[self.position[0] - 8, self.position[1], self.position[2]]
 				)
+		else:
+			positions = (
+				[self.position[0] + .5, self.position[1], self.position[2] + 1],
+				[self.position[0] + 2, self.position[1], self.position[2]],
+				[self.position[0] + 5, self.position[1], self.position[2] - 1],
+				[self.position[0] + 8, self.position[1], self.position[2]]
+				)
 
 
-		#create pelvis joint and parent leg under pelvis	
-		joint.create(name = self.clavicleJoint, parent = self.skeletonGrp, position = positions[0])
+		#create pelvis joint and parent leg under pelvis
+		if not common.isValid(self.clavicleJoint):
+			joint.create(name = self.clavicleJoint, parent = self.skeletonGrp, position = positions[0])
+		
 		cmds.parent(self.startJoint, self.clavicleJoint)
 		
 		#declare guides
@@ -75,8 +90,12 @@ class Arm(limb.Limb):
 		
 		
 	def rig(self):
-		super(Arm,self).rig()
-		
+		if super(Arm,self).rig():
+			return True
+		'''
+		if common.isValid(self.clavicleJoint.replace('_%s' % common.JOINT,common.CONTROL)):
+			return True
+		'''
 		#create pelvis control
 		clavicleCtrl = control.create(
 							name = self.clavicleJoint.replace('_%s' % common.JOINT,''),

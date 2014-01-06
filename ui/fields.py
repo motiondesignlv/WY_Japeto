@@ -6,6 +6,7 @@ Fields that are used in our UI
 from PyQt4 import QtGui, QtCore
 from japeto.ui import models
 from japeto.mlRig import ml_graph
+from maya import cmds
 
 class BaseField(QtGui.QWidget):
     def __init__(self, label, value = None, description = str(), parent = None, attribute = None):
@@ -83,6 +84,23 @@ class LineEditField(BaseField):
         #set lineEdit text
         if not source == self._lineEdit:
             self._lineEdit.setText(value)
+            
+class fileBrowserField(LineEditField):
+    def __init__(self, mode = 'save', filter = "*.py", *args, **kwargs):
+        super(fileBrowserField, self).__init__(*args, **kwargs)
+        self.__mode = mode.lower()
+        self.__filter = filter
+        self._fileBrowseButton = QtGui.QPushButton('...')
+        self._fileBrowseButton.clicked.connect(self._getFile)
+        self._layout.addWidget(self._fileBrowseButton)
+        
+    def _getFile(self,index):
+        if self.__mode == 'save':
+            file = QtGui.QFileDialog.getSaveFileName(self, 'save', str(cmds.workspace(q = True, dir = True)), self.__filter)
+        else:
+            file = QtGui.QFileDialog.getSaveFileName(self, 'save', str(cmds.workspace(q = True, dir = True)), self.__filter)
+            
+        self.setText(str(file))
     
 class ListField(BaseField):
     def __init__(self, *args, **kwargs):
@@ -146,7 +164,6 @@ class ListField(BaseField):
             self.listGraph.removeNode(node)
             self._model.endRemoveRows()
             del node
-            print self.listGraph.nodeNames()
             self.setValue(self.listGraph.nodeNames())
         
     def _selectedNode(self):
@@ -175,7 +192,7 @@ class TextEditField(BaseField):
         self._textEdit.textChanged.connect(self.setText)
 
     def setText(self):
-        self.setValue(str(self._textEdit.toPlainText()))
+        self.setValue(str(self._textEdit.toPlainText()).replace('\n', ' '))
         
 class IntField(BaseField):
     def __init__(self, label, value = 0, description = str(), parent = None, min = -100, max = 100, **kwargs):

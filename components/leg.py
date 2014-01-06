@@ -58,9 +58,11 @@ class Leg(limb.Limb):
         self.skinClusterJnts.insert(0,self.pelvisJoint)
 
         #delete end joint and end guide
-        cmds.delete(
-            [self.endJoint, self.endJoint.replace(common.JOINT, common.GUIDES)]
-        )
+        endJntGuide = self.endJoint.replace(common.JOINT, common.GUIDES)
+        if common.isValid(self.endJoint):
+            cmds.delete(self.endJoint)
+        if common.isValid(endJntGuide):
+            cmds.delete(endJntGuide)
 
         if self._getSide() == common.LEFT:
             positions = (
@@ -86,9 +88,12 @@ class Leg(limb.Limb):
 
 
         #create pelvis joint and parent leg under pelvis
-        joint.create(name = self.pelvisJoint,
-                parent = self.skeletonGrp,
-                position = positions[0])
+        if not common.isValid(self.pelvisJoint):
+            joint.create(name = self.pelvisJoint,
+                    parent = self.skeletonGrp,
+                    position = positions[0])
+        else:
+            cmds.parent(self.pelvisJoint, self.skeletonGrp)
 
         cmds.parent(self.startJoint, self.pelvisJoint)
 

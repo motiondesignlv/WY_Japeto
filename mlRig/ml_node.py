@@ -67,7 +67,7 @@ class MlNode(object):
     def attributeAtIndex(self, index = None):
         if index != None and not index > len(self.__attributes.keys()):
             return self.__attributes.values()[index]
-    
+
     def setName(self, value):
         self.__name  = value
         

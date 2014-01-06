@@ -211,7 +211,10 @@ class Foot(component.Component):
     def rig(self):
         if not self._puppetNode:
             self.runSetupRig()
-            
+        
+        if common.isValid('%s_%s%s' % (self.name(), common.IK, common.FK)):
+            return True
+        
         cmds.parent([self.__bankInPivot,
                 self.__bankOutPivot,
                 self.__heelPivot],
