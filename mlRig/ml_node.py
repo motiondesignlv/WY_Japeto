@@ -12,7 +12,7 @@ class MlNode(object):
         - Change validation to check for both node and node name
         - Make sure self.__children and self.__parent return the
           same type of data. (i.e. Node or Node.name)
-      
+    
     .. warning:
         Some data may not match (i.e. Node.children returns
         childNode.name and Node.parent return instance of parentNode)
@@ -47,7 +47,7 @@ class MlNode(object):
         return "< %s %s >" % (self.__class__.__name__, self.__name)
     
     def name(self):
-        return self.__name    
+        return self.__name
 
     def parent(self):
         return self.__parent
