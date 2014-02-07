@@ -127,7 +127,7 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
         elif argData.isQuery() and argData.isFlagSet( SkinDataCmd.kBlendWeightsFlag ):
             self.__returnBlendWeights = True
             self.__undoable = False
-        elif argData.isFlagSet( SkinDataCmd.kWeightsFlag ) and argData.isFlagSet( SkinDataCmd.kInfluenceFlag ) and argData.isFlagSet( SkinDataCmd.kVertIdFlag ):
+        elif argData.isFlagSet( SkinDataCmd.kWeightsFlag ) and argData.isFlagSet( SkinDataCmd.kInfluenceFlag):
             #add to doubleArray for weights
             self.__weights.setLength(argData.numberOfFlagUses(SkinDataCmd.kWeightsFlag))
             for i in range(self.__weights.length()):
@@ -135,10 +135,11 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
                 argData.getFlagArgumentList(SkinDataCmd.kWeightsFlag,i, argList)
                 self.__weights.set(argList.asDouble(0),i)
             #add to selectionList for verts
-            for i in range(argData.numberOfFlagUses(SkinDataCmd.kVertIdFlag)):
-                argList = OpenMaya.MArgList()
-                argData.getFlagArgumentList(SkinDataCmd.kVertIdFlag, i, argList)
-                self.__mVertSelList.add(argList.asString(0), i)
+            if argData.isFlagSet( SkinDataCmd.kVertIdFlag ):
+                for i in range(argData.numberOfFlagUses(SkinDataCmd.kVertIdFlag)):
+                    argList = OpenMaya.MArgList()
+                    argData.getFlagArgumentList(SkinDataCmd.kVertIdFlag, i, argList)
+                    self.__mVertSelList.add(argList.asString(0), i)
             #append to list of influence names
             for i in range(argData.numberOfFlagUses(SkinDataCmd.kInfluenceFlag)):
                 argList = OpenMaya.MArgList()
@@ -319,17 +320,16 @@ class SkinDataCmd(OpenMayaMPx.MPxCommand):
     #--------------------------------------------------------------------
     def __setWeights(self, weights, influences, getOldWeights = False):
         #Create MObject and MDagPath
-        mComponentsObject = OpenMaya.MObject()
-        mComponentsDagPath = OpenMaya.MDagPath()
+        if self.__mVertSelList.length() != 0:
+            mComponentsObject = OpenMaya.MObject()
+            mComponentsDagPath = OpenMaya.MDagPath()
+            self.__mVertSelList.getDagPath(0, mComponentsDagPath, mComponentsObject) #assigns first index in the list to MDagPath
+        else:
+            mComponentsDagPath,mComponentsObject = self.__getComponents()
         
-        self.__mVertSelList.getDagPath(0, mComponentsDagPath, mComponentsObject) #assigns first index in the list to MDagPath
         
         if mComponentsObject.apiType() != OpenMaya.MFn.kMeshVertComponent:
             raise TypeError('Selection must Vertices on a mesh')
-        
-        compFn = OpenMaya.MFnSingleIndexedComponent(mComponentsObject)
-        ids = OpenMaya.MIntArray()
-        compFn.getElements(ids)
         
         #Get node names for influences
         influenceObjects = self.__getInfluences()

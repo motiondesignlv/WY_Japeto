@@ -23,6 +23,7 @@ from japeto.libs import fileIO
 #load plugin for skinData
 fileIO.loadPlugin(os.path.join(japeto.PLUGINDIR, 'skinDataCmd.py'))
 
+
 class SkinCluster(object):
     
     kFileExtension = '.wts'
@@ -45,7 +46,7 @@ class SkinCluster(object):
         if not filePath:
             dir = cmds.workspace(q = True, rootDirectory = True)
             filePath = cmds.fileDialog2(dialogStyle = 2, fileMode = 0, 
-                                        startingDirectory = dir, fileFilter = 'Skin Files (*%s)' % SkinCluster.kFileExtension)
+                                        startingDirectory = dir, fileFilter = 'Weight Files (*%s)' % SkinCluster.kFileExtension)
             
         #return if no filePath is found
         if not filePath:
@@ -113,9 +114,6 @@ class SkinCluster(object):
         
         self.node = SkinCluster.getSkinCluster(self.shape)
         
-        self._mObject = common.getMObject(self.node)
-        self._fn = OpenMayaAnim.MFnSkinCluster(self._mObject)
-        
         #create the orderedDict for data
         self.data = ordereddict.OrderedDict()
         self.data['name']             = self.node
@@ -130,28 +128,23 @@ class SkinCluster(object):
     #-------------------
     
     def getData(self):
-        dagPath, components = self.__getComponents()
-        self.getInfluenceWeights(dagPath, components)
-        self.getBlendWeights(dagPath, components)
+        self.getInfluenceWeights()
+        self.getBlendWeights()
         
         for attr in ['skinningMethod', 'normalizeWeights']:
             self.data[attr] = cmds.getAttr('%s.%s' % (self.node, attr))
     
-    def getInfluenceWeights(self, dagPath, components):
-        weights = self.__getWeights(dagPath, components)
-        
-        influencePaths = OpenMaya.MDagPathArray()
-        numInfluences = self._fn.influenceObjects(influencePaths)
-        numComponentsPerInfluence = weights.length() / numInfluences
-        for i in range(influencePaths.length()):
-            influenceName = influencePaths[i].partialPathName()
-            influenceNoNameSpace = SkinCluster.removeNamespace(influenceName)   
-            self.data['weights'][influenceNoNameSpace] = [weights[j*numInfluences + i] for j in range(numComponentsPerInfluence)]
+    def getInfluenceWeights(self):
+        influence = cmds.skinData(self.node,q=True,inf=True)
+        weights = cmds.skinData(self.node,q=True,wts=True)
+
+        numComponentsPerInfluence = len(weights)/len(influence)
+        numberOfInflunces = len(influence)
+        for i in range(numberOfInflunces):  
+            self.data['weights'][influence[i]] = [weights[j*numberOfInflunces + i] for j in range(numComponentsPerInfluence)]
             
-    def getBlendWeights(self, dagPath, components):
-        weights = OpenMaya.MDoubleArray()
-        self._fn.getBlendWeights(dagPath, components, weights)
-        self.data['blendWeights'] = [weights[i] for i in range(weights.length())]
+    def getBlendWeights(self):
+        self.data['blendWeights'] = cmds.skinData(self.node,q=True,bwt=True)
 
     #-------------------
     #Set information 
@@ -160,42 +153,32 @@ class SkinCluster(object):
     def setData(self, data):
         self.data = data
 
-        dagPath, components = self.__getComponents()
-        self.setInfluenceWeights(dagPath, components)
-        self.setBlendWeights(dagPath, components)
+        self.setInfluenceWeights()
+        self.setBlendWeights()
         
         for attr in ['skinningMethod', 'normalizeWeights']:
             cmds.setAttr('%s.%s' % (self.node, attr), self.data[attr])
             
-    def setInfluenceWeights(self, dagPath, components):
-        weights = self.__getWeights(dagPath, components)
-        
-        influencePaths = OpenMaya.MDagPathArray()
-        numInfluences = self._fn.influenceObjects(influencePaths)
-        numComponentsPerInfluence = weights.length() / numInfluences
-        
-        for importedInfluence, importedWeights in self.data['weights'].items():
-            for i in range(influencePaths.length()):
-                influenceName = influencePaths[i].partialPathName()
-                influenceNoNamespace = SkinCluster.removeNamespace(influenceName)
-                if influenceNoNamespace == influenceName:
-                    for j in range(numComponentsPerInfluence):
-                        weights.set(importedWeights[j], j*numInfluences+i)
-                        
-            
-        
-        influenceIndices = OpenMaya.MIntArray(numInfluences)
+    def setInfluenceWeights(self):
+        influencePaths = cmds.skinData(self.node,q=True,inf=True)
+        numInfluences = len(influencePaths)
+        weights = list(range(numInfluences*len(self.data['weights'][self.data['weights'].keys()[0]])))
+        numComponentsPerInfluence = len(weights) / numInfluences
+
         for i in range(numInfluences):
-            influenceIndices.set(i,i)
-        self._fn.setWeights(dagPath, components, influenceIndices, weights, False)
+            influenceName = influencePaths[i]
+            influenceNoNamespace = SkinCluster.removeNamespace(influenceName)
+            if influenceNoNamespace == influenceName:
+                for j in range(numComponentsPerInfluence):
+                    weights[j*numInfluences+i] = self.data['weights'][influenceName][j]
+                        
+        cmds.skinData(self.node,wts=weights,inf=influencePaths)
+                        
         
         
-    def setBlendWeights(self, dagPath, components):
-        blendWeights = OpenMaya.MDoubleArray(len(self.data['blendWeights']))
-        for i,w in enumerate(self.data['blendWeights']):
-            blendWeights.set(w,i)
-            
-        self._fn.setBlendWeights(dagPath, components, blendWeights)
+    def setBlendWeights(self):
+        cmds.skinData(self.node,bwt=self.data['blendWeights'])
+        
 
 
     def __getComponents(self):
@@ -207,25 +190,17 @@ class SkinCluster(object):
         members.getDagPath(0, dagPath, components)
         return dagPath, components
     
-    def __getWeights(self, dagPath, components):
-        weights = OpenMaya.MDoubleArray()
-        util = OpenMaya.MScriptUtil()
-        util.createFromInt(0)
-        pUInt = util.asUintPtr()
-        self._fn.getWeights(dagPath, components, weights, pUInt)
-        return weights
-    
     def saveWeights(self, filePath = None):
         #if no file path is input, bring up a dialog window
         if not filePath:
             dir = cmds.workspace(q = True, rootDirectory = True)
             filePath = cmds.fileDialog2(dialogStyle = 2, fileMode = 0, 
-                                        startingDirectory = dir, fileFilter = 'Skin Files (*%s)' % SkinCluster.kFileExtension)
+                                        startingDirectory = dir, fileFilter = 'Weight Files (*%s)' % SkinCluster.kFileExtension)
         #return if no filePath is found
         if not filePath:
             return
         #if it's a list we will get the first index 
-        if isinstance(filePath, list):
+        if isinstance(filePath, list) or isinstance(filePath,tuple):
             filePath = filePath[0]
         
         #check to see if extension is attached to the filePath

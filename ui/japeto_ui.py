@@ -15,6 +15,7 @@ import os
 from japeto.templates import rig
 from japeto.components import component
 from japeto.ui import widgets, models
+from japeto.mlRig import ml_graph
 reload(models)
 
 #import maya modules
@@ -33,7 +34,7 @@ def getMayaWindow():
 
 
 class CentralTabWidget(QtGui.QTabWidget):
-    def __init__(self, graph, parent = None):
+    def __init__(self, graph = ml_graph.MlGraph('null'), parent = None):
         super(CentralTabWidget, self).__init__(parent)
         self._graph = graph
         
@@ -300,7 +301,8 @@ class CentralTabWidget(QtGui.QTabWidget):
         #self._model.removeRows(index.row(), 1, self._model)
         if node:
             self._model.beginRemoveRows( index.parent(), index.row(), index.row()+1-1 )
-            node.parent().removeChild(node)
+            self._graph.removeNode(node)
+            #node.parent().removeChild(node)
             self._model.endRemoveRows()
             del node
         
@@ -384,7 +386,7 @@ class CentralTabWidget(QtGui.QTabWidget):
 #MAIN WINDOW
 #-------------------------------
 class JapetoWindow(QtGui.QMainWindow):
-    def __init__(self, graph, parent = None):
+    def __init__(self, graph = ml_graph.MlGraph('null'), parent = None):
         '''
         This is the main window used for the Japeto rigging system
         

@@ -8,6 +8,7 @@ import os
 import tempfile
 import inspect
 import japeto.mlRig.ml_node as node
+from japeto.libs import ordereddict
 # ------------------------------------------------------------------------------
 # Create custom encoder
 #
@@ -53,7 +54,13 @@ class Encoder( object ):
         for i, value in enumerate( obj ):
             items[i] = self.encode( value )
         return '[%s]' % ', '.join(items)
-
+    
+    def encode_ordereddict(self):
+        items = range( len( obj ) )
+        for i,k in enumerate(obj.keys()):
+            items[i] = '%s%s: %s' % ( ' '*self.indent*self.__depth__, self.encode( k ), self.encode( obj[k] ) )
+        self.__depth__ -= 1
+        
     def encode_dict( self, obj ):
 
         items = range( len( obj ) )

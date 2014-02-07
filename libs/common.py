@@ -858,7 +858,7 @@ def getInbetweenNodes(startNode, endNode, inbetweenNodes = None):
     #check for parent
     if parent:
         if parent[0] == startNode:
-             return inbetweenNodes
+            return inbetweenNodes
 
         #Add parent to inbetween node list
         inbetweenNodes.insert(0,parent[0])
