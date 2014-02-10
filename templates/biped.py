@@ -10,6 +10,7 @@ import maya.cmds as cmds
 
 #import package modules
 import japeto.templates.rig as rig
+reload(rig)
 
 #import libs
 from japeto.libs import common

@@ -65,7 +65,7 @@ class CentralTabWidget(QtGui.QTabWidget):
         attrsGroupBox.setLayout(attrsGroupLayout)
         
         #buttons
-        self._addFileButton = QtGui.QPushButton('-Add->')
+        self._addFileButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/add.png') ),'Node')
         self._addFileButton.clicked.connect(self._addItemToGraph)
         
         #bring it all together
@@ -341,7 +341,9 @@ class CentralTabWidget(QtGui.QTabWidget):
             elif attr.attrType() == "code":
                 field = fields.TextEditField(attr.name(), value = attr.value(), attribute = attr)
             elif attr.attrType() == "file":
-                field = fields.fileBrowserField(label = attr.name(), filter = "",value = attr.value(), attribute = attr)
+                field = fields.FileBrowserField(label = attr.name(), filter = "",value = attr.value(), attribute = attr)
+            elif attr.attrType() == "dir":
+                field = fields.DirBrowserField(label = attr.name(), value = attr.value(), attribute = attr)
             
             #add the field to the layout
             self._setupAttrsLayout.addWidget(field)

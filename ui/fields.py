@@ -7,6 +7,7 @@ from PyQt4 import QtGui, QtCore
 from japeto.ui import models
 from japeto.mlRig import ml_graph
 from maya import cmds
+import os
 
 class BaseField(QtGui.QWidget):
     def __init__(self, label, value = None, description = str(), parent = None, attribute = None):
@@ -84,13 +85,25 @@ class LineEditField(BaseField):
         #set lineEdit text
         if not source == self._lineEdit:
             self._lineEdit.setText(value)
+
+class DirBrowserField(LineEditField):
+    def __init__(self, *args, **kwargs):
+        super(DirBrowserField, self).__init__(*args, **kwargs)
+        self._dirBrowseButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/folder.png') ),'')
+        self._dirBrowseButton.clicked.connect(self._getDir)
+        self._layout.addWidget(self._dirBrowseButton)
+        
+    def _getDir(self,index):
+        dir = QtGui.QFileDialog.getExistingDirectory(self, 'save', str(cmds.workspace(q = True, dir = True)))
             
-class fileBrowserField(LineEditField):
+        self.setText(str(dir))
+        
+class FileBrowserField(LineEditField):
     def __init__(self, mode = 'save', filter = "*.py", *args, **kwargs):
-        super(fileBrowserField, self).__init__(*args, **kwargs)
+        super(FileBrowserField, self).__init__(*args, **kwargs)
         self.__mode = mode.lower()
         self.__filter = filter
-        self._fileBrowseButton = QtGui.QPushButton('...')
+        self._fileBrowseButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/folder.png') ),'')
         self._fileBrowseButton.clicked.connect(self._getFile)
         self._layout.addWidget(self._fileBrowseButton)
         
@@ -148,12 +161,14 @@ class ListField(BaseField):
 
         #main menu actions
         mainMenu.addSeparator()
+        addNodeAction = mainMenu.addAction('Add Item')
         removeNodeAction = mainMenu.addAction('Remove Item')
+        QtCore.QObject.connect(addNodeAction, QtCore.SIGNAL('triggered()'), self.__addDialog)
         QtCore.QObject.connect(removeNodeAction, QtCore.SIGNAL('triggered()'), self._removeSelectedNode)
         
         mainMenu.popup(QtGui.QCursor.pos())     
         
-    def _removeSelectedNode(self):        
+    def _removeSelectedNode(self):
         index = self._listView.currentIndex()
         
         node = self._selectedNode()
@@ -165,6 +180,20 @@ class ListField(BaseField):
             self._model.endRemoveRows()
             del node
             self.setValue(self.listGraph.nodeNames())
+            
+    def _addNode(self,value):
+        if not isinstance(self.value(),list):
+            self.setValue([value])
+        else:
+            self.setValue(self.value().append(value))
+            
+        self.listGraph.addNode(value)
+        self._model = models.LayerGraphModel(self.listGraph)
+        self._listView.setModel(self._model)
+        
+    def __addDialog(self,*args):
+        dialog = QtGui.QDialog(self)
+        dialog.exec_()
         
     def _selectedNode(self):
         '''
@@ -176,7 +205,6 @@ class ListField(BaseField):
             return None
         
         return self._model.itemFromIndex(index)
-
 
 class TextEditField(BaseField):
     def __init__(self, *args, **kwargs):
@@ -193,7 +221,7 @@ class TextEditField(BaseField):
 
     def setText(self):
         self.setValue(str(self._textEdit.toPlainText()).replace('\n', ' '))
-        
+
 class IntField(BaseField):
     def __init__(self, label, value = 0, description = str(), parent = None, min = -100, max = 100, **kwargs):
         super(IntField, self).__init__(label, value, description, parent, **kwargs)
@@ -234,10 +262,7 @@ class IntField(BaseField):
         super(IntField, self).setValue(int(value))
         
         return super(IntField,self).value()
-
-
-
-                        
+                       
 class VectorField(BaseField):
     def __init__(self, *args, **kwargs):
         super(VectorField, self).__init__(*args,**kwargs)

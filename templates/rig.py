@@ -273,12 +273,12 @@ class Rig(ml_graph.MlGraph):
         self.register('Build', self.build)
         self.register('Post-Build', self.postBuild)
         self.register('Utils', ml_node.MlNode('utils'))
-        self.register('Export Controls', self.exportControls, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
-        self.register('Export Joints', self.exportJoints, 'utils', filepath = str(cmds.workspace(q = True, dir = True)))
+        self.register('Export Controls', self.exportControls, 'utils', directory = str(cmds.workspace(q = True, dir = True)))
+        self.register('Export Joints', self.exportJoints, 'utils', directory = str(cmds.workspace(q = True, dir = True)))
         self.register('Mirror', self.mirror, 'utils', side = common.LEFT)
         
         for node in ['exportControls', 'exportJoints']:
-            self.getNodeByName(node).getAttributeByName('filepath').setAttrType('file')
+            self.getNodeByName(node).getAttributeByName('directory').setAttrType('dir')
         
         return True
 
