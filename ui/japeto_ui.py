@@ -46,8 +46,8 @@ class CentralTabWidget(QtGui.QTabWidget):
         self._setupTreeFilter = QtGui.QLineEdit()
         self._setupTreeView = QtGui.QTreeView()
         self._setupTreeView.setAlternatingRowColors(True)
-        self._setupTreeView.setDragEnabled( True )
-        self._setupTreeView.setAcceptDrops( True )
+        self._setupTreeView.setDragEnabled(True)
+        self._setupTreeView.setAcceptDrops(True)
         
         #file view
         self._fileView = widgets.FileView()
@@ -273,8 +273,8 @@ class CentralTabWidget(QtGui.QTabWidget):
                     newNodeCmd = '%s.%s' % (nodeName, nodeName.title())
                     newNode = eval(newNodeCmd)
                     newNode = newNode(str(nodeName))
-                    
                 
+                newNode.setColor(node.color())
                 
                 self._model.insertRows(rootNode.childCount(), 1,
                                        parent = QtCore.QModelIndex(),
@@ -400,10 +400,12 @@ class JapetoWindow(QtGui.QMainWindow):
         '''
         super(JapetoWindow, self).__init__(parent)
         #load in the style sheet
+        '''
         f = open(os.path.join(os.path.dirname(__file__),'japeto_styleSheet.qss'), 'r')
         styleData = f.read()
         self.setStyleSheet(styleData)
         f.close()
+        '''
         
         #set the window title and central widget
         self.setWindowTitle('Japeto Rig Build UI')

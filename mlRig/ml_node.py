@@ -31,12 +31,16 @@ class MlNode(object):
     
     def __init__(self, name, parent = str()):
         #declare class variable
-        self.__name       = name
-        self.__parent     = parent
-        self.__children   = ml_dict.MlDict()
+        self.__name = name
+        self.__parent = parent
+        self.__children = ml_dict.MlDict()
         self.__attributes = ml_dict.MlDict()
-        self.__enabled    = True
-        self.niceName     = str()
+        self.__enabled = True
+        self.__dirty = True
+        self.__running = False
+        self.__color = (255,255,255)
+        self.niceName = str()
+        
         
         if parent:
             if not MlNode.isValid(parent):
@@ -44,7 +48,7 @@ class MlNode(object):
             parent.addChild(self)
 
     def __repr__(self):
-        return "< %s %s >" % (self.__class__.__name__, self.__name)
+        return "< {0} {1} >".format(self.__class__.__name__, self.__name)
     
     def name(self):
         return self.__name
@@ -60,7 +64,13 @@ class MlNode(object):
     
     def disable(self):
         self.__enabled = False
-        
+    
+    def dirty(self):
+        return self.__dirty
+    
+    def color(self):
+        return self.__color
+    
     def attributes(self):
         return self.__attributes.values()
     
@@ -68,8 +78,29 @@ class MlNode(object):
         if index != None and not index > len(self.__attributes.keys()):
             return self.__attributes.values()[index]
 
+    def running(self):
+        return self.__running
+    
+    def setRunning(self,value):
+        if not isinstance(value,bool):
+            raise TypeError("{0} must be a {1}".format(value,type(bool)))
+        
+        self.__running = True
+
     def setName(self, value):
         self.__name  = value
+    
+    def setDirty(self,value):
+        if not isinstance(value,bool):
+            raise TypeError("{0} must be a {1}".format(value,type(bool)))
+        
+        self.__dirty = True
+        
+    def setColor(self,value):
+        if not isinstance(value,list) and not isinstance(value,tuple):
+            msg = "{0} must be a RGB value in a form of {1} or {2}"
+            raise TypeError(msg.format(value,type(tuple),type(list)))
+        self.__color = value
         
     def active(self):
         return self.__enabled

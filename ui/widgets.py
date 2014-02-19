@@ -50,8 +50,8 @@ class InheritTemplateDialog(QtGui.QDialog):
         
         layout = QtGui.QVBoxLayout()
         buttonLayout = QtGui.QHBoxLayout()
-        self.okButton = QtGui.QPushButton('Ok')
-        self.closeButton = QtGui.QPushButton('Close')
+        self.okButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/ok.png') ),'Ok')
+        self.closeButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/cancel.png') ),'Close')
         
         
         self.closeButton.clicked.connect(self._close)
@@ -62,8 +62,8 @@ class InheritTemplateDialog(QtGui.QDialog):
         
         self.templateNameLineEdit = fields.LineEditField('New Template Name')
         
-        buttonLayout.addWidget(self.okButton)
         buttonLayout.addWidget(self.closeButton)
+        buttonLayout.addWidget(self.okButton)
         layout.addWidget(self.templateNameLineEdit)
         layout.addWidget(self.comboBox)
         layout.addLayout(buttonLayout)
@@ -116,21 +116,21 @@ class LoadTemplateDialog(QtGui.QDialog):
         searchLayout = QtGui.QHBoxLayout()
         buttonLayout = QtGui.QHBoxLayout()
         
-        self.searchButton = QtGui.QPushButton('...')
+        self.searchButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/folder.png') ),'')
         self.comboBox = QtGui.QComboBox(self)
         self.comboBox.addItems(self._getTemplates())
         self.searchButton.clicked.connect(self._getTemplateFile)
         
-        self.okButton = QtGui.QPushButton('Ok')
-        self.closeButton = QtGui.QPushButton('Close')
+        self.okButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/ok.png') ),'Ok')
+        self.closeButton = QtGui.QPushButton(QtGui.QIcon( os.path.join(os.path.dirname( __file__ ), 'icons/cancel.png') ),'Close')
         
         self.closeButton.clicked.connect(self._close)
         self.okButton.clicked.connect(self._getChosenTemplate)
         
         searchLayout.addWidget(self.comboBox)
         searchLayout.addWidget(self.searchButton)
-        buttonLayout.addWidget(self.okButton)
         buttonLayout.addWidget(self.closeButton)
+        buttonLayout.addWidget(self.okButton)
         layout.addLayout(searchLayout)
         layout.addLayout(buttonLayout)
         
@@ -165,8 +165,7 @@ class LoadTemplateDialog(QtGui.QDialog):
         fileName, fileExt = os.path.splitext(filepath)
         
         self.template = fileName.split('/')[-1]
-        self.templateFile = filepath.replace("/%s%s" % (self.template, fileExt), "/")
-        print self.templateFile
+        self.templateFile = filepath.replace("/{0}{1}".format(self.template, fileExt), "/")
         self.comboBox.addItem(self.template)
         self.comboBox.setCurrentIndex(self.comboBox.count() - 1)
         
@@ -183,7 +182,7 @@ class LoadTemplateDialog(QtGui.QDialog):
         Assigns the chosen template to the template attribute on this dialog
         '''
         self.template = self.comboBox.currentText()
-        templateFile = "%s%s" % (self.template,LoadTemplateDialog.__filter__.replace('*.', '.'))
+        templateFile = "{0}{1}".format(self.template,LoadTemplateDialog.__filter__.replace('*.', '.'))
         if not templateFile in os.listdir(self.templateFile):
             self.templateFile = LoadTemplateDialog.__defaultPath__
         

@@ -20,6 +20,8 @@ from japeto.libs import joint
 from japeto.libs import control
 from japeto.libs import fileIO
 from japeto.mlRig import ml_node
+reload(ml_node)
+reload(control)
 
 #components
 import japeto.components.puppet as puppet
@@ -77,6 +79,7 @@ class Component(ml_node.MlNode):
         self.setupConstraints = list()
         self._buildArguments  = dict()
         self._puppetNode      = str()
+        self.setColor((113,193,113))
         
 
     #----------------------------------
@@ -165,7 +168,7 @@ class Component(ml_node.MlNode):
         self.puppetNode = puppet.create(self.name())
         
         #Create master guide control and 
-        control.createSetup('%s_master' % self.name(), type = 'square')
+        control.createSetup('{0}_master'.format(self.name()), type = 'square')
         common.setColor(self.masterGuide, 'darkred')
         
         #create hierarchy
@@ -389,7 +392,6 @@ class Component(ml_node.MlNode):
         if guideAttrs:
             for attr in guideAttrs:
                 guides.append(attr.split('.')[0])
-            
         return guides
 
 

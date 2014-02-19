@@ -10,6 +10,7 @@ import os
 
 #Japeto modules
 from japeto.mlRig import ml_graph, ml_node
+reload(ml_node)
 from japeto import components, nodes
 
 #import maya modules
@@ -96,10 +97,17 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
             return node.name()
         elif role == self.NodeRole:
             return node
-    
+        elif role == QtCore.Qt.ForegroundRole:#DecorationRole:
+            return QtGui.QColor(*node.color())
+            '''
+            if node.dirty():
+                return QtGui.QColor("blue")
+            elif not node.dirty():
+                return QtGui.QColor("green")
+            '''
     def headerData(self,section, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:  
-            return QtCore.QVariant('Graph')  
+            return QtCore.QVariant('{0} Graph'.format(self._graph.name()))  
      
         return None  
         
@@ -296,9 +304,15 @@ class FileGraphModel(LayerGraphModel):
         #disable the top nodes
         self._components.disable()
         self._nodes.disable()
-                
+        
+        #set the colors for the node types
+        self._nodes.setColor((198,113,113))
+        self._components.setColor((113,198,113))
+        
         self._getComponents()
         self._getNodes()
+        
+        
         
         super(FileGraphModel, self).__init__(self._graph,parent)
     
@@ -326,7 +340,8 @@ class FileGraphModel(LayerGraphModel):
         for _file in files:
             if _file not in nullFiles and '.pyc' not in _file:
                 if '.py' in _file and _file not in fileList:
-                    self._graph.addNode(_file.split('.')[0], self._components)
+                    node = self._graph.addNode(_file.split('.')[0], self._components)
+                    node.setColor(self._components.color())
                 #end if
                 
     def _getNodes(self):
@@ -339,5 +354,6 @@ class FileGraphModel(LayerGraphModel):
         for _file in files:
             if _file not in nullFiles and '.pyc' not in _file:
                 if '.py' in _file and _file not in fileList:
-                    self._graph.addNode(_file.split('.')[0], self._nodes)
+                    node = self._graph.addNode(_file.split('.')[0], self._nodes)
+                    node.setColor(self._nodes.color())
                 #end if

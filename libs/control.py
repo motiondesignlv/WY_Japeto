@@ -61,7 +61,7 @@ def create(name, type = 'circle', parent = None, color = 'yellow'):
         if type == node:
             for i, shape in enumerate(data[node]['shapes']):
                 if i > 0:
-                    shapeName = '%s%s' % (name, i)
+                    shapeName = '{0}{1}'.format(name, i)
                 else:
                     shapeName = name
                 #create the curve for the control
@@ -84,8 +84,8 @@ def createSetup(name, type = 'circle', parent = None):
     #import data
     data = pyon.load(CONTROL_FILEPATH)
     #create zero group for the control
-    zeroGrp = cmds.createNode('transform', n = '%s_%s' % (name, common.ZERO))
-    ctrl = cmds.createNode('transform', n = '%s_%s' % (name, common.GUIDES))
+    zeroGrp = cmds.createNode('transform', n = '{0}_{1}'.format(name, common.ZERO))
+    ctrl = cmds.createNode('transform', n = '{0}_{1}'.format(name, common.GUIDES))
     cmds.parent(ctrl, zeroGrp) #parent control to the zero group
     tag_as_control(ctrl) #tag the control
 
@@ -95,7 +95,7 @@ def createSetup(name, type = 'circle', parent = None):
                 #create the curve for the control
                 crv = curve.createFromPoints(data[node]['shapes'][shape]['cvPosition'],
                          degree = data[node]['shapes'][shape]['degree'],
-                         name = '%s%s' % (name,i))
+                         name = '{0}{1}'.format(name,i))
                 crvShape = common.getShapes(crv)[0]#find the shape
                 #parent the shape to the transform
                 cmds.parent(crvShape, ctrl, s =True, r = True)
@@ -304,12 +304,12 @@ def load(filepath, name = None, type = 'circle'):
 
 def tag_as_control(ctrl):
     '''
-    @param control: node to tag as a control
-    @type control: *str* or *list*
+    :param control: node to tag as a control
+    :type control: str or list
     '''
     if not isinstance(ctrl, list):
         if not isinstance(ctrl, basestring):
-            raise TypeError('%s must be of type *str*, *unicode*, or *list*' % ctrl)
+            raise TypeError('{0} must be of type str, unicode, or list'.format(ctrl))
         ctrls = common.toList(ctrl)
     else:
         ctrls = common.toList(ctrl)
@@ -320,15 +320,16 @@ def tag_as_control(ctrl):
     return tagAttr
 
 
+
 def getControls(asset = None):
     '''
     Gets all controls connect to an asset or every control in the scene depending on user input
 
-    @param asset: Asset you wish to look for controls on
-    @type asset: *str*
+    :param asset: Asset you wish to look for controls on
+    :type asset: str
 
-    @return: List of controls
-    @rtype: *list*
+    :return: List of controls
+    :rtype: list
     '''
     controls = None
     if not asset:

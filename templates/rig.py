@@ -297,7 +297,7 @@ class Rig(ml_graph.MlGraph):
                     continue
                 if node._getSide() == side:
                     guides = node.getGuides()
-
+                    guides.insert(0,node.masterGuide)
                     for guide in guides:
                         description = common.getDescription(guide)
                         joint.mirror(guide, '%s_%s' % (common.LEFT, description), 
@@ -308,7 +308,7 @@ class Rig(ml_graph.MlGraph):
                     continue
                 if node._getSide() == side:
                     guides = node.getGuides()
-
+                    guides.insert(0,node.masterGuide)
                     for guide in guides:
                         description = common.getDescription(guide)
                         joint.mirror(guide,

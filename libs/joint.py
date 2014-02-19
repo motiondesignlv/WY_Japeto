@@ -144,7 +144,7 @@ def mirror (joint, search = common.LEFT, replace = common.RIGHT, axis = "x"):
             jointGroup = cmds.createNode('transform')
             children   = cmds.listRelatives( obj2, type='transform' )
             if children:
-                cmds.parent( children, jointGroup )
+                cmds.parent( set(children), jointGroup )
 
             # get position and rotation
             pos = cmds.xform( obj1, q=True, rp=True, ws=True )
