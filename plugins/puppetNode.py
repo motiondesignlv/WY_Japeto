@@ -8,8 +8,8 @@ puppetNodeID = OpenMaya.MTypeId(0x122ff)
 matrixNodeID = OpenMayaMPx.MPxTransformationMatrix().baseTransformationMatrixId
 
 class PuppetNode(OpenMayaMPx.MPxTransform):
-    parentAttr = OpenMaya.MObject()
-    childAttr = OpenMaya.MObject()
+    aTest = OpenMaya.MObject()
+    aOutValue = OpenMaya.MObject()
     
     def __init__(self, transform=None):
         if transform is None:
@@ -18,13 +18,40 @@ class PuppetNode(OpenMayaMPx.MPxTransform):
             OpenMayaMPx.MPxTransform.__init__(self, transform)
     
     def compute(self, plug, dataBlock):
-        return True
+        testValue = dataBlock.inputValue(self.aTest).asFloat()
+        
+        print "I am in the compute!", testValue
+    
+    def connectionMade(self,plug,otherPlug,asSrc):
+        print plug,otherPlug,asSrc
+        value = plug.asMDataHandle().asFloat()
+        print "I am in the connectionMade!"
+        print value
 
 def nodeCreator():
     return OpenMayaMPx.asMPxPtr( PuppetNode() )
 
 def nodeInitializer():
-    return True
+    fnaTest = OpenMaya.MFnNumericAttribute()
+    fnaOutValue = OpenMaya.MFnNumericAttribute()
+    
+    PuppetNode.aTest = fnaTest.create('test', 'test', OpenMaya.MFnNumericData.kFloat, 0.0)
+    
+    fnaTest.setKeyable(True)
+    fnaTest.setReadable(True)
+    fnaTest.setWritable(True)
+    fnaTest.setStorable(True)
+    
+    PuppetNode.aOutValue = fnaOutValue.create('outValue', 'outValue', OpenMaya.MFnNumericData.kFloat, 0.0)
+    
+    fnaOutValue.setReadable(True)
+    fnaOutValue.setWritable(False)
+    fnaOutValue.setKeyable(False)
+    fnaOutValue.setStorable(True)
+    
+    PuppetNode.addAttribute(PuppetNode.aTest)
+    PuppetNode.addAttribute(PuppetNode.aOutValue)
+    PuppetNode.attributeAffects(PuppetNode.aTest,PuppetNode.aOutValue)
         
 # initialize the script plug-in
 def initializePlugin(mobject):
