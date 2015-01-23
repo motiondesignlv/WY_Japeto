@@ -214,3 +214,47 @@ class SkinCluster(object):
         pyon.save(self.data, filePath)
         
     
+
+
+
+def createCluster(geometry,name,handle=str()):
+    '''
+    Will create and return a cluster with the handle given.
+
+    :param geometry: geometry you wish to have the cluster deform.
+    :type geometry: str
+
+    :param name: Name for the cluster that will be created.
+    :type name: str
+
+    :param handle: Handle you wish to use for the cluster.
+    :type handle: str
+
+    :return: Cluster name
+    :rtype: str
+    '''
+    if not isinstance(geometry,basestring):
+        raise TypeError("{0} must be a str. and exist in the scene.".format(geometry))
+
+    if not cmds.objExists(geometry):
+        raise RuntimeError("{0} does not exist in the current Maya session.".format(geometry))
+
+    currentSelection = cmds.ls(sl=True)
+
+    cmds.select(geometry,r=True)
+
+    #select the geometry in the scene
+    if handle and cmds.objExists(handle):
+        cls,clsHandle = cmds.cluster(wn=(handle,handle))
+    else:
+        cls, clsHandle = cmds.cluster()
+
+    cmds.cluster(cls,e=True,g=geometry)
+    cls = cmds.rename(cls,name)
+    if not handle == clsHandle:
+        cmds.rename(clsHandle,handle)
+
+    if currentSelection:
+        cmds.select(currentSelection)
+
+    return cls

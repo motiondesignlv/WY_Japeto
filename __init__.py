@@ -58,7 +58,6 @@ def importModule(modulePath, force = False):
     # This returns module as an object
     return module
 
-
 #File I/O
 #-------------------------------
 def getSystem():
@@ -81,7 +80,6 @@ def getSystemVersion():
     returns version of operating system
     '''
     return platform.version()
-
 
 def getHomeDir():
     '''

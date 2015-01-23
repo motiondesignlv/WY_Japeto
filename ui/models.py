@@ -99,6 +99,11 @@ class LayerGraphModel(QtCore.QAbstractItemModel):
             return node
         elif role == QtCore.Qt.ForegroundRole:#DecorationRole:
             return QtGui.QColor(*node.color())
+        elif role == QtCore.Qt.FontRole:
+            #Font
+            font = QtGui.QFont('Ubuntu Mono')
+            font.setPointSize(14)
+            return font
             '''
             if node.dirty():
                 return QtGui.QColor("blue")
